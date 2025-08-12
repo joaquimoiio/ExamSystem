@@ -161,11 +161,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['isActive']
-      },
-      {
-        fields: ['tags'],
-        using: 'gin'
       }
+      // Removido o índice GIN problemático temporariamente
+      // Podemos criar manualmente após a sincronização se necessário
     ]
   });
 
