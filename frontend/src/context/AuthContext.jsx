@@ -1,4 +1,3 @@
-// AuthContext.jsx - Versão corrigida
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { authService } from '../services/auth'
 import { toast } from 'react-toastify'
@@ -9,8 +8,7 @@ const initialState = {
   user: null,
   token: null,
   loading: true,
-  error: null,
-  isAuthenticated: false
+  error: null
 }
 
 const authReducer = (state, action) => {
@@ -23,8 +21,7 @@ const authReducer = (state, action) => {
         user: action.payload.user,
         token: action.payload.token,
         loading: false,
-        error: null,
-        isAuthenticated: true
+        error: null
       }
     case 'LOGIN_FAILURE':
       return {
@@ -32,8 +29,7 @@ const authReducer = (state, action) => {
         user: null,
         token: null,
         loading: false,
-        error: action.payload,
-        isAuthenticated: false
+        error: action.payload
       }
     case 'LOGOUT':
       return {
@@ -41,8 +37,7 @@ const authReducer = (state, action) => {
         user: null,
         token: null,
         loading: false,
-        error: null,
-        isAuthenticated: false
+        error: null
       }
     case 'UPDATE_USER':
       return {
@@ -67,29 +62,20 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token')
       if (token) {
-        // Verificar se o token é válido fazendo uma requisição ao perfil
         const response = await authService.getProfile()
-        
-        if (response.data && response.data.user) {
-          dispatch({
-            type: 'LOGIN_SUCCESS',
-            payload: {
-              user: response.data.user,
-              token
-            }
-          })
-        } else {
-          // Token inválido, limpar localStorage
-          localStorage.removeItem('token')
-          localStorage.removeItem('refreshToken')
-          dispatch({ type: 'SET_LOADING', payload: false })
-        }
+        // Corrigir estrutura de dados para getProfile também
+        const userData = response.data.data || response.data
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: {
+            user: userData.user,
+            token
+          }
+        })
       } else {
         dispatch({ type: 'SET_LOADING', payload: false })
       }
     } catch (error) {
-      console.error('Erro ao verificar autenticação:', error)
-      // Se houver erro na verificação, limpar tokens
       localStorage.removeItem('token')
       localStorage.removeItem('refreshToken')
       dispatch({ type: 'SET_LOADING', payload: false })
@@ -98,54 +84,32 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      console.log('AuthContext: Iniciando login...', credentials)
       dispatch({ type: 'SET_LOADING', payload: true })
-      
       const response = await authService.login(credentials)
-      console.log('AuthContext: Resposta do login:', response)
       
-      if (!response.data) {
-        throw new Error('Resposta inválida do servidor')
-      }
-
-      const { token, refreshToken, user } = response.data
+      // CORREÇÃO: Acessar a estrutura correta response.data.data
+      const { data } = response.data
       
-      if (!token || !user) {
+      if (!data?.token || !data?.user) {
         throw new Error('Token ou dados do usuário não recebidos')
       }
       
-      // Salvar tokens no localStorage
-      localStorage.setItem('token', token)
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken)
-      }
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('refreshToken', data.refreshToken)
       
-      // Atualizar estado
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user, token }
+        payload: data
       })
       
       toast.success('Login realizado com sucesso!')
-      console.log('AuthContext: Login realizado com sucesso')
-      
-      return response.data
+      return data
     } catch (error) {
-      console.error('AuthContext: Erro no login:', error)
-      
-      let errorMessage = 'Erro ao fazer login'
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
-      } else if (error.message) {
-        errorMessage = error.message
-      }
-      
+      const errorMessage = error.response?.data?.message || 'Erro ao fazer login'
       dispatch({
         type: 'LOGIN_FAILURE',
         payload: errorMessage
       })
-      
       toast.error(errorMessage)
       throw error
     }
@@ -153,54 +117,32 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      console.log('AuthContext: Iniciando registro...', userData)
       dispatch({ type: 'SET_LOADING', payload: true })
-      
       const response = await authService.register(userData)
-      console.log('AuthContext: Resposta do registro:', response)
       
-      if (!response.data) {
-        throw new Error('Resposta inválida do servidor')
-      }
-
-      const { token, refreshToken, user } = response.data
+      // CORREÇÃO: Acessar a estrutura correta response.data.data
+      const { data } = response.data
       
-      if (!token || !user) {
+      if (!data?.token || !data?.user) {
         throw new Error('Token ou dados do usuário não recebidos')
       }
       
-      // Salvar tokens no localStorage
-      localStorage.setItem('token', token)
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken)
-      }
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('refreshToken', data.refreshToken)
       
-      // Atualizar estado
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user, token }
+        payload: data
       })
       
       toast.success('Conta criada com sucesso!')
-      console.log('AuthContext: Registro realizado com sucesso')
-      
-      return response.data
+      return data
     } catch (error) {
-      console.error('AuthContext: Erro no registro:', error)
-      
-      let errorMessage = 'Erro ao criar conta'
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
-      } else if (error.message) {
-        errorMessage = error.message
-      }
-      
+      const errorMessage = error.response?.data?.message || 'Erro ao criar conta'
       dispatch({
         type: 'LOGIN_FAILURE',
         payload: errorMessage
       })
-      
       toast.error(errorMessage)
       throw error
     }
@@ -208,29 +150,28 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      console.log('AuthContext: Iniciando logout...')
       await authService.logout()
     } catch (error) {
       console.error('Error during logout:', error)
     } finally {
-      // Sempre limpar o estado local, mesmo se a API falhar
       localStorage.removeItem('token')
       localStorage.removeItem('refreshToken')
       dispatch({ type: 'LOGOUT' })
       toast.success('Logout realizado com sucesso!')
-      console.log('AuthContext: Logout realizado')
     }
   }
 
   const updateProfile = async (profileData) => {
     try {
       const response = await authService.updateProfile(profileData)
+      // Corrigir estrutura de dados para updateProfile também
+      const userData = response.data.data || response.data
       dispatch({
         type: 'UPDATE_USER',
-        payload: response.data.user
+        payload: userData.user
       })
       toast.success('Perfil atualizado com sucesso!')
-      return response.data
+      return userData
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Erro ao atualizar perfil'
       toast.error(errorMessage)
