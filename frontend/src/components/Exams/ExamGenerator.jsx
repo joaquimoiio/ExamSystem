@@ -1,205 +1,193 @@
 import React, { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
+import { useQuery } from '@tanstack/react-query'
 import Modal from '../Common/Modal'
 import Button from '../Common/Button'
 import Input from '../Common/Input'
-import Loading from '../Common/Loading'
-import { useApi } from '../../hooks/useApi'
-import { apiClient } from '../../services/api'
-import { QUESTION_DIFFICULTIES, QUESTION_DIFFICULTY_LABELS } from '../../utils/constants'
+import { subjectService } from '../../services/subject'
+import { examService } from '../../services/exam'
+import { showOperationToast } from '../Common/Toast'
+import { QUESTION_DIFFICULTY_LABELS } from '../../utils/constants'
 
-const ExamGenerator = ({
-  isOpen,
-  onClose,
-  onExamGenerated,
-  loading = false
+const ExamGenerator = ({ 
+  isOpen, 
+  onClose, 
+  onExamGenerated, 
+  preSelectedSubjectId = null 
 }) => {
-  const [selectedSubjects, setSelectedSubjects] = useState([])
-  const [questionFilters, setQuestionFilters] = useState({})
+  const [loading, setLoading] = useState(false)
   const [generationStep, setGenerationStep] = useState(1)
-  const [availableQuestions, setAvailableQuestions] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
-
-  const { useApiQuery } = useApi()
+  const [availableQuestions, setAvailableQuestions] = useState([])
 
   const {
     register,
     handleSubmit,
+    formState: { errors, isValid },
     watch,
-    setValue,
     reset,
-    formState: { errors, isValid }
+    setValue,
+    control
   } = useForm({
+    mode: 'onChange',
     defaultValues: {
       title: '',
       description: '',
-      subjectIds: [],
       totalQuestions: 10,
+      easyQuestions: 4,
+      mediumQuestions: 4,
+      hardQuestions: 2,
+      totalVariations: 3,
       timeLimit: 60,
-      difficulty: {
-        easy: 30,
-        medium: 50,
-        hard: 20
-      },
+      passingScore: 6,
+      instructions: '',
+      allowReview: true,
+      showCorrectAnswers: true,
       randomizeQuestions: true,
       randomizeAlternatives: true,
-      includeExplanations: false,
-      allowRetake: false,
-      showResultsImmediately: true
+      subjectIds: preSelectedSubjectId ? [preSelectedSubjectId] : []
     }
   })
 
-  // Fetch subjects
-  const { data: subjectsData } = useApiQuery(
-    ['subjects'],
-    () => apiClient.get('/subjects'),
-    { enabled: isOpen }
-  )
-
-  const subjects = subjectsData?.data?.subjects || []
+  // Watch form values
   const watchedSubjectIds = watch('subjectIds')
   const watchedTotalQuestions = watch('totalQuestions')
-  const watchedDifficulty = watch('difficulty')
+  const watchedEasyQuestions = watch('easyQuestions')
+  const watchedMediumQuestions = watch('mediumQuestions')
+  const watchedHardQuestions = watch('hardQuestions')
 
-  // Fetch questions when subjects change
+  // Fetch subjects
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: () => subjectService.getSubjects({ limit: 100 }),
+    select: (data) => data.data?.subjects || []
+  })
+
+  // Set pre-selected subject
   useEffect(() => {
-    if (watchedSubjectIds?.length > 0) {
-      fetchAvailableQuestions()
+    if (preSelectedSubjectId && subjects.length > 0) {
+      setValue('subjectIds', [preSelectedSubjectId])
     }
-  }, [watchedSubjectIds])
+  }, [preSelectedSubjectId, subjects, setValue])
 
-  const fetchAvailableQuestions = async () => {
-    try {
-      const response = await apiClient.get('/questions', {
-        params: {
-          subjectIds: watchedSubjectIds.join(','),
-          active: true,
-          limit: 1000
-        }
-      })
-      setAvailableQuestions(response.data.questions || [])
-    } catch (error) {
-      console.error('Error fetching questions:', error)
-      setAvailableQuestions([])
-    }
-  }
-
+  // Generate automatic question distribution
   const generateQuestionDistribution = () => {
-    const total = watchedTotalQuestions
-    const difficulty = watchedDifficulty
+    const total = watchedTotalQuestions || 10
+    const easy = Math.ceil(total * 0.4)
+    const medium = Math.ceil(total * 0.4)
+    const hard = total - easy - medium
 
-    const distribution = {
-      easy: Math.round((total * difficulty.easy) / 100),
-      medium: Math.round((total * difficulty.medium) / 100),
-      hard: Math.round((total * difficulty.hard) / 100)
-    }
-
-    // Adjust for rounding differences
-    const sum = distribution.easy + distribution.medium + distribution.hard
-    if (sum !== total) {
-      const diff = total - sum
-      if (diff > 0) {
-        distribution.medium += diff
-      } else {
-        distribution.medium = Math.max(0, distribution.medium + diff)
-      }
-    }
-
-    return distribution
+    return { easy, medium, hard }
   }
 
-  const getQuestionsByDifficulty = (difficulty) => {
-    return availableQuestions.filter(q => q.difficulty === difficulty)
-  }
-
+  // Validate if exam can be generated
   const canGenerateExam = () => {
-    const distribution = generateQuestionDistribution()
-    const easyQuestions = getQuestionsByDifficulty('easy').length
-    const mediumQuestions = getQuestionsByDifficulty('medium').length
-    const hardQuestions = getQuestionsByDifficulty('hard').length
+    const hasSubjects = watchedSubjectIds && watchedSubjectIds.length > 0
+    const hasValidQuestionCount = watchedTotalQuestions > 0
+    const hasValidDistribution = 
+      (watchedEasyQuestions + watchedMediumQuestions + watchedHardQuestions) === watchedTotalQuestions
 
-    return (
-      easyQuestions >= distribution.easy &&
-      mediumQuestions >= distribution.medium &&
-      hardQuestions >= distribution.hard
-    )
+    return hasSubjects && hasValidQuestionCount && hasValidDistribution
   }
 
-  const handleSubjectToggle = (subjectId) => {
-    const currentSubjects = watchedSubjectIds || []
-    const newSubjects = currentSubjects.includes(subjectId)
-      ? currentSubjects.filter(id => id !== subjectId)
-      : [...currentSubjects, subjectId]
-    
-    setValue('subjectIds', newSubjects)
-    setSelectedSubjects(newSubjects)
-  }
-
-  const handleDifficultyChange = (difficulty, value) => {
-    const currentDifficulty = watchedDifficulty
-    const newDifficulty = {
-      ...currentDifficulty,
-      [difficulty]: parseInt(value)
-    }
-    setValue('difficulty', newDifficulty)
-  }
-
-  const handleAutoSelectQuestions = () => {
-    const distribution = generateQuestionDistribution()
-    const selected = []
-
-    // Select questions for each difficulty
-    Object.entries(distribution).forEach(([difficulty, count]) => {
-      const questionsForDifficulty = getQuestionsByDifficulty(difficulty)
-      const shuffled = [...questionsForDifficulty].sort(() => Math.random() - 0.5)
-      selected.push(...shuffled.slice(0, count))
-    })
-
-    setSelectedQuestions(selected)
-  }
-
-  const handleQuestionToggle = (question) => {
-    const isSelected = selectedQuestions.some(q => q.id === question.id)
-    if (isSelected) {
-      setSelectedQuestions(selectedQuestions.filter(q => q.id !== question.id))
-    } else if (selectedQuestions.length < watchedTotalQuestions) {
-      setSelectedQuestions([...selectedQuestions, question])
-    }
-  }
-
-  const handleNextStep = () => {
-    if (generationStep === 1 && canGenerateExam()) {
-      setGenerationStep(2)
-      handleAutoSelectQuestions()
+  const handleNextStep = async () => {
+    if (generationStep === 1) {
+      // Load available questions for manual selection
+      try {
+        const questionsPromises = watchedSubjectIds.map(subjectId =>
+          subjectService.getSubjectQuestions(subjectId)
+        )
+        const results = await Promise.all(questionsPromises)
+        const allQuestions = results.flatMap(result => result.data?.questions || [])
+        setAvailableQuestions(allQuestions)
+        setGenerationStep(2)
+      } catch (error) {
+        showOperationToast.error('carregamento das questões')
+      }
     }
   }
 
   const handlePrevStep = () => {
     if (generationStep === 2) {
       setGenerationStep(1)
-    }
-  }
-
-  const onSubmit = (data) => {
-    const examData = {
-      ...data,
-      questions: selectedQuestions.map(q => q.id),
-      generationType: 'manual'
-    }
-    
-    if (onExamGenerated) {
-      onExamGenerated(examData)
+      setSelectedQuestions([])
+      setAvailableQuestions([])
     }
   }
 
   const handleQuickGenerate = async (data) => {
-    const distribution = generateQuestionDistribution()
-    
+    try {
+      setLoading(true)
+      
+      const examData = {
+        ...data,
+        questionSelection: {
+          type: 'automatic',
+          distribution: generateQuestionDistribution(),
+          subjectIds: data.subjectIds
+        },
+        generationType: 'automatic'
+      }
+      
+      // Validar dados antes de enviar
+      if (!examData.title) {
+        showOperationToast.validationError('Título da prova é obrigatório')
+        return
+      }
+      
+      if (!examData.subjectIds || examData.subjectIds.length === 0) {
+        showOperationToast.validationError('Selecione pelo menos uma disciplina')
+        return
+      }
+      
+      if (examData.totalQuestions <= 0) {
+        showOperationToast.validationError('Número de questões deve ser maior que zero')
+        return
+      }
+      
+      const response = await examService.createExam(examData)
+      
+      if (response.data?.success) {
+        showOperationToast.created('Prova')
+        if (onExamGenerated) {
+          onExamGenerated(response.data.data.exam)
+        }
+        handleClose()
+      } else {
+        throw new Error(response.data?.message || 'Erro ao criar prova')
+      }
+      
+    } catch (error) {
+      console.error('Erro ao gerar prova:', error)
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        if (errorData.data?.missing) {
+          // Erro de questões insuficientes
+          const missing = errorData.data.missing
+          const missingText = Object.entries(missing)
+            .filter(([key, value]) => value > 0)
+            .map(([key, value]) => `${value} ${QUESTION_DIFFICULTY_LABELS[key].toLowerCase()}`)
+            .join(', ')
+          
+          showOperationToast.error(`Questões insuficientes. Faltam: ${missingText}`)
+        } else {
+          showOperationToast.error(errorData.message || 'Dados inválidos')
+        }
+      } else {
+        showOperationToast.error('criação da prova')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onSubmit = async (data) => {
     const examData = {
       ...data,
       questionSelection: {
         type: 'automatic',
-        distribution,
+        distribution: generateQuestionDistribution(),
         subjectIds: data.subjectIds
       },
       generationType: 'automatic'
@@ -382,326 +370,279 @@ const ExamGenerator = ({
                       key={subject.id}
                       className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors duration-200 ${
                         watchedSubjectIds?.includes(subject.id)
-                          ? 'border-blue-300 bg-blue-50'
-                          : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={watchedSubjectIds?.includes(subject.id) || false}
-                        onChange={() => handleSubjectToggle(subject.id)}
-                        className="sr-only"
-                      />
-                      <div 
-                        className="w-4 h-4 rounded mr-3 flex-shrink-0"
-                        style={{ backgroundColor: subject.color }}
-                      />
-                      <div className="flex-1">
-                        <span className="font-medium text-gray-900">
-                          {subject.name}
-                        </span>
-                        {subject.questionCounts?.total && (
-                          <span className="ml-2 text-sm text-gray-500">
-                            ({subject.questionCounts.total} questões)
-                          </span>
+                      <Controller
+                        name="subjectIds"
+                        control={control}
+                        render={({ field: { value, onChange } }) => (
+                          <input
+                            type="checkbox"
+                            checked={value?.includes(subject.id) || false}
+                            onChange={(e) => {
+                              const currentValue = value || []
+                              if (e.target.checked) {
+                                onChange([...currentValue, subject.id])
+                              } else {
+                                onChange(currentValue.filter(id => id !== subject.id))
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
                         )}
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex items-center">
+                          <div
+                            className="w-4 h-4 rounded mr-2"
+                            style={{ backgroundColor: subject.color }}
+                          />
+                          <span className="text-sm font-medium text-gray-900">
+                            {subject.name}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {subject.questionsCount || 0} questões disponíveis
+                        </p>
                       </div>
-                      {watchedSubjectIds?.includes(subject.id) && (
-                        <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
                     </label>
                   ))}
                 </div>
               )}
-              
-              {errors.subjectIds && (
-                <p className="mt-2 text-sm text-red-600">{errors.subjectIds.message}</p>
-              )}
             </div>
 
-            {/* Distribuição de Dificuldade */}
+            {/* Distribuição de Questões */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 Distribuição por Dificuldade
               </h3>
               
-              <div className="space-y-4">
-                {Object.entries(QUESTION_DIFFICULTIES).map(([key, difficulty]) => {
-                  const percentage = watchedDifficulty?.[difficulty] || 0
-                  const questionCount = Math.round((watchedTotalQuestions * percentage) / 100)
-                  const available = getQuestionsByDifficulty(difficulty).length
-                  
-                  return (
-                    <div key={difficulty} className="flex items-center space-x-4">
-                      <div className="w-20">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                          difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {QUESTION_DIFFICULTY_LABELS[difficulty]}
-                        </span>
-                      </div>
-                      
-                      <div className="flex-1">
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={percentage}
-                          onChange={(e) => handleDifficultyChange(difficulty, e.target.value)}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-                      
-                      <div className="w-16 text-right">
-                        <span className="text-sm font-medium text-gray-900">
-                          {percentage}%
-                        </span>
-                      </div>
-                      
-                      <div className="w-24 text-right text-sm">
-                        <span className={`${questionCount > available ? 'text-red-600' : 'text-gray-600'}`}>
-                          {questionCount}/{available}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Questões Fáceis"
+                  type="number"
+                  {...register('easyQuestions', {
+                    required: 'Campo obrigatório',
+                    min: { value: 0, message: 'Mínimo 0' }
+                  })}
+                  error={errors.easyQuestions?.message}
+                  min="0"
+                />
                 
-                <div className="text-xs text-gray-500">
-                  Total: {watchedDifficulty?.easy + watchedDifficulty?.medium + watchedDifficulty?.hard}%
-                  {watchedDifficulty?.easy + watchedDifficulty?.medium + watchedDifficulty?.hard !== 100 && (
-                    <span className="text-red-600 ml-2">
-                      (Deve somar 100%)
-                    </span>
-                  )}
-                </div>
+                <Input
+                  label="Questões Médias"
+                  type="number"
+                  {...register('mediumQuestions', {
+                    required: 'Campo obrigatório',
+                    min: { value: 0, message: 'Mínimo 0' }
+                  })}
+                  error={errors.mediumQuestions?.message}
+                  min="0"
+                />
+                
+                <Input
+                  label="Questões Difíceis"
+                  type="number"
+                  {...register('hardQuestions', {
+                    required: 'Campo obrigatório',
+                    min: { value: 0, message: 'Mínimo 0' }
+                  })}
+                  error={errors.hardQuestions?.message}
+                  min="0"
+                />
               </div>
+
+              {/* Validation Message */}
+              {(watchedEasyQuestions + watchedMediumQuestions + watchedHardQuestions) !== watchedTotalQuestions && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex">
+                    <svg className="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div className="ml-3">
+                      <p className="text-sm text-yellow-800">
+                        A soma das questões por dificuldade ({watchedEasyQuestions + watchedMediumQuestions + watchedHardQuestions}) 
+                        deve ser igual ao total de questões ({watchedTotalQuestions}).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Opções Avançadas */}
+            {/* Configurações Avançadas */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Opções Avançadas
+                Configurações Avançadas
               </h3>
               
-              <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register('randomizeQuestions')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    Embaralhar ordem das questões
-                  </span>
-                </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Número de Variações"
+                  type="number"
+                  {...register('totalVariations', {
+                    required: 'Campo obrigatório',
+                    min: { value: 1, message: 'Mínimo 1 variação' },
+                    max: { value: 50, message: 'Máximo 50 variações' }
+                  })}
+                  error={errors.totalVariations?.message}
+                  min="1"
+                  max="50"
+                  helperText="Número de versões diferentes da prova"
+                />
 
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register('randomizeAlternatives')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    Embaralhar alternativas
-                  </span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register('includeExplanations')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    Incluir explicações no resultado
-                  </span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register('allowRetake')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    Permitir refazer a prova
-                  </span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register('showResultsImmediately')}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    Mostrar resultado imediatamente
-                  </span>
-                </label>
+                <Input
+                  label="Nota de Aprovação"
+                  type="number"
+                  step="0.1"
+                  {...register('passingScore', {
+                    min: { value: 0, message: 'Mínimo 0' },
+                    max: { value: 10, message: 'Máximo 10' }
+                  })}
+                  error={errors.passingScore?.message}
+                  min="0"
+                  max="10"
+                  placeholder="6.0"
+                />
               </div>
-            </div>
 
-            {/* Resumo */}
-            {watchedSubjectIds?.length > 0 && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-md font-medium text-gray-900 mb-3">
-                  Resumo da Prova
-                </h4>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">Total de questões:</span>
-                    <span className="ml-2 text-gray-600">{watchedTotalQuestions}</span>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium text-gray-700">Questões disponíveis:</span>
-                    <span className={`ml-2 ${totalAvailable >= watchedTotalQuestions ? 'text-green-600' : 'text-red-600'}`}>
-                      {totalAvailable}
-                    </span>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium text-gray-700">Fáceis:</span>
-                    <span className="ml-2 text-gray-600">{distribution.easy}</span>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium text-gray-700">Médias:</span>
-                    <span className="ml-2 text-gray-600">{distribution.medium}</span>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium text-gray-700">Difíceis:</span>
-                    <span className="ml-2 text-gray-600">{distribution.hard}</span>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium text-gray-700">Tempo limite:</span>
-                    <span className="ml-2 text-gray-600">
-                      {watch('timeLimit') ? `${watch('timeLimit')} min` : 'Sem limite'}
-                    </span>
-                  </div>
+              {/* Instructions */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Instruções da Prova
+                </label>
+                <textarea
+                  {...register('instructions')}
+                  rows={4}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Digite as instruções que aparecerão no início da prova..."
+                />
+              </div>
+
+              {/* Options */}
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center">
+                  <input
+                    {...register('randomizeQuestions')}
+                    type="checkbox"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-900">
+                    Embaralhar ordem das questões
+                  </label>
                 </div>
 
-                {!canGenerateExam() && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800">
-                      <strong>Atenção:</strong> Não há questões suficientes para gerar a prova com a distribuição selecionada.
-                    </p>
-                  </div>
-                )}
+                <div className="flex items-center">
+                  <input
+                    {...register('randomizeAlternatives')}
+                    type="checkbox"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-900">
+                    Embaralhar alternativas das questões
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    {...register('allowReview')}
+                    type="checkbox"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-900">
+                    Permitir revisão antes de finalizar
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    {...register('showCorrectAnswers')}
+                    type="checkbox"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label className="ml-2 text-sm text-gray-900">
+                    Mostrar respostas corretas após finalização
+                  </label>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
         {generationStep === 2 && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Selecionar Questões ({selectedQuestions.length}/{watchedTotalQuestions})
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">
+                Seleção Manual de Questões
               </h3>
-              
-              <div className="mb-4 flex justify-between items-center">
-                <div className="text-sm text-gray-600">
-                  Questões selecionadas automaticamente baseadas na distribuição
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleAutoSelectQuestions}
-                >
-                  Reselecionar Automaticamente
-                </Button>
+              <p className="text-sm text-blue-700">
+                Selecione exatamente {watchedTotalQuestions} questões das {totalAvailable} disponíveis.
+              </p>
+              <div className="mt-2 text-xs text-blue-600">
+                Selecionadas: {selectedQuestions.length} / {watchedTotalQuestions}
               </div>
+            </div>
 
-              {/* Progress Bar */}
-              <div className="mb-6">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Progresso da seleção</span>
-                  <span>{selectedQuestions.length}/{watchedTotalQuestions}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(selectedQuestions.length / watchedTotalQuestions) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Questions by Difficulty */}
-              {Object.entries(QUESTION_DIFFICULTIES).map(([key, difficulty]) => {
-                const questionsForDifficulty = getQuestionsByDifficulty(difficulty)
-                const selectedForDifficulty = selectedQuestions.filter(q => q.difficulty === difficulty)
-                const neededForDifficulty = distribution[difficulty]
-
-                if (questionsForDifficulty.length === 0) return null
-
-                return (
-                  <div key={difficulty} className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className={`text-md font-medium ${
-                        difficulty === 'easy' ? 'text-green-800' :
-                        difficulty === 'medium' ? 'text-yellow-800' :
-                        'text-red-800'
-                      }`}>
-                        Questões {QUESTION_DIFFICULTY_LABELS[difficulty]} 
-                        <span className="ml-2 text-sm text-gray-600">
-                          ({selectedForDifficulty.length}/{neededForDifficulty})
-                        </span>
-                      </h4>
-                    </div>
-
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
-                      {questionsForDifficulty.map((question) => {
-                        const isSelected = selectedQuestions.some(q => q.id === question.id)
-                        const canSelect = !isSelected && selectedQuestions.length < watchedTotalQuestions
-
-                        return (
-                          <label
-                            key={question.id}
-                            className={`flex items-start p-3 rounded-lg border cursor-pointer transition-colors duration-200 ${
-                              isSelected
-                                ? 'border-blue-300 bg-blue-50'
-                                : canSelect
-                                ? 'border-gray-200 hover:bg-gray-50'
-                                : 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleQuestionToggle(question)}
-                              disabled={!canSelect && !isSelected}
-                              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <div className="ml-3 flex-1">
-                              <p className="text-sm font-medium text-gray-900 mb-1">
-                                {question.statement.substring(0, 100)}
-                                {question.statement.length > 100 && '...'}
-                              </p>
-                              <div className="flex items-center space-x-3 text-xs text-gray-500">
-                                <span>{question.points} pts</span>
-                                {question.tags && question.tags.length > 0 && (
-                                  <span>#{question.tags.join(', #')}</span>
-                                )}
-                              </div>
-                            </div>
-                          </label>
-                        )
-                      })}
+            {/* Question List */}
+            <div className="max-h-96 overflow-y-auto">
+              <div className="space-y-3">
+                {availableQuestions.map((question) => (
+                  <div
+                    key={question.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors duration-200 ${
+                      selectedQuestions.includes(question.id)
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                    onClick={() => {
+                      if (selectedQuestions.includes(question.id)) {
+                        setSelectedQuestions(prev => prev.filter(id => id !== question.id))
+                      } else if (selectedQuestions.length < watchedTotalQuestions) {
+                        setSelectedQuestions(prev => [...prev, question.id])
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                            question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {QUESTION_DIFFICULTY_LABELS[question.difficulty]}
+                          </span>
+                          <span className="ml-2 text-xs text-gray-500">
+                            {question.alternatives?.length || 0} alternativas
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-900 line-clamp-2">
+                          {question.text}
+                        </p>
+                      </div>
+                      <div className="ml-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedQuestions.includes(question.id)}
+                          onChange={() => {}}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
-                )
-              })}
+                ))}
+              </div>
             </div>
+
+            {availableQuestions.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  Nenhuma questão encontrada nas disciplinas selecionadas.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </form>

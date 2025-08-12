@@ -1,226 +1,113 @@
-const jwt = require('jsonwebtoken');
-const { User } = require('../models');
-const jwtConfig = require('../config/jwt');
+// backend/src/middleware/auth.js
+const jwt = require('jsonwebtoken')
+const { User } = require('../models')
+const { AppError } = require('../utils/AppError')
+const { catchAsync } = require('../utils/catchAsync')
 
-// Middleware to verify JWT token
-const authenticateToken = async (req, res, next) => {
+/**
+ * Authenticate user with JWT token
+ */
+const authenticateToken = catchAsync(async (req, res, next) => {
+  // Get token from header
+  const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null
+
+  if (!token) {
+    throw new AppError('Token de acesso requerido', 401)
+  }
+
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access token required'
-      });
-    }
-
     // Verify token
-    const decoded = jwt.verify(token, jwtConfig.secret);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
     
-    // Find user
-    const user = await User.findByPk(decoded.userId);
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token - user not found'
-      });
+    // Get user from token
+    const user = await User.findByPk(decoded.id, {
+      attributes: { exclude: ['password', 'refreshToken'] }
+    })
+
+    if (!user || !user.isActive) {
+      throw new AppError('Usuário não encontrado ou inativo', 401)
     }
 
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
-    }
+    // Add user to request
+    req.user = user
+    next()
 
-    // Add user to request object
-    req.user = user;
-    next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token'
-      });
+      throw new AppError('Token inválido', 401)
     }
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token expired'
-      });
+      throw new AppError('Token expirado', 401)
     }
-    
-    console.error('Auth middleware error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Authentication error'
-    });
+    throw error
   }
-};
+})
 
-// Middleware to check if user has specific role
+/**
+ * Require specific role
+ */
 const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+      throw new AppError('Usuário não autenticado', 401)
     }
 
-    const userRole = req.user.role;
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
-
-    if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Insufficient permissions'
-      });
+    const userRoles = Array.isArray(roles) ? roles : [roles]
+    
+    if (!userRoles.includes(req.user.role)) {
+      throw new AppError('Permissão insuficiente', 403)
     }
 
-    next();
-  };
-};
+    next()
+  }
+}
 
-// Middleware to check if user is admin
-const requireAdmin = requireRole(['admin']);
+/**
+ * Require admin role
+ */
+const requireAdmin = requireRole('admin')
 
-// Middleware to check if user is teacher or admin
-const requireTeacher = requireRole(['teacher', 'admin']);
+/**
+ * Require teacher or admin role
+ */
+const requireTeacher = requireRole(['teacher', 'admin'])
 
-// Optional authentication - doesn't fail if no token
+/**
+ * Optional authentication - adds user if token is valid
+ */
 const optionalAuth = async (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : null
 
-    if (token) {
-      const decoded = jwt.verify(token, jwtConfig.secret);
-      const user = await User.findByPk(decoded.userId);
-      
-      if (user && user.isActive) {
-        req.user = user;
-      }
-    }
-    
-    next();
-  } catch (error) {
-    // Continue without authentication
-    next();
+  if (!token) {
+    return next()
   }
-};
 
-// Middleware to check resource ownership
-const checkOwnership = (modelName, paramName = 'id') => {
-  return async (req, res, next) => {
-    try {
-      const { [modelName]: Model } = require('../models');
-      const resourceId = req.params[paramName];
-      
-      const resource = await Model.findByPk(resourceId);
-      
-      if (!resource) {
-        return res.status(404).json({
-          success: false,
-          message: `${modelName} not found`
-        });
-      }
-
-      // Admin can access everything
-      if (req.user.role === 'admin') {
-        req.resource = resource;
-        return next();
-      }
-
-      // Check if user owns the resource
-      if (resource.userId !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied - not the owner'
-        });
-      }
-
-      req.resource = resource;
-      next();
-    } catch (error) {
-      console.error('Ownership check error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error checking resource ownership'
-      });
-    }
-  };
-};
-
-// Generate JWT token
-const generateToken = (user) => {
-  const payload = {
-    userId: user.id,
-    email: user.email,
-    role: user.role
-  };
-
-  return jwt.sign(payload, jwtConfig.secret, {
-    expiresIn: jwtConfig.expiresIn,
-    issuer: jwtConfig.issuer,
-    audience: jwtConfig.audience
-  });
-};
-
-// Generate refresh token
-const generateRefreshToken = (user) => {
-  const payload = {
-    userId: user.id,
-    type: 'refresh'
-  };
-
-  return jwt.sign(payload, jwtConfig.secret, {
-    expiresIn: jwtConfig.refreshExpiresIn,
-    issuer: jwtConfig.issuer,
-    audience: jwtConfig.audience
-  });
-};
-
-// Generate password reset token
-const generateResetToken = (user) => {
-  const payload = {
-    userId: user.id,
-    email: user.email,
-    type: 'reset'
-  };
-
-  return jwt.sign(payload, jwtConfig.secret, {
-    expiresIn: jwtConfig.resetTokenExpiresIn,
-    issuer: jwtConfig.issuer,
-    audience: jwtConfig.audience
-  });
-};
-
-// Verify password reset token
-const verifyResetToken = (token) => {
   try {
-    const decoded = jwt.verify(token, jwtConfig.secret);
-    
-    if (decoded.type !== 'reset') {
-      throw new Error('Invalid token type');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await User.findByPk(decoded.id, {
+      attributes: { exclude: ['password', 'refreshToken'] }
+    })
+
+    if (user && user.isActive) {
+      req.user = user
     }
-    
-    return decoded;
   } catch (error) {
-    throw error;
+    // Ignore token errors in optional auth
   }
-};
+
+  next()
+}
 
 module.exports = {
   authenticateToken,
   requireRole,
   requireAdmin,
   requireTeacher,
-  optionalAuth,
-  checkOwnership,
-  generateToken,
-  generateRefreshToken,
-  generateResetToken,
-  verifyResetToken
-};
+  optionalAuth
+}

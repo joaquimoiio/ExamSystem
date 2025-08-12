@@ -1,114 +1,222 @@
-const { DataTypes } = require('sequelize');
-const { v4: uuidv4 } = require('uuid');
+// backend/src/models/index.js
+const { Sequelize } = require('sequelize')
+const config = require('../config/database')
 
+const sequelize = new Sequelize(config)
+
+// Import models
+const User = require('./User')(sequelize, Sequelize.DataTypes)
+const Subject = require('./Subject')(sequelize, Sequelize.DataTypes)
+const Question = require('./Question')(sequelize, Sequelize.DataTypes)
+const Exam = require('./Exam')(sequelize, Sequelize.DataTypes)
+const ExamVariation = require('./ExamVariation')(sequelize, Sequelize.DataTypes)
+const ExamQuestion = require('./ExamQuestion')(sequelize, Sequelize.DataTypes)
+const Answer = require('./Answer')(sequelize, Sequelize.DataTypes)
+
+// Define associations
+const models = {
+  User,
+  Subject,
+  Question,
+  Exam,
+  ExamVariation,
+  ExamQuestion,
+  Answer
+}
+
+// User associations
+User.hasMany(Subject, { foreignKey: 'userId', as: 'subjects' })
+User.hasMany(Question, { foreignKey: 'userId', as: 'questions' })
+User.hasMany(Exam, { foreignKey: 'userId', as: 'exams' })
+User.hasMany(Answer, { foreignKey: 'userId', as: 'answers' })
+
+// Subject associations
+Subject.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+Subject.hasMany(Question, { foreignKey: 'subjectId', as: 'questions' })
+Subject.hasMany(Exam, { foreignKey: 'subjectId', as: 'exams' })
+
+// Question associations
+Question.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+Question.belongsTo(Subject, { foreignKey: 'subjectId', as: 'subject' })
+Question.belongsToMany(ExamVariation, { 
+  through: ExamQuestion, 
+  foreignKey: 'questionId',
+  otherKey: 'variationId',
+  as: 'examVariations'
+})
+
+// Exam associations
+Exam.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+Exam.belongsTo(Subject, { foreignKey: 'subjectId', as: 'subject' })
+Exam.hasMany(ExamVariation, { foreignKey: 'examId', as: 'variations' })
+Exam.hasMany(Answer, { foreignKey: 'examId', as: 'answers' })
+
+// ExamVariation associations
+ExamVariation.belongsTo(Exam, { foreignKey: 'examId', as: 'exam' })
+ExamVariation.belongsToMany(Question, { 
+  through: ExamQuestion, 
+  foreignKey: 'variationId',
+  otherKey: 'questionId',
+  as: 'questions'
+})
+ExamVariation.hasMany(Answer, { foreignKey: 'variationId', as: 'answers' })
+
+// ExamQuestion associations
+ExamQuestion.belongsTo(Exam, { foreignKey: 'examId', as: 'exam' })
+ExamQuestion.belongsTo(ExamVariation, { foreignKey: 'variationId', as: 'variation' })
+ExamQuestion.belongsTo(Question, { foreignKey: 'questionId', as: 'question' })
+
+// Answer associations
+Answer.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+Answer.belongsTo(Exam, { foreignKey: 'examId', as: 'exam' })
+Answer.belongsTo(ExamVariation, { foreignKey: 'variationId', as: 'variation' })
+Answer.belongsTo(Question, { foreignKey: 'questionId', as: 'question' })
+
+Object.keys(models).forEach(modelName => {
+  if (models[modelName].associate) {
+    models[modelName].associate(models)
+  }
+})
+
+module.exports = {
+  sequelize,
+  Sequelize,
+  ...models
+}
+
+// backend/src/models/User.js
 module.exports = (sequelize, DataTypes) => {
-  const Question = sequelize.define('Question', {
+  const User = sequelize.define('User', {
     id: {
       type: DataTypes.UUID,
-      defaultValue: () => uuidv4(),
-      primaryKey: true,
-      allowNull: false
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
-    text: {
-      type: DataTypes.TEXT,
+    name: {
+      type: DataTypes.STRING(100),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Question text cannot be empty'
-        },
-        len: {
-          args: [10, 5000],
-          msg: 'Question text must be between 10 and 5000 characters'
-        }
+        notEmpty: true,
+        len: [2, 100]
       }
     },
-    alternatives: {
-      type: DataTypes.JSON,
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true,
+        notEmpty: true
+      },
+      set(value) {
+        this.setDataValue('email', value.toLowerCase())
+      }
+    },
+    password: {
+      type: DataTypes.STRING(255),
       allowNull: false,
       validate: {
-        isValidAlternatives: function(value) {
-          if (!Array.isArray(value)) {
-            throw new Error('Alternatives must be an array');
-          }
-          if (value.length < 2 || value.length > 5) {
-            throw new Error('Must have between 2 and 5 alternatives');
-          }
-          
-          const letters = ['A', 'B', 'C', 'D', 'E'];
-          for (let i = 0; i < value.length; i++) {
-            const alt = value[i];
-            if (!alt.letter || !alt.text) {
-              throw new Error('Each alternative must have letter and text');
-            }
-            if (alt.letter !== letters[i]) {
-              throw new Error('Alternatives must be in order A, B, C, D, E');
-            }
-            if (alt.text.trim().length < 1 || alt.text.length > 500) {
-              throw new Error('Alternative text must be between 1 and 500 characters');
-            }
-          }
-        }
+        notEmpty: true,
+        len: [6, 255]
       }
     },
-    correctAnswer: {
-      type: DataTypes.STRING(1),
+    role: {
+      type: DataTypes.ENUM('admin', 'teacher', 'student'),
       allowNull: false,
-      validate: {
-        isIn: {
-          args: [['A', 'B', 'C', 'D', 'E']],
-          msg: 'Correct answer must be A, B, C, D, or E'
-        },
-        isValidCorrectAnswer: function(value) {
-          if (this.alternatives) {
-            const validLetters = this.alternatives.map(alt => alt.letter);
-            if (!validLetters.includes(value)) {
-              throw new Error('Correct answer must match one of the alternative letters');
-            }
-          }
+      defaultValue: 'teacher'
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    lastLogin: {
+      type: DataTypes.DATE
+    },
+    refreshToken: {
+      type: DataTypes.TEXT
+    },
+    passwordResetToken: {
+      type: DataTypes.STRING
+    },
+    passwordResetExpires: {
+      type: DataTypes.DATE
+    },
+    deactivatedAt: {
+      type: DataTypes.DATE
+    },
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
+    }
+  }, {
+    tableName: 'users',
+    timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['email']
+      },
+      {
+        fields: ['role']
+      },
+      {
+        fields: ['isActive']
+      },
+      {
+        fields: ['createdAt']
+      }
+    ],
+    scopes: {
+      active: {
+        where: {
+          isActive: true
+        }
+      },
+      withoutPassword: {
+        attributes: {
+          exclude: ['password', 'refreshToken', 'passwordResetToken']
         }
       }
-    },
-    difficulty: {
-      type: DataTypes.ENUM('easy', 'medium', 'hard'),
-      allowNull: false,
-      validate: {
-        isIn: {
-          args: [['easy', 'medium', 'hard']],
-          msg: 'Difficulty must be easy, medium, or hard'
-        }
-      }
-    },
-    tags: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      defaultValue: [],
-      validate: {
-        isValidTags: function(value) {
-          if (value && !Array.isArray(value)) {
-            throw new Error('Tags must be an array');
-          }
-          if (value && value.length > 10) {
-            throw new Error('Cannot have more than 10 tags');
-          }
-          if (value) {
-            value.forEach(tag => {
-              if (typeof tag !== 'string' || tag.trim().length === 0) {
-                throw new Error('Each tag must be a non-empty string');
-              }
-              if (tag.length > 50) {
-                throw new Error('Each tag must be less than 50 characters');
-              }
-            });
-          }
-        }
-      }
-    },
-    subjectId: {
+    }
+  })
+
+  // Instance methods
+  User.prototype.toSafeJSON = function() {
+    const { password, refreshToken, passwordResetToken, ...safeUser } = this.toJSON()
+    return safeUser
+  }
+
+  return User
+}
+
+// backend/src/models/Subject.js
+module.exports = (sequelize, DataTypes) => {
+  const Subject = sequelize.define('Subject', {
+    id: {
       type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    name: {
+      type: DataTypes.STRING(100),
       allowNull: false,
-      references: {
-        model: 'subjects',
-        key: 'id'
+      validate: {
+        notEmpty: true,
+        len: [2, 100]
+      }
+    },
+    description: {
+      type: DataTypes.TEXT
+    },
+    color: {
+      type: DataTypes.STRING(7),
+      defaultValue: '#3B82F6',
+      validate: {
+        is: /^#[0-9A-F]{6}$/i
       }
     },
     userId: {
@@ -117,38 +225,179 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'users',
         key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
+    }
+  }, {
+    tableName: 'subjects',
+    timestamps: true,
+    indexes: [
+      {
+        fields: ['userId']
+      },
+      {
+        fields: ['name']
+      },
+      {
+        fields: ['createdAt']
+      },
+      {
+        unique: true,
+        fields: ['userId', 'name']
       }
+    ]
+  })
+
+  // Instance methods
+  Subject.prototype.canCreateExam = async function(requirements) {
+    const Question = sequelize.models.Question
+    
+    const [easyCount, mediumCount, hardCount] = await Promise.all([
+      Question.count({
+        where: { 
+          subjectId: this.id, 
+          difficulty: 'easy', 
+          isActive: true 
+        }
+      }),
+      Question.count({
+        where: { 
+          subjectId: this.id, 
+          difficulty: 'medium', 
+          isActive: true 
+        }
+      }),
+      Question.count({
+        where: { 
+          subjectId: this.id, 
+          difficulty: 'hard', 
+          isActive: true 
+        }
+      })
+    ])
+
+    const available = { easy: easyCount, medium: mediumCount, hard: hardCount }
+    const required = requirements || { easy: 0, medium: 0, hard: 0 }
+
+    const canCreate = available.easy >= required.easy && 
+                     available.medium >= required.medium && 
+                     available.hard >= required.hard
+
+    return { canCreate, available, required }
+  }
+
+  return Subject
+}
+
+// backend/src/models/Question.js
+module.exports = (sequelize, DataTypes) => {
+  const Question = sequelize.define('Question', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    text: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [10, 5000]
+      }
+    },
+    alternatives: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      validate: {
+        isValidAlternatives(value) {
+          if (!Array.isArray(value) || value.length < 2 || value.length > 5) {
+            throw new Error('Deve ter entre 2 e 5 alternativas')
+          }
+          value.forEach((alt, index) => {
+            if (!alt.text || typeof alt.text !== 'string' || !alt.text.trim()) {
+              throw new Error(`Alternativa ${index + 1} deve ter texto válido`)
+            }
+          })
+        }
+      }
+    },
+    correctAnswer: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      validate: {
+        min: 0,
+        max: 4,
+        isValidAnswer(value) {
+          if (this.alternatives && value >= this.alternatives.length) {
+            throw new Error('Resposta correta inválida')
+          }
+        }
+      }
+    },
+    difficulty: {
+      type: DataTypes.ENUM('easy', 'medium', 'hard'),
+      allowNull: false
+    },
+    subjectId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'subjects',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    tags: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      defaultValue: []
+    },
+    explanation: {
+      type: DataTypes.TEXT
+    },
+    points: {
+      type: DataTypes.DECIMAL(4, 2),
+      defaultValue: 1.00,
+      validate: {
+        min: 0.1,
+        max: 10.0
+      }
+    },
+    timeEstimate: {
+      type: DataTypes.INTEGER,
+      comment: 'Estimated time to answer in seconds'
     },
     isActive: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false
+      defaultValue: true
     },
     timesUsed: {
       type: DataTypes.INTEGER,
-      defaultValue: 0,
-      allowNull: false
+      defaultValue: 0
     },
-    averageScore: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-      validate: {
-        min: 0,
-        max: 100
-      }
-    },
-    imageUrl: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      validate: {
-        isUrl: {
-          msg: 'Image URL must be a valid URL'
-        }
-      }
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
     }
   }, {
     tableName: 'questions',
     timestamps: true,
+    paranoid: true,
     indexes: [
       {
         fields: ['subjectId']
@@ -161,84 +410,28 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['isActive']
+      },
+      {
+        fields: ['timesUsed']
+      },
+      {
+        fields: ['tags'],
+        using: 'gin'
+      },
+      {
+        fields: ['createdAt']
       }
-      // Removido o índice GIN problemático temporariamente
-      // Podemos criar manualmente após a sincronização se necessário
     ]
-  });
+  })
 
   // Instance methods
-  Question.prototype.shuffleAlternatives = function() {
-    const alternatives = [...this.alternatives];
-    const correctText = alternatives.find(alt => alt.letter === this.correctAnswer).text;
-    
-    // Fisher-Yates shuffle algorithm
-    for (let i = alternatives.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]];
-    }
-    
-    // Reassign letters
-    const letters = ['A', 'B', 'C', 'D', 'E'];
-    const shuffledAlternatives = alternatives.map((alt, index) => ({
-      letter: letters[index],
-      text: alt.text
-    }));
-    
-    // Find new correct answer letter
-    const newCorrectAnswer = shuffledAlternatives.find(alt => alt.text === correctText).letter;
-    
-    return {
-      alternatives: shuffledAlternatives,
-      correctAnswer: newCorrectAnswer
-    };
-  };
+  Question.prototype.incrementUsage = function() {
+    return this.increment('timesUsed')
+  }
 
-  Question.prototype.incrementUsage = async function() {
-    this.timesUsed += 1;
-    await this.save({ fields: ['timesUsed'] });
-  };
+  Question.prototype.getCorrectAlternative = function() {
+    return this.alternatives[this.correctAnswer]
+  }
 
-  Question.prototype.updateAverageScore = async function(score) {
-    if (this.averageScore === null) {
-      this.averageScore = score;
-    } else {
-      // Simple moving average calculation
-      this.averageScore = (this.averageScore + score) / 2;
-    }
-    await this.save({ fields: ['averageScore'] });
-  };
-
-  Question.prototype.getStatistics = async function() {
-    const { Answer } = require('./index');
-    
-    const stats = await Answer.findAll({
-      where: {
-        answers: {
-          [sequelize.Op.contains]: [{ questionId: this.id }]
-        }
-      },
-      attributes: [
-        [sequelize.fn('COUNT', sequelize.col('id')), 'totalAnswers'],
-        [sequelize.fn('AVG', 
-          sequelize.literal(`CASE WHEN answers @> '[{"questionId": "${this.id}", "correct": true}]' THEN 1 ELSE 0 END`)
-        ), 'correctPercentage']
-      ],
-      raw: true
-    });
-
-    return {
-      timesUsed: this.timesUsed,
-      averageScore: this.averageScore,
-      totalAnswers: parseInt(stats[0]?.totalAnswers || 0),
-      correctPercentage: parseFloat(stats[0]?.correctPercentage || 0) * 100
-    };
-  };
-
-  Question.prototype.toJSON = function() {
-    const values = Object.assign({}, this.get());
-    return values;
-  };
-
-  return Question;
-};
+  return Question
+}

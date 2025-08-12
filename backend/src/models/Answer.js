@@ -1,45 +1,18 @@
-const { DataTypes } = require('sequelize');
-const { v4: uuidv4 } = require('uuid');
-
 module.exports = (sequelize, DataTypes) => {
   const Answer = sequelize.define('Answer', {
     id: {
       type: DataTypes.UUID,
-      defaultValue: () => uuidv4(),
-      primaryKey: true,
-      allowNull: false
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
-    studentName: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: 'Student name cannot be empty'
-        },
-        len: {
-          args: [2, 100],
-          msg: 'Student name must be between 2 and 100 characters'
-        }
-      }
-    },
-    studentId: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      validate: {
-        len: {
-          args: [0, 50],
-          msg: 'Student ID cannot exceed 50 characters'
-        }
-      }
-    },
-    studentEmail: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-      validate: {
-        isEmail: {
-          msg: 'Invalid email format'
-        }
-      }
+    userId: {
+      type: DataTypes.UUID,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
     },
     examId: {
       type: DataTypes.UUID,
@@ -47,246 +20,160 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'exams',
         key: 'id'
-      }
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
     },
-    examVariationId: {
+    variationId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: 'exam_variations',
         key: 'id'
-      }
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    questionId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'questions',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    studentName: {
+      type: DataTypes.STRING(100),
+      allowNull: false
+    },
+    studentEmail: {
+      type: DataTypes.STRING(255)
     },
     answers: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       allowNull: false,
-      validate: {
-        isValidAnswers: function(value) {
-          if (!Array.isArray(value)) {
-            throw new Error('Answers must be an array');
-          }
-          
-          value.forEach((answer, index) => {
-            if (!answer.questionId) {
-              throw new Error(`Answer at index ${index} is missing questionId`);
-            }
-            if (answer.answer && !/^[A-E]$/.test(answer.answer)) {
-              throw new Error(`Answer at index ${index} must be A, B, C, D, or E`);
-            }
-            if (typeof answer.correct !== 'boolean') {
-              throw new Error(`Answer at index ${index} must have a boolean 'correct' field`);
-            }
-          });
-        }
-      }
+      comment: 'Array of student answers indexed by question order'
     },
     score: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      validate: {
-        min: {
-          args: [0],
-          msg: 'Score cannot be negative'
-        },
-        max: {
-          args: [100],
-          msg: 'Score cannot exceed 100'
-        }
-      }
+      type: DataTypes.DECIMAL(5, 2)
     },
     totalQuestions: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        min: {
-          args: [1],
-          msg: 'Total questions must be at least 1'
-        }
-      }
+      allowNull: false
     },
     correctAnswers: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        min: {
-          args: [0],
-          msg: 'Correct answers cannot be negative'
-        }
-      }
+      defaultValue: 0
     },
     timeSpent: {
       type: DataTypes.INTEGER,
-      allowNull: true,
       comment: 'Time spent in seconds'
-    },
-    startedAt: {
-      type: DataTypes.DATE,
-      allowNull: true
     },
     submittedAt: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW
     },
-    ipAddress: {
-      type: DataTypes.INET,
-      allowNull: true
-    },
-    userAgent: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    isReviewed: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
-    },
-    reviewedAt: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    reviewedBy: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
+    status: {
+      type: DataTypes.ENUM('submitted', 'graded', 'reviewed'),
+      defaultValue: 'submitted'
     },
     feedback: {
-      type: DataTypes.TEXT,
-      allowNull: true
+      type: DataTypes.TEXT
     },
-    isPassed: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false
-    },
-    certificateGenerated: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
     }
   }, {
     tableName: 'answers',
     timestamps: true,
     indexes: [
       {
+        fields: ['userId']
+      },
+      {
         fields: ['examId']
       },
       {
-        fields: ['examVariationId']
+        fields: ['variationId']
       },
       {
-        fields: ['studentName']
-      },
-      {
-        fields: ['studentId']
+        fields: ['questionId']
       },
       {
         fields: ['studentEmail']
       },
       {
-        fields: ['score']
-      },
-      {
         fields: ['submittedAt']
       },
       {
-        fields: ['isPassed']
+        fields: ['status']
       },
       {
-        fields: ['isReviewed']
+        fields: ['score']
       }
     ]
-  });
+  })
 
   // Instance methods
-  Answer.prototype.getPercentage = function() {
-    return this.totalQuestions > 0 ? (this.correctAnswers / this.totalQuestions) * 100 : 0;
-  };
+  Answer.prototype.calculateScore = async function() {
+    const ExamQuestion = sequelize.models.ExamQuestion
+    const Question = sequelize.models.Question
 
-  Answer.prototype.getGrade = function() {
-    const percentage = this.getPercentage();
-    if (percentage >= 90) return 'A';
-    if (percentage >= 80) return 'B';
-    if (percentage >= 70) return 'C';
-    if (percentage >= 60) return 'D';
-    return 'F';
-  };
+    const examQuestions = await ExamQuestion.findAll({
+      where: { variationId: this.variationId },
+      include: [{
+        model: Question,
+        as: 'question'
+      }],
+      order: [['order', 'ASC']]
+    })
 
-  Answer.prototype.getDetailedResults = function() {
-    return this.answers.map((answer, index) => ({
-      questionNumber: index + 1,
-      questionId: answer.questionId,
-      studentAnswer: answer.answer,
-      isCorrect: answer.correct,
-      difficulty: answer.difficulty || 'unknown'
-    }));
-  };
+    let correctCount = 0
+    let totalPoints = 0
+    let earnedPoints = 0
 
-  Answer.prototype.getStatsByDifficulty = function() {
-    const stats = {
-      easy: { total: 0, correct: 0 },
-      medium: { total: 0, correct: 0 },
-      hard: { total: 0, correct: 0 }
-    };
+    examQuestions.forEach((examQuestion, index) => {
+      const question = examQuestion.question
+      const studentAnswer = this.answers[index]
+      const correctAnswer = question.correctAnswer
+      const points = parseFloat(examQuestion.points)
 
-    this.answers.forEach(answer => {
-      const difficulty = answer.difficulty || 'medium';
-      if (stats[difficulty]) {
-        stats[difficulty].total++;
-        if (answer.correct) {
-          stats[difficulty].correct++;
-        }
+      totalPoints += points
+
+      if (studentAnswer !== undefined && studentAnswer === correctAnswer) {
+        correctCount++
+        earnedPoints += points
       }
-    });
+    })
 
-    // Calculate percentages
-    Object.keys(stats).forEach(difficulty => {
-      const stat = stats[difficulty];
-      stat.percentage = stat.total > 0 ? (stat.correct / stat.total) * 100 : 0;
-    });
+    const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 10 : 0
 
-    return stats;
-  };
+    await this.update({
+      correctAnswers: correctCount,
+      score: parseFloat(score.toFixed(2)),
+      status: 'graded'
+    })
 
-  Answer.prototype.markAsReviewed = async function(reviewerId, feedback = null) {
-    this.isReviewed = true;
-    this.reviewedAt = new Date();
-    this.reviewedBy = reviewerId;
-    if (feedback) {
-      this.feedback = feedback;
-    }
-    await this.save();
-    return this;
-  };
-
-  Answer.prototype.getFormattedDuration = function() {
-    if (!this.timeSpent) return 'N/A';
-    
-    const hours = Math.floor(this.timeSpent / 3600);
-    const minutes = Math.floor((this.timeSpent % 3600) / 60);
-    const seconds = this.timeSpent % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    } else {
-      return `${seconds}s`;
-    }
-  };
-
-  Answer.prototype.toJSON = function() {
-    const values = Object.assign({}, this.get());
     return {
-      ...values,
-      percentage: this.getPercentage(),
-      grade: this.getGrade(),
-      formattedDuration: this.getFormattedDuration(),
-      statsByDifficulty: this.getStatsByDifficulty()
-    };
-  };
+      score: parseFloat(score.toFixed(2)),
+      correctAnswers: correctCount,
+      totalQuestions: examQuestions.length,
+      percentage: totalPoints > 0 ? (earnedPoints / totalPoints * 100).toFixed(1) : 0
+    }
+  }
 
-  return Answer;
-};
+  Answer.prototype.isPassing = function() {
+    if (!this.score) return false
+    
+    return new Promise(async (resolve) => {
+      const exam = await this.getExam()
+      resolve(this.score >= exam.passingScore)
+    })
+  }
+
+  return Answer
+}

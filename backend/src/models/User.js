@@ -1,92 +1,69 @@
-const { DataTypes } = require('sequelize');
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define('User', {
     id: {
       type: DataTypes.UUID,
-      defaultValue: () => uuidv4(),
-      primaryKey: true,
-      allowNull: false
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Name cannot be empty'
-        },
-        len: {
-          args: [2, 100],
-          msg: 'Name must be between 2 and 100 characters'
-        }
+        notEmpty: true,
+        len: [2, 100]
       }
     },
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: {
-        msg: 'Email already exists'
-      },
+      unique: true,
       validate: {
-        isEmail: {
-          msg: 'Invalid email format'
-        },
-        notEmpty: {
-          msg: 'Email cannot be empty'
-        }
+        isEmail: true,
+        notEmpty: true
+      },
+      set(value) {
+        this.setDataValue('email', value.toLowerCase())
       }
     },
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Password cannot be empty'
-        },
-        len: {
-          args: [6, 255],
-          msg: 'Password must be at least 6 characters long'
-        }
+        notEmpty: true,
+        len: [6, 255]
       }
     },
     role: {
-      type: DataTypes.ENUM('admin', 'teacher'),
+      type: DataTypes.ENUM('admin', 'teacher', 'student'),
       allowNull: false,
-      defaultValue: 'teacher',
-      validate: {
-        isIn: {
-          args: [['admin', 'teacher']],
-          msg: 'Role must be either admin or teacher'
-        }
-      }
+      defaultValue: 'teacher'
     },
     isActive: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false
-    },
-    lastLogin: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    resetPasswordToken: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    resetPasswordExpires: {
-      type: DataTypes.DATE,
-      allowNull: true
+      defaultValue: true
     },
     emailVerified: {
       type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
+      defaultValue: false
     },
-    emailVerificationToken: {
-      type: DataTypes.STRING,
-      allowNull: true
+    lastLogin: {
+      type: DataTypes.DATE
+    },
+    refreshToken: {
+      type: DataTypes.TEXT
+    },
+    passwordResetToken: {
+      type: DataTypes.STRING
+    },
+    passwordResetExpires: {
+      type: DataTypes.DATE
+    },
+    deactivatedAt: {
+      type: DataTypes.DATE
+    },
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
     }
   }, {
     tableName: 'users',
@@ -101,55 +78,30 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['isActive']
+      },
+      {
+        fields: ['createdAt']
       }
     ],
-    hooks: {
-      beforeCreate: async (user) => {
-        if (user.password) {
-          const salt = await bcrypt.genSalt(12);
-          user.password = await bcrypt.hash(user.password, salt);
+    scopes: {
+      active: {
+        where: {
+          isActive: true
         }
       },
-      beforeUpdate: async (user) => {
-        if (user.changed('password')) {
-          const salt = await bcrypt.genSalt(12);
-          user.password = await bcrypt.hash(user.password, salt);
+      withoutPassword: {
+        attributes: {
+          exclude: ['password', 'refreshToken', 'passwordResetToken']
         }
       }
     }
-  });
+  })
 
   // Instance methods
-  User.prototype.comparePassword = async function(candidatePassword) {
-    return await bcrypt.compare(candidatePassword, this.password);
-  };
+  User.prototype.toSafeJSON = function() {
+    const { password, refreshToken, passwordResetToken, ...safeUser } = this.toJSON()
+    return safeUser
+  }
 
-  User.prototype.toJSON = function() {
-    const values = Object.assign({}, this.get());
-    delete values.password;
-    delete values.resetPasswordToken;
-    delete values.resetPasswordExpires;
-    delete values.emailVerificationToken;
-    return values;
-  };
-
-  User.prototype.generateResetToken = function() {
-    const token = require('crypto').randomBytes(32).toString('hex');
-    this.resetPasswordToken = token;
-    this.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
-    return token;
-  };
-
-  User.prototype.generateEmailVerificationToken = function() {
-    const token = require('crypto').randomBytes(32).toString('hex');
-    this.emailVerificationToken = token;
-    return token;
-  };
-
-  User.prototype.updateLastLogin = function() {
-    this.lastLogin = new Date();
-    return this.save({ fields: ['lastLogin'] });
-  };
-
-  return User;
-};
+  return User
+}

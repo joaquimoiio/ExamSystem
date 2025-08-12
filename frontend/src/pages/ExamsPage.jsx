@@ -1,271 +1,124 @@
-import React, { useState } from 'react'
-import { useApi } from '../hooks/useApi'
-import { examService } from '../services/exam'
-import Button from '../components/Common/Button'
+import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ExamList from '../components/Exams/ExamList'
 import ExamGenerator from '../components/Exams/ExamGenerator'
-import ExamPreview from '../components/Exams/ExamPreview'
-import { ConfirmationModal } from '../components/Common/Modal'
-import Loading from '../components/Common/Loading'
+import ConfirmationModal from '../components/Common/ConfirmationModal'
+import { examService } from '../services/exam'
+import { subjectService } from '../services/subject'
 import { showOperationToast } from '../components/Common/Toast'
 
 const ExamsPage = () => {
-  const [showGenerator, setShowGenerator] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
+  const location = useLocation()
+  const queryClient = useQueryClient()
+  
+  const [showExamGenerator, setShowExamGenerator] = useState(false)
   const [selectedExam, setSelectedExam] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [selectedSubjectId, setSelectedSubjectId] = useState(null)
+  
+  // Filters and pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const [filters, setFilters] = useState({})
-  const [searchTerm, setSearchTerm] = useState('')
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    subjectId: ''
+  })
 
-  const { useApiQuery, useApiMutation } = useApi()
+  // Check for subjectId parameter from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search)
+    const subjectId = urlParams.get('subjectId')
+    
+    if (subjectId) {
+      setSelectedSubjectId(subjectId)
+      setFilters(prev => ({ ...prev, subjectId }))
+      setShowExamGenerator(true)
+    }
+  }, [location.search])
 
   // Fetch exams
-  const { data: examsData, isLoading, refetch } = useApiQuery(
-    ['exams', currentPage, filters, searchTerm],
-    () => examService.getExams({
+  const {
+    data: examsData,
+    isLoading: examsLoading,
+    error: examsError
+  } = useQuery({
+    queryKey: ['exams', { page: currentPage, ...filters }],
+    queryFn: () => examService.getExams({
       page: currentPage,
-      limit: 12,
-      search: searchTerm,
+      limit: 10,
       ...filters
-    })
-  )
+    }),
+    keepPreviousData: true
+  })
 
-  // Create exam mutation
-  const createExamMutation = useApiMutation(
-    (examData) => {
-      if (examData.generationType === 'automatic') {
-        return examService.generateExam(examData)
-      } else {
-        return examService.createExam(examData)
-      }
-    },
-    {
-      successMessage: 'Prova criada com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: (data) => {
-        setShowGenerator(false)
-        refetch()
-        
-        // Automatically preview the created exam
-        if (data.data?.exam) {
-          setSelectedExam(data.data.exam)
-          setShowPreview(true)
-        }
-      }
-    }
-  )
-
-  // Update exam mutation
-  const updateExamMutation = useApiMutation(
-    ({ id, ...data }) => examService.updateExam(id, data),
-    {
-      successMessage: 'Prova atualizada com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: () => {
-        setShowPreview(false)
-        setSelectedExam(null)
-        refetch()
-      }
-    }
-  )
+  // Fetch subjects for filter
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: () => subjectService.getSubjects({ limit: 100 }),
+    select: (data) => data.data?.subjects || []
+  })
 
   // Delete exam mutation
-  const deleteExamMutation = useApiMutation(
-    (id) => examService.deleteExam(id),
-    {
-      successMessage: 'Prova excluída com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: () => {
-        setShowDeleteConfirm(false)
-        setSelectedExam(null)
-        refetch()
-      }
+  const deleteExamMutation = useMutation({
+    mutationFn: examService.deleteExam,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['exams'])
+      showOperationToast.deleted('Prova')
+      setShowDeleteConfirm(false)
+      setSelectedExam(null)
+    },
+    onError: (error) => {
+      showOperationToast.error('exclusão da prova')
     }
-  )
+  })
 
-  // Duplicate exam mutation
-  const duplicateExamMutation = useApiMutation(
-    ({ id, title }) => examService.duplicateExam(id, title),
-    {
-      successMessage: 'Prova duplicada com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: () => refetch()
-    }
-  )
-
-  // Publish exam mutation
-  const publishExamMutation = useApiMutation(
-    (id) => examService.publishExam(id),
-    {
-      successMessage: 'Prova publicada com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: () => refetch()
-    }
-  )
-
-  // Unpublish exam mutation
-  const unpublishExamMutation = useApiMutation(
-    (id) => examService.unpublishExam(id),
-    {
-      successMessage: 'Prova despublicada com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: () => refetch()
-    }
-  )
-
-  // Archive exam mutation
-  const archiveExamMutation = useApiMutation(
-    (id) => examService.archiveExam(id),
-    {
-      successMessage: 'Prova arquivada com sucesso!',
-      invalidateQueries: [['exams']],
-      onSuccess: () => refetch()
-    }
-  )
-
-  const exams = examsData?.data?.exams || []
-  const pagination = examsData?.data?.pagination || {}
-
-  const handleCreateExam = (examData) => {
-    createExamMutation.mutate(examData)
+  const handleExamGenerated = (newExam) => {
+    queryClient.invalidateQueries(['exams'])
+    setShowExamGenerator(false)
+    setSelectedSubjectId(null)
+    showOperationToast.created('Prova')
   }
 
-  const handleViewExam = (exam) => {
+  const handleDeleteExam = (exam) => {
     setSelectedExam(exam)
-    setShowPreview(true)
+    setShowDeleteConfirm(true)
   }
 
-  const handleEditExam = (exam) => {
-    // TODO: Implement edit functionality
-    showOperationToast.info('Edição de prova em desenvolvimento')
-  }
-
-  const handleDuplicateExam = (exam) => {
-    const newTitle = `${exam.title} (Cópia)`
-    duplicateExamMutation.mutate({ id: exam.id, title: newTitle })
-  }
-
-  const handleDeleteExam = () => {
+  const handleConfirmDelete = () => {
     if (selectedExam) {
       deleteExamMutation.mutate(selectedExam.id)
     }
   }
 
-  const handlePublishExam = (exam) => {
-    publishExamMutation.mutate(exam.id)
-  }
-
-  const handleUnpublishExam = (exam) => {
-    unpublishExamMutation.mutate(exam.id)
-  }
-
-  const handleArchiveExam = (exam) => {
-    archiveExamMutation.mutate(exam.id)
-  }
-
-  const handleGeneratePDF = async (exam) => {
-    try {
-      const response = await examService.generateExamPDF(exam.id)
-      const blob = new Blob([response.data], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${exam.title}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      showOperationToast.downloaded()
-    } catch (error) {
-      showOperationToast.error('Erro ao gerar PDF')
-    }
-  }
-
-  const handleFilterChange = (newFilters) => {
+  const handleFiltersChange = (newFilters) => {
     setFilters(newFilters)
     setCurrentPage(1)
   }
 
-  const handleSearch = (term) => {
-    setSearchTerm(term)
-    setCurrentPage(1)
-  }
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
-  }
-
-  const handleBulkExport = () => {
-    // TODO: Implement bulk export
-    showOperationToast.info('Exportação em lote em desenvolvimento')
-  }
-
-  const handleBulkArchive = () => {
-    // TODO: Implement bulk archive
-    showOperationToast.info('Arquivamento em lote em desenvolvimento')
-  }
-
-  if (isLoading && exams.length === 0) {
-    return <Loading message="Carregando provas..." />
-  }
+  const exams = examsData?.data?.exams || []
+  const pagination = examsData?.data?.pagination || {}
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Provas
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Crie, gerencie e publique suas provas online
+      {/* Page Header */}
+      <div className="sm:flex sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Provas</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            Gerencie suas provas e acompanhe o desempenho dos alunos
           </p>
         </div>
-        <div className="mt-4 flex space-x-3 md:mt-0 md:ml-4">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              // TODO: Import exams
-              showOperationToast.info('Importação em desenvolvimento')
-            }}
-            icon={
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-              </svg>
-            }
+        <div className="mt-4 sm:mt-0">
+          <button
+            onClick={() => setShowExamGenerator(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Importar
-          </Button>
-          <Button
-            onClick={() => setShowGenerator(true)}
-            variant="primary"
-            icon={
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            }
-          >
-            Nova Prova
-          </Button>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            placeholder="Pesquisar provas por título, disciplina ou status..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
+            Nova Prova
+          </button>
         </div>
       </div>
 
@@ -302,17 +155,17 @@ const ExamsPage = () => {
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
                     <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      Ativas
+                      Publicadas
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {exams.filter(e => e.status === 'active').length}
+                      {exams.filter(exam => exam.isPublished).length}
                     </dd>
                   </dl>
                 </div>
@@ -336,7 +189,7 @@ const ExamsPage = () => {
                       Rascunhos
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {exams.filter(e => e.status === 'draft').length}
+                      {exams.filter(exam => !exam.isPublished).length}
                     </dd>
                   </dl>
                 </div>
@@ -350,17 +203,17 @@ const ExamsPage = () => {
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
                     <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      Submissões
+                      Variações
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {exams.reduce((sum, exam) => sum + (exam.submissionStats?.total || 0), 0)}
+                      {exams.reduce((acc, exam) => acc + (exam.totalVariations || 0), 0)}
                     </dd>
                   </dl>
                 </div>
@@ -370,108 +223,37 @@ const ExamsPage = () => {
         </div>
       )}
 
-      {/* Exams List */}
+      {/* Exam List */}
       <ExamList
         exams={exams}
-        pagination={pagination}
-        onPageChange={handlePageChange}
-        onView={handleViewExam}
-        onEdit={handleEditExam}
-        onDuplicate={handleDuplicateExam}
-        onDelete={(exam) => {
-          setSelectedExam(exam)
-          setShowDeleteConfirm(true)
-        }}
-        onPublish={handlePublishExam}
-        onUnpublish={handleUnpublishExam}
-        onArchive={handleArchiveExam}
-        onGeneratePDF={handleGeneratePDF}
-        loading={isLoading}
-        currentPage={currentPage}
+        subjects={subjects}
+        loading={examsLoading}
+        error={examsError}
         filters={filters}
-        onFilterChange={handleFilterChange}
+        onFiltersChange={handleFiltersChange}
+        pagination={pagination}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        onDeleteExam={handleDeleteExam}
+        onCreateExam={() => setShowExamGenerator(true)}
       />
-
-      {/* Empty State */}
-      {exams.length === 0 && !isLoading && (
-        <div className="text-center bg-white shadow rounded-lg p-12">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
-            Nenhuma prova encontrada
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {searchTerm || Object.keys(filters).length > 0
-              ? 'Tente ajustar os filtros ou limpar a busca.'
-              : 'Comece criando sua primeira prova.'
-            }
-          </p>
-          <div className="mt-6">
-            {searchTerm || Object.keys(filters).length > 0 ? (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setSearchTerm('')
-                  setFilters({})
-                }}
-              >
-                Limpar filtros
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                onClick={() => setShowGenerator(true)}
-                icon={
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                }
-              >
-                Criar primeira prova
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Exam Generator Modal */}
       <ExamGenerator
-        isOpen={showGenerator}
-        onClose={() => setShowGenerator(false)}
-        onExamGenerated={handleCreateExam}
-        loading={createExamMutation.isLoading}
+        isOpen={showExamGenerator}
+        onClose={() => {
+          setShowExamGenerator(false)
+          setSelectedSubjectId(null)
+        }}
+        onExamGenerated={handleExamGenerated}
+        preSelectedSubjectId={selectedSubjectId}
       />
-
-      {/* Exam Preview Modal */}
-      {showPreview && selectedExam && (
-        <ExamPreview
-          exam={selectedExam}
-          isOpen={showPreview}
-          onClose={() => {
-            setShowPreview(false)
-            setSelectedExam(null)
-          }}
-          onEdit={handleEditExam}
-          onPublish={handlePublishExam}
-          onGeneratePDF={handleGeneratePDF}
-          showAnswers={true}
-        />
-      )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
-        onClose={() => {
-          setShowDeleteConfirm(false)
-          setSelectedExam(null)
-        }}
-        onConfirm={handleDeleteExam}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
         title="Excluir Prova"
         message={
           selectedExam

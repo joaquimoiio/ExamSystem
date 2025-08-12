@@ -1,47 +1,26 @@
-const { DataTypes } = require('sequelize');
-const { v4: uuidv4 } = require('uuid');
-
 module.exports = (sequelize, DataTypes) => {
   const Subject = sequelize.define('Subject', {
     id: {
       type: DataTypes.UUID,
-      defaultValue: () => uuidv4(),
-      primaryKey: true,
-      allowNull: false
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Subject name cannot be empty'
-        },
-        len: {
-          args: [2, 100],
-          msg: 'Subject name must be between 2 and 100 characters'
-        }
+        notEmpty: true,
+        len: [2, 100]
       }
     },
     description: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      validate: {
-        len: {
-          args: [0, 1000],
-          msg: 'Description cannot exceed 1000 characters'
-        }
-      }
+      type: DataTypes.TEXT
     },
     color: {
       type: DataTypes.STRING(7),
-      allowNull: false,
       defaultValue: '#3B82F6',
       validate: {
-        isHexColor: function(value) {
-          if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value)) {
-            throw new Error('Color must be a valid hex color');
-          }
-        }
+        is: /^#[0-9A-F]{6}$/i
       }
     },
     userId: {
@@ -50,79 +29,71 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'users',
         key: 'id'
-      }
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
     },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false
+    metadata: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
     }
   }, {
     tableName: 'subjects',
     timestamps: true,
     indexes: [
       {
-        unique: true,
-        fields: ['name', 'userId'],
-        name: 'unique_subject_per_user'
-      },
-      {
         fields: ['userId']
       },
       {
-        fields: ['isActive']
+        fields: ['name']
+      },
+      {
+        fields: ['createdAt']
+      },
+      {
+        unique: true,
+        fields: ['userId', 'name']
       }
     ]
-  });
+  })
 
   // Instance methods
-  Subject.prototype.getQuestionCounts = async function() {
-    const { Question } = require('./index');
-    
-    const counts = await Question.findAll({
-      where: { 
-        subjectId: this.id,
-        isActive: true 
-      },
-      attributes: [
-        'difficulty',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
-      group: ['difficulty'],
-      raw: true
-    });
-
-    const result = {
-      easy: 0,
-      medium: 0,
-      hard: 0,
-      total: 0
-    };
-
-    counts.forEach(item => {
-      result[item.difficulty] = parseInt(item.count);
-      result.total += parseInt(item.count);
-    });
-
-    return result;
-  };
-
   Subject.prototype.canCreateExam = async function(requirements) {
-    const counts = await this.getQuestionCounts();
+    const Question = sequelize.models.Question
     
-    return {
-      canCreate: counts.easy >= requirements.easyQuestions &&
-                 counts.medium >= requirements.mediumQuestions &&
-                 counts.hard >= requirements.hardQuestions,
-      available: counts,
-      required: requirements
-    };
-  };
+    const [easyCount, mediumCount, hardCount] = await Promise.all([
+      Question.count({
+        where: { 
+          subjectId: this.id, 
+          difficulty: 'easy', 
+          isActive: true 
+        }
+      }),
+      Question.count({
+        where: { 
+          subjectId: this.id, 
+          difficulty: 'medium', 
+          isActive: true 
+        }
+      }),
+      Question.count({
+        where: { 
+          subjectId: this.id, 
+          difficulty: 'hard', 
+          isActive: true 
+        }
+      })
+    ])
 
-  Subject.prototype.toJSON = function() {
-    const values = Object.assign({}, this.get());
-    return values;
-  };
+    const available = { easy: easyCount, medium: mediumCount, hard: hardCount }
+    const required = requirements || { easy: 0, medium: 0, hard: 0 }
 
-  return Subject;
-};
+    const canCreate = available.easy >= required.easy && 
+                     available.medium >= required.medium && 
+                     available.hard >= required.hard
+
+    return { canCreate, available, required }
+  }
+
+  return Subject
+}
