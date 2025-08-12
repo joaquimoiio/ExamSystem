@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+// Login.jsx - Versão corrigida
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '../../hooks/useAuth'
@@ -7,21 +8,65 @@ import Input from '../Common/Input'
 
 const Login = () => {
   const navigate = useNavigate()
-  const { login, loading } = useAuth()
+  const { login, loading, user, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     register,
     handleSubmit,
-    formState: { errors }
-  } = useForm()
+    formState: { errors, isValid },
+    setError,
+    clearErrors
+  } = useForm({
+    mode: 'onChange'
+  })
+
+  // Redirecionar se já estiver logado
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/')
+    }
+  }, [user, loading, navigate])
+
+  // Limpar erros quando o usuário começar a digitar
+  useEffect(() => {
+    if (error) {
+      clearErrors()
+    }
+  }, [error, clearErrors])
 
   const onSubmit = async (data) => {
     try {
-      await login(data)
-      navigate('/')
+      setIsSubmitting(true)
+      clearErrors()
+      
+      console.log('Tentando fazer login com:', { email: data.email })
+      
+      const result = await login(data)
+      
+      console.log('Login bem-sucedido:', result)
+      
+      // O navigate será feito pelo useEffect quando user for atualizado
     } catch (error) {
-      // Error is handled in the auth context
+      console.error('Erro no login:', error)
+      
+      // Se o erro vier do backend, mostrar mensagem específica
+      if (error.response?.data?.message) {
+        setError('root', {
+          message: error.response.data.message
+        })
+      } else if (error.message) {
+        setError('root', {
+          message: error.message
+        })
+      } else {
+        setError('root', {
+          message: 'Erro desconhecido. Tente novamente.'
+        })
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -43,6 +88,13 @@ const Login = () => {
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          {/* Mostrar erros gerais */}
+          {errors.root && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <p className="text-sm text-red-600">{errors.root.message}</p>
+            </div>
+          )}
+
           <div className="space-y-4">
             <Input
               label="Email"
@@ -56,6 +108,7 @@ const Login = () => {
               })}
               error={errors.email?.message}
               placeholder="seu@email.com"
+              autoComplete="email"
             />
 
             <div className="relative">
@@ -63,15 +116,21 @@ const Login = () => {
                 label="Senha"
                 type={showPassword ? 'text' : 'password'}
                 {...register('password', {
-                  required: 'Senha é obrigatória'
+                  required: 'Senha é obrigatória',
+                  minLength: {
+                    value: 1,
+                    message: 'Senha é obrigatória'
+                  }
                 })}
                 error={errors.password?.message}
                 placeholder="Sua senha"
+                autoComplete="current-password"
               />
               <button
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center mt-6"
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
                 {showPassword ? (
                   <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,10 +158,11 @@ const Login = () => {
             type="submit"
             variant="primary"
             size="lg"
-            loading={loading}
+            loading={isSubmitting || loading}
+            disabled={!isValid || isSubmitting}
             className="w-full"
           >
-            Entrar
+            {isSubmitting ? 'Entrando...' : 'Entrar'}
           </Button>
 
           <div className="text-center">
