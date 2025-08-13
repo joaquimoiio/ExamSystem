@@ -1,4 +1,5 @@
 const winston = require('winston');
+const { AppError } = require('../utils/AppError');
 
 // Configure winston logger for errors
 const errorLogger = winston.createLogger({
@@ -26,18 +27,6 @@ if (process.env.NODE_ENV !== 'production') {
       winston.format.simple()
     )
   }));
-}
-
-// Custom error class for application errors
-class AppError extends Error {
-  constructor(message, statusCode = 500, isOperational = true) {
-    super(message);
-    this.statusCode = statusCode;
-    this.isOperational = isOperational;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-    
-    Error.captureStackTrace(this, this.constructor);
-  }
 }
 
 // Handle Sequelize validation errors
@@ -148,13 +137,6 @@ const errorHandler = (err, req, res, next) => {
   }
 };
 
-// Async error wrapper
-const catchAsync = (fn) => {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-};
-
 // 404 handler for undefined routes
 const notFound = (req, res, next) => {
   const err = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
@@ -162,8 +144,6 @@ const notFound = (req, res, next) => {
 };
 
 module.exports = {
-  AppError,
   errorHandler,
-  catchAsync,
   notFound
 };
