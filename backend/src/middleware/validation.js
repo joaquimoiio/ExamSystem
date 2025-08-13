@@ -1,412 +1,522 @@
-// backend/src/middleware/validation.js
-const Joi = require('joi')
-const { AppError } = require('../utils/AppError')
+const { body, query, param, validationResult } = require('express-validator');
+const { AppError } = require('../utils/appError');
 
-/**
- * Generic validation middleware
- */
-const validate = (schema, property = 'body') => {
-  return (req, res, next) => {
-    const { error, value } = schema.validate(req[property], {
-      abortEarly: false,
-      stripUnknown: true
-    })
-
-    if (error) {
-      const errorMessage = error.details.map(detail => detail.message).join(', ')
-      throw new AppError(`Erro de validação: ${errorMessage}`, 400)
-    }
-
-    req[property] = value
-    next()
+// Helper function to handle validation results
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => ({
+      field: error.path || error.param,
+      message: error.msg,
+      value: error.value
+    }));
+    
+    return next(new AppError('Dados de entrada inválidos', 400, true, errorMessages));
   }
-}
+  next();
+};
 
-// User validation schemas
-const userRegisterSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required().messages({
-    'string.min': 'Nome deve ter pelo menos 2 caracteres',
-    'string.max': 'Nome deve ter no máximo 100 caracteres',
-    'any.required': 'Nome é obrigatório'
-  }),
-  email: Joi.string().email().required().messages({
-    'string.email': 'Email deve ser válido',
-    'any.required': 'Email é obrigatório'
-  }),
-  password: Joi.string().min(6).max(50).required().messages({
-    'string.min': 'Senha deve ter pelo menos 6 caracteres',
-    'string.max': 'Senha deve ter no máximo 50 caracteres',
-    'any.required': 'Senha é obrigatória'
-  }),
-  role: Joi.string().valid('teacher', 'admin').default('teacher')
-})
+// Pagination validation
+const validatePagination = [
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Page deve ser um número inteiro positivo'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit deve ser um número entre 1 e 100'),
+  query('sortBy')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('SortBy deve ser uma string válida'),
+  query('sortOrder')
+    .optional()
+    .isIn(['ASC', 'DESC', 'asc', 'desc'])
+    .withMessage('SortOrder deve ser ASC ou DESC'),
+  handleValidationErrors
+];
 
-const userLoginSchema = Joi.object({
-  email: Joi.string().email().required().messages({
-    'string.email': 'Email deve ser válido',
-    'any.required': 'Email é obrigatório'
-  }),
-  password: Joi.string().required().messages({
-    'any.required': 'Senha é obrigatória'
-  })
-})
+// Question validation
+const validateQuestionCreate = [
+  body('text')
+    .notEmpty()
+    .withMessage('Texto da questão é obrigatório')
+    .isLength({ min: 10, max: 2000 })
+    .withMessage('Texto deve ter entre 10 e 2000 caracteres'),
+  body('alternatives')
+    .isArray({ min: 2, max: 5 })
+    .withMessage('Deve haver entre 2 e 5 alternativas'),
+  body('alternatives.*')
+    .notEmpty()
+    .withMessage('Alternativa não pode estar vazia')
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Alternativa deve ter entre 1 e 500 caracteres'),
+  body('correctAnswer')
+    .isInt({ min: 0, max: 4 })
+    .withMessage('Resposta correta deve ser um índice válido'),
+  body('difficulty')
+    .isIn(['easy', 'medium', 'hard'])
+    .withMessage('Dificuldade deve ser: easy, medium ou hard'),
+  body('subjectId')
+    .isUUID()
+    .withMessage('ID da disciplina deve ser um UUID válido'),
+  body('tags')
+    .optional()
+    .isArray()
+    .withMessage('Tags devem ser um array'),
+  body('tags.*')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Tag deve ter entre 1 e 50 caracteres'),
+  body('explanation')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Explicação deve ter no máximo 1000 caracteres'),
+  body('points')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Pontos devem ser entre 1 e 10'),
+  body('timeEstimate')
+    .optional()
+    .isInt({ min: 30, max: 1800 })
+    .withMessage('Tempo estimado deve ser entre 30 segundos e 30 minutos'),
+  handleValidationErrors
+];
 
-const userUpdateSchema = Joi.object({
-  name: Joi.string().min(2).max(100).messages({
-    'string.min': 'Nome deve ter pelo menos 2 caracteres',
-    'string.max': 'Nome deve ter no máximo 100 caracteres'
-  }),
-  email: Joi.string().email().messages({
-    'string.email': 'Email deve ser válido'
-  })
-})
+const validateQuestionUpdate = [
+  body('text')
+    .optional()
+    .isLength({ min: 10, max: 2000 })
+    .withMessage('Texto deve ter entre 10 e 2000 caracteres'),
+  body('alternatives')
+    .optional()
+    .isArray({ min: 2, max: 5 })
+    .withMessage('Deve haver entre 2 e 5 alternativas'),
+  body('alternatives.*')
+    .optional()
+    .notEmpty()
+    .withMessage('Alternativa não pode estar vazia')
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Alternativa deve ter entre 1 e 500 caracteres'),
+  body('correctAnswer')
+    .optional()
+    .isInt({ min: 0, max: 4 })
+    .withMessage('Resposta correta deve ser um índice válido'),
+  body('difficulty')
+    .optional()
+    .isIn(['easy', 'medium', 'hard'])
+    .withMessage('Dificuldade deve ser: easy, medium ou hard'),
+  body('tags')
+    .optional()
+    .isArray()
+    .withMessage('Tags devem ser um array'),
+  body('explanation')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Explicação deve ter no máximo 1000 caracteres'),
+  body('points')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Pontos devem ser entre 1 e 10'),
+  body('timeEstimate')
+    .optional()
+    .isInt({ min: 30, max: 1800 })
+    .withMessage('Tempo estimado deve ser entre 30 segundos e 30 minutos'),
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive deve ser um valor booleano'),
+  handleValidationErrors
+];
 
-const changePasswordSchema = Joi.object({
-  currentPassword: Joi.string().required().messages({
-    'any.required': 'Senha atual é obrigatória'
-  }),
-  newPassword: Joi.string().min(6).max(50).required().messages({
-    'string.min': 'Nova senha deve ter pelo menos 6 caracteres',
-    'string.max': 'Nova senha deve ter no máximo 50 caracteres',
-    'any.required': 'Nova senha é obrigatória'
-  }),
-  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
-    'any.only': 'Confirmação de senha deve ser igual à nova senha',
-    'any.required': 'Confirmação de senha é obrigatória'
-  })
-})
+const validateQuestionFilter = [
+  query('subjectId')
+    .optional()
+    .isUUID()
+    .withMessage('ID da disciplina deve ser um UUID válido'),
+  query('difficulty')
+    .optional()
+    .isIn(['easy', 'medium', 'hard'])
+    .withMessage('Dificuldade deve ser: easy, medium ou hard'),
+  query('tags')
+    .optional()
+    .isString()
+    .withMessage('Tags devem ser uma string'),
+  query('search')
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Busca deve ter entre 1 e 100 caracteres'),
+  query('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive deve ser um valor booleano'),
+  handleValidationErrors
+];
 
-const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email().required().messages({
-    'string.email': 'Email deve ser válido',
-    'any.required': 'Email é obrigatório'
-  })
-})
+// Subject validation
+const validateSubjectCreate = [
+  body('name')
+    .notEmpty()
+    .withMessage('Nome da disciplina é obrigatório')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('description')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Descrição deve ter no máximo 500 caracteres'),
+  body('color')
+    .optional()
+    .matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+    .withMessage('Cor deve ser um código hexadecimal válido'),
+  handleValidationErrors
+];
 
-const resetPasswordSchema = Joi.object({
-  token: Joi.string().required().messages({
-    'any.required': 'Token é obrigatório'
-  }),
-  newPassword: Joi.string().min(6).max(50).required().messages({
-    'string.min': 'Nova senha deve ter pelo menos 6 caracteres',
-    'string.max': 'Nova senha deve ter no máximo 50 caracteres',
-    'any.required': 'Nova senha é obrigatória'
-  }),
-  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
-    'any.only': 'Confirmação de senha deve ser igual à nova senha',
-    'any.required': 'Confirmação de senha é obrigatória'
-  })
-})
+const validateSubjectUpdate = [
+  body('name')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('description')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Descrição deve ter no máximo 500 caracteres'),
+  body('color')
+    .optional()
+    .matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+    .withMessage('Cor deve ser um código hexadecimal válido'),
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive deve ser um valor booleano'),
+  handleValidationErrors
+];
 
-// Subject validation schemas
-const subjectCreateSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required().messages({
-    'string.min': 'Nome deve ter pelo menos 2 caracteres',
-    'string.max': 'Nome deve ter no máximo 100 caracteres',
-    'any.required': 'Nome é obrigatório'
-  }),
-  description: Joi.string().max(500).allow('').messages({
-    'string.max': 'Descrição deve ter no máximo 500 caracteres'
-  }),
-  color: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#3B82F6').messages({
-    'string.pattern.base': 'Cor deve ser um código hexadecimal válido'
-  })
-})
+// Exam validation
+const validateExamCreate = [
+  body('title')
+    .notEmpty()
+    .withMessage('Título da prova é obrigatório')
+    .isLength({ min: 5, max: 200 })
+    .withMessage('Título deve ter entre 5 e 200 caracteres'),
+  body('description')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Descrição deve ter no máximo 1000 caracteres'),
+  body('instructions')
+    .optional()
+    .isLength({ max: 2000 })
+    .withMessage('Instruções devem ter no máximo 2000 caracteres'),
+  body('subjectId')
+    .isUUID()
+    .withMessage('ID da disciplina deve ser um UUID válido'),
+  body('timeLimit')
+    .optional()
+    .isInt({ min: 300, max: 18000 })
+    .withMessage('Tempo limite deve ser entre 5 minutos e 5 horas (em segundos)'),
+  body('totalQuestions')
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Total de questões deve ser entre 1 e 100'),
+  body('questionsConfig')
+    .optional()
+    .isObject()
+    .withMessage('Configuração de questões deve ser um objeto'),
+  body('settings')
+    .optional()
+    .isObject()
+    .withMessage('Configurações devem ser um objeto'),
+  handleValidationErrors
+];
 
-const subjectUpdateSchema = Joi.object({
-  name: Joi.string().min(2).max(100).messages({
-    'string.min': 'Nome deve ter pelo menos 2 caracteres',
-    'string.max': 'Nome deve ter no máximo 100 caracteres'
-  }),
-  description: Joi.string().max(500).allow('').messages({
-    'string.max': 'Descrição deve ter no máximo 500 caracteres'
-  }),
-  color: Joi.string().pattern(/^#[0-9A-F]{6}$/i).messages({
-    'string.pattern.base': 'Cor deve ser um código hexadecimal válido'
-  })
-})
+const validateExamUpdate = [
+  body('title')
+    .optional()
+    .isLength({ min: 5, max: 200 })
+    .withMessage('Título deve ter entre 5 e 200 caracteres'),
+  body('description')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Descrição deve ter no máximo 1000 caracteres'),
+  body('instructions')
+    .optional()
+    .isLength({ max: 2000 })
+    .withMessage('Instruções devem ter no máximo 2000 caracteres'),
+  body('timeLimit')
+    .optional()
+    .isInt({ min: 300, max: 18000 })
+    .withMessage('Tempo limite deve ser entre 5 minutos e 5 horas (em segundos)'),
+  body('totalQuestions')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Total de questões deve ser entre 1 e 100'),
+  body('questionsConfig')
+    .optional()
+    .isObject()
+    .withMessage('Configuração de questões deve ser um objeto'),
+  body('settings')
+    .optional()
+    .isObject()
+    .withMessage('Configurações devem ser um objeto'),
+  body('status')
+    .optional()
+    .isIn(['draft', 'published', 'closed'])
+    .withMessage('Status deve ser: draft, published ou closed'),
+  handleValidationErrors
+];
 
-// Question validation schemas
-const questionCreateSchema = Joi.object({
-  text: Joi.string().min(10).max(5000).required().messages({
-    'string.min': 'Texto da questão deve ter pelo menos 10 caracteres',
-    'string.max': 'Texto da questão deve ter no máximo 5000 caracteres',
-    'any.required': 'Texto da questão é obrigatório'
-  }),
-  alternatives: Joi.array()
-    .items(
-      Joi.alternatives().try(
-        Joi.string().min(1).max(500),
-        Joi.object({
-          text: Joi.string().min(1).max(500).required(),
-          explanation: Joi.string().max(1000).allow('')
-        })
-      )
-    )
-    .min(2)
-    .max(5)
-    .required()
-    .messages({
-      'array.min': 'Deve ter pelo menos 2 alternativas',
-      'array.max': 'Deve ter no máximo 5 alternativas',
-      'any.required': 'Alternativas são obrigatórias'
+// Answer submission validation
+const validateAnswerSubmit = [
+  body('studentName')
+    .notEmpty()
+    .withMessage('Nome do aluno é obrigatório')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('studentEmail')
+    .optional()
+    .isEmail()
+    .withMessage('Email deve ser válido'),
+  body('studentId')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('ID do aluno deve ter entre 1 e 50 caracteres'),
+  body('answers')
+    .isArray({ min: 1 })
+    .withMessage('Respostas são obrigatórias'),
+  body('answers.*.questionId')
+    .isUUID()
+    .withMessage('ID da questão deve ser um UUID válido'),
+  body('answers.*.selectedAnswer')
+    .isInt({ min: 0, max: 4 })
+    .withMessage('Resposta selecionada deve ser um índice válido'),
+  body('answers.*.timeSpent')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('Tempo gasto deve ser um número positivo'),
+  handleValidationErrors
+];
+
+// Answer review validation
+const validateAnswerReview = [
+  body('feedback')
+    .optional()
+    .isLength({ max: 1000 })
+    .withMessage('Feedback deve ter no máximo 1000 caracteres'),
+  body('manualScores')
+    .optional()
+    .isArray()
+    .withMessage('Pontuações manuais devem ser um array'),
+  body('manualScores.*.questionId')
+    .optional()
+    .isUUID()
+    .withMessage('ID da questão deve ser um UUID válido'),
+  body('manualScores.*.score')
+    .optional()
+    .isFloat({ min: 0, max: 10 })
+    .withMessage('Pontuação deve ser entre 0 e 10'),
+  body('status')
+    .optional()
+    .isIn(['pending', 'graded', 'reviewed'])
+    .withMessage('Status deve ser: pending, graded ou reviewed'),
+  handleValidationErrors
+];
+
+// Auth validation
+const validateUserRegister = [
+  body('name')
+    .notEmpty()
+    .withMessage('Nome é obrigatório')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('email')
+    .isEmail()
+    .withMessage('Email deve ser válido')
+    .normalizeEmail(),
+  body('password')
+    .isLength({ min: 6, max: 128 })
+    .withMessage('Senha deve ter entre 6 e 128 caracteres')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Senha deve conter pelo menos uma letra minúscula, uma maiúscula e um número'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error('Confirmação de senha não confere');
+      }
+      return true;
     }),
-  correctAnswer: Joi.number().integer().min(0).max(4).required().messages({
-    'number.base': 'Resposta correta deve ser um número',
-    'number.min': 'Resposta correta deve ser pelo menos 0',
-    'number.max': 'Resposta correta deve ser no máximo 4',
-    'any.required': 'Resposta correta é obrigatória'
-  }),
-  difficulty: Joi.string().valid('easy', 'medium', 'hard').required().messages({
-    'any.only': 'Dificuldade deve ser easy, medium ou hard',
-    'any.required': 'Dificuldade é obrigatória'
-  }),
-  subjectId: Joi.string().uuid().required().messages({
-    'string.guid': 'ID da disciplina deve ser um UUID válido',
-    'any.required': 'ID da disciplina é obrigatório'
-  }),
-  tags: Joi.array().items(Joi.string().max(50)).max(10).default([]).messages({
-    'array.max': 'Máximo de 10 tags permitidas'
-  }),
-  explanation: Joi.string().max(2000).allow('').messages({
-    'string.max': 'Explicação deve ter no máximo 2000 caracteres'
-  }),
-  points: Joi.number().min(0.1).max(10).default(1).messages({
-    'number.min': 'Pontuação deve ser pelo menos 0.1',
-    'number.max': 'Pontuação deve ser no máximo 10'
-  }),
-  timeEstimate: Joi.number().integer().min(30).max(3600).allow(null).messages({
-    'number.min': 'Tempo estimado deve ser pelo menos 30 segundos',
-    'number.max': 'Tempo estimado deve ser no máximo 3600 segundos'
-  })
-})
+  body('role')
+    .optional()
+    .isIn(['teacher', 'admin'])
+    .withMessage('Role deve ser teacher ou admin'),
+  handleValidationErrors
+];
 
-const questionUpdateSchema = Joi.object({
-  text: Joi.string().min(10).max(5000).messages({
-    'string.min': 'Texto da questão deve ter pelo menos 10 caracteres',
-    'string.max': 'Texto da questão deve ter no máximo 5000 caracteres'
-  }),
-  alternatives: Joi.array()
-    .items(
-      Joi.alternatives().try(
-        Joi.string().min(1).max(500),
-        Joi.object({
-          text: Joi.string().min(1).max(500).required(),
-          explanation: Joi.string().max(1000).allow('')
-        })
-      )
-    )
-    .min(2)
-    .max(5)
-    .messages({
-      'array.min': 'Deve ter pelo menos 2 alternativas',
-      'array.max': 'Deve ter no máximo 5 alternativas'
+const validateUserLogin = [
+  body('email')
+    .isEmail()
+    .withMessage('Email deve ser válido')
+    .normalizeEmail(),
+  body('password')
+    .notEmpty()
+    .withMessage('Senha é obrigatória'),
+  handleValidationErrors
+];
+
+const validatePasswordReset = [
+  body('email')
+    .isEmail()
+    .withMessage('Email deve ser válido')
+    .normalizeEmail(),
+  handleValidationErrors
+];
+
+const validatePasswordChange = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Senha atual é obrigatória'),
+  body('newPassword')
+    .isLength({ min: 6, max: 128 })
+    .withMessage('Nova senha deve ter entre 6 e 128 caracteres')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Nova senha deve conter pelo menos uma letra minúscula, uma maiúscula e um número'),
+  body('confirmNewPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Confirmação de nova senha não confere');
+      }
+      return true;
     }),
-  correctAnswer: Joi.number().integer().min(0).max(4).messages({
-    'number.base': 'Resposta correta deve ser um número',
-    'number.min': 'Resposta correta deve ser pelo menos 0',
-    'number.max': 'Resposta correta deve ser no máximo 4'
-  }),
-  difficulty: Joi.string().valid('easy', 'medium', 'hard').messages({
-    'any.only': 'Dificuldade deve ser easy, medium ou hard'
-  }),
-  tags: Joi.array().items(Joi.string().max(50)).max(10).messages({
-    'array.max': 'Máximo de 10 tags permitidas'
-  }),
-  explanation: Joi.string().max(2000).allow('').messages({
-    'string.max': 'Explicação deve ter no máximo 2000 caracteres'
-  }),
-  points: Joi.number().min(0.1).max(10).messages({
-    'number.min': 'Pontuação deve ser pelo menos 0.1',
-    'number.max': 'Pontuação deve ser no máximo 10'
-  }),
-  timeEstimate: Joi.number().integer().min(30).max(3600).allow(null).messages({
-    'number.min': 'Tempo estimado deve ser pelo menos 30 segundos',
-    'number.max': 'Tempo estimado deve ser no máximo 3600 segundos'
-  }),
-  isActive: Joi.boolean(),
-  allowUpdateUsed: Joi.boolean().default(false)
-})
+  handleValidationErrors
+];
 
-// Exam validation schemas
-const examCreateSchema = Joi.object({
-  title: Joi.string().min(3).max(200).required().messages({
-    'string.min': 'Título deve ter pelo menos 3 caracteres',
-    'string.max': 'Título deve ter no máximo 200 caracteres',
-    'any.required': 'Título é obrigatório'
-  }),
-  description: Joi.string().max(2000).allow('').messages({
-    'string.max': 'Descrição deve ter no máximo 2000 caracteres'
-  }),
-  subjectId: Joi.string().uuid().messages({
-    'string.guid': 'ID da disciplina deve ser um UUID válido'
-  }),
-  totalQuestions: Joi.number().integer().min(1).max(100).required().messages({
-    'number.min': 'Deve ter pelo menos 1 questão',
-    'number.max': 'Deve ter no máximo 100 questões',
-    'any.required': 'Número total de questões é obrigatório'
-  }),
-  easyQuestions: Joi.number().integer().min(0).default(0).messages({
-    'number.min': 'Número de questões fáceis não pode ser negativo'
-  }),
-  mediumQuestions: Joi.number().integer().min(0).default(0).messages({
-    'number.min': 'Número de questões médias não pode ser negativo'
-  }),
-  hardQuestions: Joi.number().integer().min(0).default(0).messages({
-    'number.min': 'Número de questões difíceis não pode ser negativo'
-  }),
-  totalVariations: Joi.number().integer().min(1).max(50).default(1).messages({
-    'number.min': 'Deve ter pelo menos 1 variação',
-    'number.max': 'Deve ter no máximo 50 variações'
-  }),
-  timeLimit: Joi.number().integer().min(5).max(480).allow(null).messages({
-    'number.min': 'Tempo limite deve ser pelo menos 5 minutos',
-    'number.max': 'Tempo limite deve ser no máximo 480 minutos'
-  }),
-  passingScore: Joi.number().min(0).max(10).default(6).messages({
-    'number.min': 'Nota de aprovação deve ser pelo menos 0',
-    'number.max': 'Nota de aprovação deve ser no máximo 10'
-  }),
-  instructions: Joi.string().max(5000).allow('').messages({
-    'string.max': 'Instruções devem ter no máximo 5000 caracteres'
-  }),
-  allowReview: Joi.boolean().default(true),
-  showCorrectAnswers: Joi.boolean().default(true),
-  randomizeQuestions: Joi.boolean().default(true),
-  randomizeAlternatives: Joi.boolean().default(true),
-  expiresAt: Joi.date().greater('now').allow(null).messages({
-    'date.greater': 'Data de expiração deve ser no futuro'
-  }),
-  accessCode: Joi.string().max(20).allow('').messages({
-    'string.max': 'Código de acesso deve ter no máximo 20 caracteres'
-  }),
-  maxAttempts: Joi.number().integer().min(1).default(1).messages({
-    'number.min': 'Deve permitir pelo menos 1 tentativa'
-  }),
-  showResults: Joi.boolean().default(true),
-  requireFullScreen: Joi.boolean().default(false),
-  preventCopyPaste: Joi.boolean().default(false),
-  shuffleAnswers: Joi.boolean().default(true),
-  questionSelection: Joi.object({
-    type: Joi.string().valid('automatic', 'manual').default('automatic'),
-    subjectIds: Joi.array().items(Joi.string().uuid()),
-    distribution: Joi.object({
-      easy: Joi.number().integer().min(0),
-      medium: Joi.number().integer().min(0),
-      hard: Joi.number().integer().min(0)
-    })
-  }).allow(null)
-})
+// ID parameter validation
+const validateUUID = [
+  param('id')
+    .isUUID()
+    .withMessage('ID deve ser um UUID válido'),
+  handleValidationErrors
+];
 
-const examUpdateSchema = Joi.object({
-  title: Joi.string().min(3).max(200).messages({
-    'string.min': 'Título deve ter pelo menos 3 caracteres',
-    'string.max': 'Título deve ter no máximo 200 caracteres'
-  }),
-  description: Joi.string().max(2000).allow('').messages({
-    'string.max': 'Descrição deve ter no máximo 2000 caracteres'
-  }),
-  timeLimit: Joi.number().integer().min(5).max(480).allow(null).messages({
-    'number.min': 'Tempo limite deve ser pelo menos 5 minutos',
-    'number.max': 'Tempo limite deve ser no máximo 480 minutos'
-  }),
-  passingScore: Joi.number().min(0).max(10).messages({
-    'number.min': 'Nota de aprovação deve ser pelo menos 0',
-    'number.max': 'Nota de aprovação deve ser no máximo 10'
-  }),
-  instructions: Joi.string().max(5000).allow('').messages({
-    'string.max': 'Instruções devem ter no máximo 5000 caracteres'
-  }),
-  allowReview: Joi.boolean(),
-  showCorrectAnswers: Joi.boolean(),
-  expiresAt: Joi.date().greater('now').allow(null).messages({
-    'date.greater': 'Data de expiração deve ser no futuro'
-  }),
-  accessCode: Joi.string().max(20).allow('').messages({
-    'string.max': 'Código de acesso deve ter no máximo 20 caracteres'
-  }),
-  maxAttempts: Joi.number().integer().min(1).messages({
-    'number.min': 'Deve permitir pelo menos 1 tentativa'
-  }),
-  showResults: Joi.boolean(),
-  requireFullScreen: Joi.boolean(),
-  preventCopyPaste: Joi.boolean(),
-  allowPublishedUpdate: Joi.boolean().default(false)
-})
+const validateExamParams = [
+  param('examId')
+    .isUUID()
+    .withMessage('ID da prova deve ser um UUID válido'),
+  param('variationId')
+    .optional()
+    .isUUID()
+    .withMessage('ID da variação deve ser um UUID válido'),
+  handleValidationErrors
+];
 
-// Pagination validation schema
-const paginationSchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1).messages({
-    'number.min': 'Página deve ser pelo menos 1'
-  }),
-  limit: Joi.number().integer().min(1).max(100).default(10).messages({
-    'number.min': 'Limite deve ser pelo menos 1',
-    'number.max': 'Limite deve ser no máximo 100'
-  }),
-  search: Joi.string().max(255).allow('').messages({
-    'string.max': 'Busca deve ter no máximo 255 caracteres'
-  }),
-  sortBy: Joi.string().max(50).messages({
-    'string.max': 'Campo de ordenação inválido'
-  }),
-  sortOrder: Joi.string().valid('ASC', 'DESC', 'asc', 'desc').default('DESC')
-})
+// File upload validation
+const validateFileUpload = [
+  body('description')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Descrição deve ter no máximo 500 caracteres'),
+  body('category')
+    .optional()
+    .isIn(['document', 'image', 'import', 'export'])
+    .withMessage('Categoria deve ser: document, image, import ou export'),
+  handleValidationErrors
+];
 
-// Answer submission schema
-const answerSubmissionSchema = Joi.object({
-  studentName: Joi.string().min(2).max(100).required().messages({
-    'string.min': 'Nome do aluno deve ter pelo menos 2 caracteres',
-    'string.max': 'Nome do aluno deve ter no máximo 100 caracteres',
-    'any.required': 'Nome do aluno é obrigatório'
-  }),
-  studentEmail: Joi.string().email().allow('').messages({
-    'string.email': 'Email deve ser válido'
-  }),
-  answers: Joi.array().items(
-    Joi.number().integer().min(0).max(4).allow(null)
-  ).required().messages({
-    'any.required': 'Respostas são obrigatórias'
-  }),
-  timeSpent: Joi.number().integer().min(0).messages({
-    'number.min': 'Tempo gasto não pode ser negativo'
-  }),
-  submittedAt: Joi.date().default(() => new Date())
-})
+// Bulk operations validation
+const validateBulkOperation = [
+  body('operation')
+    .isIn(['delete', 'activate', 'deactivate', 'move', 'tag'])
+    .withMessage('Operação deve ser: delete, activate, deactivate, move ou tag'),
+  body('ids')
+    .isArray({ min: 1, max: 100 })
+    .withMessage('IDs devem ser um array com 1 a 100 itens'),
+  body('ids.*')
+    .isUUID()
+    .withMessage('Todos os IDs devem ser UUIDs válidos'),
+  body('data')
+    .optional()
+    .isObject()
+    .withMessage('Dados devem ser um objeto'),
+  handleValidationErrors
+];
 
-// Validation middleware functions
-const validateUserRegister = validate(userRegisterSchema)
-const validateUserLogin = validate(userLoginSchema)
-const validateUserUpdate = validate(userUpdateSchema)
-const validateChangePassword = validate(changePasswordSchema)
-const validateForgotPassword = validate(forgotPasswordSchema)
-const validateResetPassword = validate(resetPasswordSchema)
+// Search validation
+const validateSearch = [
+  query('q')
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Termo de busca deve ter entre 1 e 100 caracteres'),
+  query('filters')
+    .optional()
+    .isObject()
+    .withMessage('Filtros devem ser um objeto'),
+  handleValidationErrors
+];
 
-const validateSubjectCreate = validate(subjectCreateSchema)
-const validateSubjectUpdate = validate(subjectUpdateSchema)
+// Custom validation helpers
+const customValidators = {
+  // Validate array of UUIDs
+  isUUIDArray: (value) => {
+    if (!Array.isArray(value)) return false;
+    return value.every(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id));
+  },
 
-const validateQuestionCreate = validate(questionCreateSchema)
-const validateQuestionUpdate = validate(questionUpdateSchema)
+  // Validate Brazilian CPF
+  isCPF: (value) => {
+    if (!value) return false;
+    const cpf = value.replace(/\D/g, '');
+    if (cpf.length !== 11) return false;
+    
+    // Check for known invalid CPFs
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+    
+    // Validate check digits
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(cpf.charAt(i)) * (10 - i);
+    }
+    let checkDigit = 11 - (sum % 11);
+    if (checkDigit === 10 || checkDigit === 11) checkDigit = 0;
+    if (checkDigit !== parseInt(cpf.charAt(9))) return false;
+    
+    sum = 0;
+    for (let i = 0; i < 10; i++) {
+      sum += parseInt(cpf.charAt(i)) * (11 - i);
+    }
+    checkDigit = 11 - (sum % 11);
+    if (checkDigit === 10 || checkDigit === 11) checkDigit = 0;
+    return checkDigit === parseInt(cpf.charAt(10));
+  },
 
-const validateExamCreate = validate(examCreateSchema)
-const validateExamUpdate = validate(examUpdateSchema)
-
-const validatePagination = validate(paginationSchema, 'query')
-const validateAnswerSubmission = validate(answerSubmissionSchema)
+  // Validate Brazilian phone number
+  isBrazilianPhone: (value) => {
+    if (!value) return false;
+    const phone = value.replace(/\D/g, '');
+    return /^(?:(?:\+55\s?)?(?:\(?0?[1-9]{2}\)?\s?)?(?:9\s?\d{4}-?\d{4}|\d{4}-?\d{4}))$/.test(phone);
+  }
+};
 
 module.exports = {
-  validate,
-  validateUserRegister,
-  validateUserLogin,
-  validateUserUpdate,
-  validateChangePassword,
-  validateForgotPassword,
-  validateResetPassword,
-  validateSubjectCreate,
-  validateSubjectUpdate,
+  validatePagination,
   validateQuestionCreate,
   validateQuestionUpdate,
+  validateQuestionFilter,
+  validateSubjectCreate,
+  validateSubjectUpdate,
   validateExamCreate,
   validateExamUpdate,
-  validatePagination,
-  validateAnswerSubmission
-}
+  validateAnswerSubmit,
+  validateAnswerReview,
+  validateUserRegister,
+  validateUserLogin,
+  validatePasswordReset,
+  validatePasswordChange,
+  validateUUID,
+  validateExamParams,
+  validateFileUpload,
+  validateBulkOperation,
+  validateSearch,
+  handleValidationErrors,
+  customValidators
+};
