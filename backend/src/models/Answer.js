@@ -7,12 +7,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     userId: {
       type: DataTypes.UUID,
+      allowNull: true,
       references: {
         model: 'users',
         key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL'
+      }
     },
     examId: {
       type: DataTypes.UUID,
@@ -20,9 +19,7 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'exams',
         key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+      }
     },
     variationId: {
       type: DataTypes.UUID,
@@ -30,46 +27,66 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'exam_variations',
         key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
-    },
-    questionId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'questions',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+      }
     },
     studentName: {
       type: DataTypes.STRING(100),
-      allowNull: false
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [2, 100]
+      }
+    },
+    studentId: {
+      type: DataTypes.STRING(50),
+      comment: 'Student registration number or ID'
     },
     studentEmail: {
-      type: DataTypes.STRING(255)
+      type: DataTypes.STRING(255),
+      validate: {
+        isEmail: true
+      }
     },
     answers: {
       type: DataTypes.JSONB,
       allowNull: false,
-      comment: 'Array of student answers indexed by question order'
+      comment: 'Array of student answers with question details'
     },
     score: {
-      type: DataTypes.DECIMAL(5, 2)
+      type: DataTypes.DECIMAL(5, 2),
+      validate: {
+        min: 0,
+        max: 10
+      }
     },
     totalQuestions: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        min: 1
+      }
     },
     correctAnswers: {
       type: DataTypes.INTEGER,
+      defaultValue: 0,
+      validate: {
+        min: 0
+      }
+    },
+    earnedPoints: {
+      type: DataTypes.DECIMAL(6, 2),
+      defaultValue: 0
+    },
+    totalPoints: {
+      type: DataTypes.DECIMAL(6, 2),
       defaultValue: 0
     },
     timeSpent: {
       type: DataTypes.INTEGER,
       comment: 'Time spent in seconds'
+    },
+    startedAt: {
+      type: DataTypes.DATE
     },
     submittedAt: {
       type: DataTypes.DATE,
@@ -80,7 +97,17 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('submitted', 'graded', 'reviewed'),
       defaultValue: 'submitted'
     },
+    isPassed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     feedback: {
+      type: DataTypes.TEXT
+    },
+    ipAddress: {
+      type: DataTypes.STRING(45)
+    },
+    userAgent: {
       type: DataTypes.TEXT
     },
     metadata: {
@@ -91,89 +118,206 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'answers',
     timestamps: true,
     indexes: [
-      {
-        fields: ['userId']
-      },
-      {
-        fields: ['examId']
-      },
-      {
-        fields: ['variationId']
-      },
-      {
-        fields: ['questionId']
-      },
-      {
-        fields: ['studentEmail']
-      },
-      {
-        fields: ['submittedAt']
-      },
-      {
-        fields: ['status']
-      },
-      {
-        fields: ['score']
-      }
+      { fields: ['userId'] },
+      { fields: ['examId'] },
+      { fields: ['variationId'] },
+      { fields: ['studentId'] },
+      { fields: ['studentEmail'] },
+      { fields: ['status'] },
+      { fields: ['isPassed'] },
+      { fields: ['submittedAt'] },
+      { fields: ['score'] }
     ]
-  })
+  });
 
   // Instance methods
-  Answer.prototype.calculateScore = async function() {
-    const ExamQuestion = sequelize.models.ExamQuestion
-    const Question = sequelize.models.Question
+  Answer.prototype.toJSON = function() {
+    const values = Object.assign({}, this.get());
+    return values;
+  };
 
-    const examQuestions = await ExamQuestion.findAll({
-      where: { variationId: this.variationId },
-      include: [{
-        model: Question,
-        as: 'question'
-      }],
-      order: [['order', 'ASC']]
-    })
-
-    let correctCount = 0
-    let totalPoints = 0
-    let earnedPoints = 0
-
-    examQuestions.forEach((examQuestion, index) => {
-      const question = examQuestion.question
-      const studentAnswer = this.answers[index]
-      const correctAnswer = question.correctAnswer
-      const points = parseFloat(examQuestion.points)
-
-      totalPoints += points
-
-      if (studentAnswer !== undefined && studentAnswer === correctAnswer) {
-        correctCount++
-        earnedPoints += points
-      }
-    })
-
-    const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 10 : 0
-
-    await this.update({
-      correctAnswers: correctCount,
-      score: parseFloat(score.toFixed(2)),
-      status: 'graded'
-    })
-
-    return {
-      score: parseFloat(score.toFixed(2)),
-      correctAnswers: correctCount,
-      totalQuestions: examQuestions.length,
-      percentage: totalPoints > 0 ? (earnedPoints / totalPoints * 100).toFixed(1) : 0
-    }
-  }
-
-  Answer.prototype.isPassing = function() {
-    if (!this.score) return false
+  Answer.prototype.calculateGrade = function() {
+    if (!this.score) return 'N/A';
     
-    return new Promise(async (resolve) => {
-      const exam = await this.getExam()
-      resolve(this.score >= exam.passingScore)
-    })
-  }
+    const score = parseFloat(this.score);
+    
+    if (score >= 9.0) return 'A';
+    if (score >= 8.0) return 'B';
+    if (score >= 7.0) return 'C';
+    if (score >= 6.0) return 'D';
+    return 'F';
+  };
 
-  return Answer
-}
+  Answer.prototype.getPerformanceByDifficulty = function() {
+    if (!this.answers || !Array.isArray(this.answers)) return {};
+    
+    const performance = {
+      easy: { correct: 0, total: 0 },
+      medium: { correct: 0, total: 0 },
+      hard: { correct: 0, total: 0 }
+    };
+
+    this.answers.forEach(answer => {
+      const difficulty = answer.difficulty || 'medium';
+      if (performance[difficulty]) {
+        performance[difficulty].total++;
+        if (answer.correct) {
+          performance[difficulty].correct++;
+        }
+      }
+    });
+
+    // Calculate percentages
+    Object.keys(performance).forEach(difficulty => {
+      const perf = performance[difficulty];
+      perf.percentage = perf.total > 0 ? ((perf.correct / perf.total) * 100).toFixed(1) : 0;
+    });
+
+    return performance;
+  };
+
+  Answer.prototype.getDetailedResults = function() {
+    if (!this.answers || !Array.isArray(this.answers)) return [];
+    
+    return this.answers.map((answer, index) => ({
+      questionNumber: index + 1,
+      questionId: answer.questionId,
+      studentAnswer: answer.answer,
+      correctAnswer: answer.correctAnswer,
+      isCorrect: answer.correct,
+      difficulty: answer.difficulty,
+      points: answer.points || 0,
+      maxPoints: answer.maxPoints || 1,
+      explanation: answer.explanation
+    }));
+  };
+
+  Answer.prototype.getTimeSpentFormatted = function() {
+    if (!this.timeSpent) return 'N/A';
+    
+    const hours = Math.floor(this.timeSpent / 3600);
+    const minutes = Math.floor((this.timeSpent % 3600) / 60);
+    const seconds = this.timeSpent % 60;
+    
+    let formatted = '';
+    if (hours > 0) formatted += `${hours}h `;
+    if (minutes > 0) formatted += `${minutes}m `;
+    formatted += `${seconds}s`;
+    
+    return formatted.trim();
+  };
+
+  // Class methods
+  Answer.findByExam = function(examId, options = {}) {
+    return this.findAll({
+      where: { examId },
+      order: [['submittedAt', 'DESC']],
+      ...options
+    });
+  };
+
+  Answer.findByStudent = function(studentIdentifier, options = {}) {
+    const where = {};
+    
+    // Check if it's an email or student ID
+    if (studentIdentifier.includes('@')) {
+      where.studentEmail = studentIdentifier;
+    } else {
+      where.studentId = studentIdentifier;
+    }
+
+    return this.findAll({
+      where,
+      order: [['submittedAt', 'DESC']],
+      ...options
+    });
+  };
+
+  Answer.getExamStatistics = async function(examId) {
+    const stats = await this.findAll({
+      where: { examId },
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('id')), 'totalSubmissions'],
+        [sequelize.fn('AVG', sequelize.col('score')), 'averageScore'],
+        [sequelize.fn('MIN', sequelize.col('score')), 'minScore'],
+        [sequelize.fn('MAX', sequelize.col('score')), 'maxScore'],
+        [sequelize.fn('COUNT', sequelize.literal('CASE WHEN "isPassed" = true THEN 1 END')), 'passedCount']
+      ],
+      raw: true
+    });
+
+    const result = stats[0] || {};
+    
+    return {
+      totalSubmissions: parseInt(result.totalSubmissions) || 0,
+      averageScore: result.averageScore ? parseFloat(result.averageScore).toFixed(2) : 0,
+      minScore: result.minScore ? parseFloat(result.minScore).toFixed(2) : 0,
+      maxScore: result.maxScore ? parseFloat(result.maxScore).toFixed(2) : 0,
+      passedCount: parseInt(result.passedCount) || 0,
+      failedCount: (parseInt(result.totalSubmissions) || 0) - (parseInt(result.passedCount) || 0),
+      passRate: result.totalSubmissions > 0 ? 
+        ((parseInt(result.passedCount) / parseInt(result.totalSubmissions)) * 100).toFixed(2) : 0
+    };
+  };
+
+  Answer.getQuestionAnalysis = async function(examId) {
+    const answers = await this.findAll({
+      where: { examId },
+      attributes: ['answers']
+    });
+
+    const questionStats = {};
+
+    answers.forEach(answer => {
+      if (answer.answers && Array.isArray(answer.answers)) {
+        answer.answers.forEach((questionAnswer, index) => {
+          const questionId = questionAnswer.questionId;
+          
+          if (!questionStats[questionId]) {
+            questionStats[questionId] = {
+              questionNumber: index + 1,
+              totalAttempts: 0,
+              correctAttempts: 0,
+              difficulty: questionAnswer.difficulty,
+              alternativeDistribution: {}
+            };
+          }
+
+          questionStats[questionId].totalAttempts++;
+          
+          if (questionAnswer.correct) {
+            questionStats[questionId].correctAttempts++;
+          }
+
+          // Track answer distribution
+          const studentAnswer = questionAnswer.answer;
+          if (!questionStats[questionId].alternativeDistribution[studentAnswer]) {
+            questionStats[questionId].alternativeDistribution[studentAnswer] = 0;
+          }
+          questionStats[questionId].alternativeDistribution[studentAnswer]++;
+        });
+      }
+    });
+
+    // Calculate success rates
+    Object.keys(questionStats).forEach(questionId => {
+      const stats = questionStats[questionId];
+      stats.successRate = stats.totalAttempts > 0 ? 
+        ((stats.correctAttempts / stats.totalAttempts) * 100).toFixed(2) : 0;
+      
+      // Determine difficulty based on success rate
+      const successRate = parseFloat(stats.successRate);
+      if (successRate >= 80) {
+        stats.calculatedDifficulty = 'easy';
+      } else if (successRate >= 50) {
+        stats.calculatedDifficulty = 'medium';
+      } else {
+        stats.calculatedDifficulty = 'hard';
+      }
+    });
+
+    return questionStats;
+  };
+
+  return Answer;
+};

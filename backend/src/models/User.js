@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs');
+
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define('User', {
     id: {
@@ -20,37 +22,28 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isEmail: true,
         notEmpty: true
-      },
-      set(value) {
-        this.setDataValue('email', value.toLowerCase())
       }
     },
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
       validate: {
-        notEmpty: true,
         len: [6, 255]
       }
     },
     role: {
-      type: DataTypes.ENUM('admin', 'teacher', 'student'),
-      allowNull: false,
+      type: DataTypes.ENUM('admin', 'teacher'),
       defaultValue: 'teacher'
     },
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
     },
-    emailVerified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
-    },
     lastLogin: {
       type: DataTypes.DATE
     },
-    refreshToken: {
-      type: DataTypes.TEXT
+    passwordChangedAt: {
+      type: DataTypes.DATE
     },
     passwordResetToken: {
       type: DataTypes.STRING
@@ -58,8 +51,21 @@ module.exports = (sequelize, DataTypes) => {
     passwordResetExpires: {
       type: DataTypes.DATE
     },
-    deactivatedAt: {
-      type: DataTypes.DATE
+    refreshToken: {
+      type: DataTypes.TEXT
+    },
+    avatar: {
+      type: DataTypes.STRING
+    },
+    phone: {
+      type: DataTypes.STRING(20)
+    },
+    bio: {
+      type: DataTypes.TEXT
+    },
+    preferences: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
     },
     metadata: {
       type: DataTypes.JSONB,
@@ -83,25 +89,72 @@ module.exports = (sequelize, DataTypes) => {
         fields: ['createdAt']
       }
     ],
-    scopes: {
-      active: {
-        where: {
-          isActive: true
-        }
-      },
-      withoutPassword: {
-        attributes: {
-          exclude: ['password', 'refreshToken', 'passwordResetToken']
+    hooks: {
+      beforeSave: async (user, options) => {
+        // Hash password if it was changed
+        if (user.changed('password')) {
+          user.password = await bcrypt.hash(user.password, 12);
+          user.passwordChangedAt = new Date();
         }
       }
     }
-  })
+  });
 
   // Instance methods
-  User.prototype.toSafeJSON = function() {
-    const { password, refreshToken, passwordResetToken, ...safeUser } = this.toJSON()
-    return safeUser
-  }
+  User.prototype.toJSON = function() {
+    const values = Object.assign({}, this.get());
+    delete values.password;
+    delete values.passwordResetToken;
+    delete values.passwordResetExpires;
+    delete values.refreshToken;
+    return values;
+  };
 
-  return User
-}
+  User.prototype.validatePassword = async function(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+  };
+
+  User.prototype.passwordChangedAfter = function(JWTTimestamp) {
+    if (this.passwordChangedAt) {
+      const changedTimestamp = parseInt(
+        this.passwordChangedAt.getTime() / 1000,
+        10
+      );
+      return JWTTimestamp < changedTimestamp;
+    }
+    return false;
+  };
+
+  User.prototype.createPasswordResetToken = function() {
+    const resetToken = require('crypto').randomBytes(32).toString('hex');
+    
+    this.passwordResetToken = require('crypto')
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    return resetToken;
+  };
+
+  User.prototype.canManageResource = function(resource) {
+    if (this.role === 'admin') return true;
+    return resource.userId === this.id;
+  };
+
+  // Class methods
+  User.findByEmail = function(email) {
+    return this.findOne({ where: { email: email.toLowerCase() } });
+  };
+
+  User.createAdmin = async function(userData) {
+    return await this.create({
+      ...userData,
+      role: 'admin',
+      isActive: true
+    });
+  };
+
+  return User;
+};

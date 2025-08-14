@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notEmpty: true,
-        len: [10, 5000]
+        len: [10, 2000]
       }
     },
     alternatives: {
@@ -19,13 +19,17 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isValidAlternatives(value) {
           if (!Array.isArray(value) || value.length < 2 || value.length > 5) {
-            throw new Error('Deve ter entre 2 e 5 alternativas')
+            throw new Error('Must have between 2 and 5 alternatives');
           }
+          
           value.forEach((alt, index) => {
-            if (!alt.text || typeof alt.text !== 'string' || !alt.text.trim()) {
-              throw new Error(`Alternativa ${index + 1} deve ter texto válido`)
+            if (!alt || typeof alt !== 'string' || alt.trim().length === 0) {
+              throw new Error(`Alternative ${index + 1} cannot be empty`);
             }
-          })
+            if (alt.length > 500) {
+              throw new Error(`Alternative ${index + 1} is too long (max 500 characters)`);
+            }
+          });
         }
       }
     },
@@ -35,9 +39,9 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         min: 0,
         max: 4,
-        isCorrectAnswerValid(value) {
+        isCorrectIndex(value) {
           if (this.alternatives && value >= this.alternatives.length) {
-            throw new Error('Resposta correta deve ser um índice válido das alternativas')
+            throw new Error('Correct answer index is out of range');
           }
         }
       }
@@ -47,48 +51,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'medium'
     },
-    tags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      defaultValue: [],
-      validate: {
-        isValidTags(value) {
-          if (!Array.isArray(value)) {
-            throw new Error('Tags devem ser um array')
-          }
-          if (value.length > 10) {
-            throw new Error('Máximo de 10 tags por questão')
-          }
-          value.forEach(tag => {
-            if (typeof tag !== 'string' || tag.length > 20) {
-              throw new Error('Cada tag deve ser uma string de até 20 caracteres')
-            }
-          })
-        }
-      }
-    },
-    explanation: {
-      type: DataTypes.TEXT,
-      validate: {
-        len: [0, 2000]
-      }
-    },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
-    },
-    timesUsed: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-      validate: {
-        min: 0
-      }
-    },
-    averageScore: {
-      type: DataTypes.DECIMAL(3, 2),
-      validate: {
-        min: 0,
-        max: 10
-      }
+    subjectId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'subjects',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT'
     },
     userId: {
       type: DataTypes.UUID,
@@ -100,15 +71,36 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
-    subjectId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'subjects',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE'
+    tags: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      defaultValue: []
+    },
+    explanation: {
+      type: DataTypes.TEXT
+    },
+    points: {
+      type: DataTypes.DECIMAL(3, 1),
+      defaultValue: 1.0,
+      validate: {
+        min: 0.1,
+        max: 10.0
+      }
+    },
+    averageScore: {
+      type: DataTypes.DECIMAL(4, 2),
+      defaultValue: null
+    },
+    timesUsed: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    timesCorrect: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
     },
     metadata: {
       type: DataTypes.JSONB,
@@ -119,10 +111,10 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: true,
     indexes: [
       {
-        fields: ['userId']
+        fields: ['subjectId']
       },
       {
-        fields: ['subjectId']
+        fields: ['userId']
       },
       {
         fields: ['difficulty']
@@ -131,143 +123,150 @@ module.exports = (sequelize, DataTypes) => {
         fields: ['isActive']
       },
       {
-        fields: ['tags'],
-        using: 'gin'
-      },
-      {
         fields: ['createdAt']
       },
       {
-        fields: ['timesUsed']
-      },
-      {
-        fields: ['averageScore']
+        fields: ['tags'],
+        using: 'gin'
       }
-    ],
-    scopes: {
-      active: {
-        where: {
-          isActive: true
-        }
-      },
-      byDifficulty(difficulty) {
-        return {
-          where: {
-            difficulty: difficulty,
-            isActive: true
-          }
-        }
-      },
-      bySubject(subjectId) {
-        return {
-          where: {
-            subjectId: subjectId,
-            isActive: true
-          }
-        }
-      },
-      withTag(tag) {
-        return {
-          where: {
-            tags: {
-              [sequelize.Sequelize.Op.contains]: [tag]
-            },
-            isActive: true
-          }
-        }
-      }
-    }
-  })
+    ]
+  });
 
   // Instance methods
-  Question.prototype.incrementUsage = async function() {
-    await this.increment('timesUsed')
-    return this
-  }
-
-  Question.prototype.updateAverageScore = async function(scores) {
-    if (!Array.isArray(scores) || scores.length === 0) return this
-    
-    const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
-    await this.update({ averageScore: parseFloat(average.toFixed(2)) })
-    return this
-  }
-
-  Question.prototype.toSafeJSON = function() {
-    const question = this.toJSON()
-    // Remove correct answer from public view
-    if (!this.showCorrectAnswer) {
-      delete question.correctAnswer
-      delete question.explanation
-    }
-    return question
-  }
-
   Question.prototype.shuffleAlternatives = function() {
-    const alternatives = [...this.alternatives]
-    const correctAnswer = this.correctAnswer
-    const correctText = alternatives[correctAnswer].text
-
+    const alternatives = [...this.alternatives];
+    const correctAnswer = this.correctAnswer;
+    const correctText = alternatives[correctAnswer];
+    
     // Fisher-Yates shuffle
     for (let i = alternatives.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]]
+      [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]];
     }
-
+    
     // Find new position of correct answer
-    const newCorrectAnswer = alternatives.findIndex(alt => alt.text === correctText)
-
+    const newCorrectAnswer = alternatives.indexOf(correctText);
+    
     return {
       alternatives,
       correctAnswer: newCorrectAnswer
+    };
+  };
+
+  Question.prototype.checkAnswer = function(studentAnswer) {
+    const isCorrect = parseInt(studentAnswer) === this.correctAnswer;
+    const points = isCorrect ? this.points : 0;
+    
+    return {
+      isCorrect,
+      points,
+      correctAnswer: this.correctAnswer,
+      explanation: this.explanation
+    };
+  };
+
+  Question.prototype.updateAverageScore = async function(isCorrect) {
+    this.timesUsed += 1;
+    if (isCorrect) {
+      this.timesCorrect += 1;
     }
-  }
+    
+    this.averageScore = (this.timesCorrect / this.timesUsed) * 100;
+    
+    await this.save();
+  };
+
+  Question.prototype.getSuccessRate = function() {
+    if (this.timesUsed === 0) return null;
+    return ((this.timesCorrect / this.timesUsed) * 100).toFixed(2);
+  };
+
+  Question.prototype.getDifficultyLevel = function() {
+    const successRate = this.getSuccessRate();
+    if (!successRate) return this.difficulty;
+    
+    if (successRate >= 80) return 'easy';
+    if (successRate >= 50) return 'medium';
+    return 'hard';
+  };
 
   // Class methods
-  Question.getStatsBySubject = async function(subjectId) {
-    const questions = await this.findAll({
+  Question.findBySubject = function(subjectId, options = {}) {
+    return this.findAll({
       where: { subjectId, isActive: true },
-      attributes: ['difficulty', 'timesUsed', 'averageScore']
-    })
+      order: [['createdAt', 'DESC']],
+      ...options
+    });
+  };
 
-    return {
-      total: questions.length,
-      byDifficulty: {
-        easy: questions.filter(q => q.difficulty === 'easy').length,
-        medium: questions.filter(q => q.difficulty === 'medium').length,
-        hard: questions.filter(q => q.difficulty === 'hard').length
+  Question.findByDifficulty = function(subjectId, difficulty, limit = 10) {
+    return this.findAll({
+      where: { 
+        subjectId, 
+        difficulty, 
+        isActive: true 
       },
-      averageUsage: questions.reduce((sum, q) => sum + q.timesUsed, 0) / questions.length || 0,
-      averageScore: questions
-        .filter(q => q.averageScore !== null)
-        .reduce((sum, q) => sum + parseFloat(q.averageScore), 0) / 
-        questions.filter(q => q.averageScore !== null).length || 0
-    }
-  }
+      limit,
+      order: sequelize.random()
+    });
+  };
 
-  Question.findForExam = async function(criteria) {
-    const { subjectId, difficulties, count, excludeIds = [] } = criteria
+  Question.getRandomQuestions = async function(subjectId, distribution) {
+    const { easy = 0, medium = 0, hard = 0 } = distribution;
     
-    const where = {
-      subjectId,
-      isActive: true,
-      id: {
-        [sequelize.Sequelize.Op.notIn]: excludeIds
-      }
+    const [easyQuestions, mediumQuestions, hardQuestions] = await Promise.all([
+      easy > 0 ? this.findByDifficulty(subjectId, 'easy', easy) : [],
+      medium > 0 ? this.findByDifficulty(subjectId, 'medium', medium) : [],
+      hard > 0 ? this.findByDifficulty(subjectId, 'hard', hard) : []
+    ]);
+
+    return [...easyQuestions, ...mediumQuestions, ...hardQuestions];
+  };
+
+  Question.searchQuestions = function(userId, searchParams) {
+    const { 
+      text, 
+      subjectId, 
+      difficulty, 
+      tags, 
+      page = 1, 
+      limit = 10 
+    } = searchParams;
+
+    const where = { userId, isActive: true };
+    
+    if (text) {
+      where.text = { [sequelize.Sequelize.Op.iLike]: `%${text}%` };
+    }
+    
+    if (subjectId) {
+      where.subjectId = subjectId;
+    }
+    
+    if (difficulty) {
+      where.difficulty = difficulty;
+    }
+    
+    if (tags && tags.length > 0) {
+      where.tags = { [sequelize.Sequelize.Op.overlap]: tags };
     }
 
-    if (difficulties && difficulties.length > 0) {
-      where.difficulty = {
-        [sequelize.Sequelize.Op.in]: difficulties
-      }
-    }
+    const offset = (page - 1) * limit;
 
-    return await this.findAll({
+    return this.findAndCountAll({
       where,
-      limit: count,
-      order: sequelize.literal('RANDOM()') // PostgreSQL random
-    })
-  }
+      limit: parseInt(limit),
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: sequelize.models.Subject,
+          as: 'subject',
+          attributes: ['id', 'name', 'color']
+        }
+      ]
+    });
+  };
 
-  return Question
-}
+  return Question;
+};

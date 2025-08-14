@@ -1,7 +1,7 @@
 const winston = require('winston');
-const { AppError } = require('../utils/AppError');
+const { AppError } = require('../utils/appError');
 
-// Configure winston logger for errors
+// Create error logger
 const errorLogger = winston.createLogger({
   level: 'error',
   format: winston.format.combine(
@@ -10,90 +10,77 @@ const errorLogger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.File({ 
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5
-    })
+    new winston.transports.File({ filename: 'logs/error.log' })
   ]
 });
 
-// Add console transport in development
-if (process.env.NODE_ENV !== 'production') {
-  errorLogger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
-
-// Handle Sequelize validation errors
-const handleSequelizeValidationError = (error) => {
-  const errors = error.errors.map(err => ({
-    field: err.path,
-    message: err.message,
-    value: err.value
-  }));
-
-  return new AppError('Validation error', 400, true, errors);
-};
-
-// Handle Sequelize unique constraint errors
-const handleSequelizeUniqueConstraintError = (error) => {
-  const field = error.errors[0]?.path || 'field';
-  const message = `${field} already exists`;
-  
-  return new AppError(message, 409);
-};
-
-// Handle Sequelize foreign key constraint errors
-const handleSequelizeForeignKeyConstraintError = (error) => {
-  const message = 'Referenced resource does not exist';
-  return new AppError(message, 400);
-};
-
-// Handle JWT errors
-const handleJWTError = () => new AppError('Invalid token. Please log in again!', 401);
-
-const handleJWTExpiredError = () => new AppError('Your token has expired! Please log in again.', 401);
-
-// Handle cast errors (invalid IDs)
-const handleCastError = (error) => {
-  const message = `Invalid ${error.path}: ${error.value}`;
-  return new AppError(message, 400);
-};
-
-// Send error response in development
+// Development error response
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
     success: false,
     error: err,
     message: err.message,
     stack: err.stack,
-    ...(err.errors && { errors: err.errors })
+    details: err.details
   });
 };
 
-// Send error response in production
+// Production error response
 const sendErrorProd = (err, res) => {
-  // Operational, trusted error: send message to client
   if (err.isOperational) {
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
-      ...(err.errors && { errors: err.errors })
+      details: err.details
     });
   } else {
-    // Programming or other unknown error: don't leak error details
-    errorLogger.error('Unexpected error:', err);
+    errorLogger.error('Programming Error:', err);
     
     res.status(500).json({
       success: false,
       message: 'Something went wrong!'
     });
   }
+};
+
+// Handle Sequelize validation errors
+const handleSequelizeValidationError = (err) => {
+  const errors = err.errors.map(error => ({
+    field: error.path,
+    message: error.message,
+    value: error.value
+  }));
+  
+  const message = 'Invalid input data';
+  return new AppError(message, 400, true, errors);
+};
+
+// Handle Sequelize unique constraint errors
+const handleSequelizeUniqueConstraintError = (err) => {
+  const field = err.errors[0].path;
+  const message = `${field} already exists`;
+  return new AppError(message, 400, true, { field, constraint: 'unique' });
+};
+
+// Handle Sequelize foreign key constraint errors
+const handleSequelizeForeignKeyConstraintError = (err) => {
+  const message = 'Invalid reference to related data';
+  return new AppError(message, 400, true, { constraint: 'foreign_key' });
+};
+
+// Handle JWT errors
+const handleJWTError = () => {
+  return new AppError('Invalid token. Please log in again!', 401);
+};
+
+const handleJWTExpiredError = () => {
+  return new AppError('Your token has expired! Please log in again.', 401);
+};
+
+// Handle cast errors
+const handleCastError = (err) => {
+  const message = `Invalid ${err.path}: ${err.value}`;
+  return new AppError(message, 400);
 };
 
 // Main error handling middleware
@@ -139,7 +126,7 @@ const errorHandler = (err, req, res, next) => {
 
 // 404 handler for undefined routes
 const notFound = (req, res, next) => {
-  const err = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
+  const err = new AppError(`Route ${req.originalUrl} not found`, 404);
   next(err);
 };
 

@@ -1,404 +1,817 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
-const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const { AppError } = require('../utils/appError');
+const { formatDateBR } = require('../utils/helpers');
 
+/**
+ * PDF Service for generating exam reports and documents
+ */
 class PDFService {
   constructor() {
-    this.uploadPaths = {
-      pdfs: path.join(__dirname, '../uploads/pdfs')
+    this.fonts = {
+      regular: 'Helvetica',
+      bold: 'Helvetica-Bold',
+      italic: 'Helvetica-Oblique'
     };
-    
-    // Ensure directory exists
-    if (!fs.existsSync(this.uploadPaths.pdfs)) {
-      fs.mkdirSync(this.uploadPaths.pdfs, { recursive: true });
-    }
   }
 
-  async generateExamPDF(exam, variation, options = {}) {
-    try {
-      const {
-        includeAnswerKey = false,
-        watermark = null,
-        customHeader = null
-      } = options;
-
-      // Create PDF document
-      const doc = new PDFDocument({
-        size: 'A4',
-        margins: {
-          top: 50,
-          bottom: 50,
-          left: 50,
-          right: 50
-        }
-      });
-
-      // Generate filename
-      const filename = `exam_${exam.id}_variation_${variation.variationLetter}_${Date.now()}.pdf`;
-      const filepath = path.join(this.uploadPaths.pdfs, filename);
-      
-      // Pipe to file
-      doc.pipe(fs.createWriteStream(filepath));
-
-      // Generate QR Code
-      const qrCodeDataURL = await QRCode.toDataURL(variation.qrCode, {
-        width: 100,
-        margin: 1
-      });
-
-      // Add header
-      await this.addHeader(doc, exam, variation, qrCodeDataURL, customHeader);
-
-      // Add instructions if available
-      if (exam.instructions) {
-        this.addInstructions(doc, exam.instructions);
-      }
-
-      // Add questions
-      await this.addQuestions(doc, variation.questions, includeAnswerKey);
-
-      // Add footer
-      this.addFooter(doc, exam, variation);
-
-      // Add watermark if specified
-      if (watermark) {
-        this.addWatermark(doc, watermark);
-      }
-
-      // Finalize PDF
-      doc.end();
-
-      return new Promise((resolve, reject) => {
-        doc.on('end', () => {
-          resolve({
-            filename,
-            filepath,
-            url: `/uploads/pdfs/${filename}`
-          });
+  /**
+   * Generate exam report PDF
+   */
+  async generateExamReport(exam, submissions, statistics, outputPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
         });
 
-        doc.on('error', reject);
-      });
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
 
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      throw error;
-    }
+        // Header
+        this.addHeader(doc, 'Exam Report');
+        
+        // Exam information
+        this.addExamInfo(doc, exam);
+        
+        // Statistics
+        this.addStatistics(doc, statistics);
+        
+        // Submissions summary
+        this.addSubmissionsSummary(doc, submissions);
+        
+        // Footer
+        this.addFooter(doc);
+
+        doc.end();
+
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
-  async addHeader(doc, exam, variation, qrCodeDataURL, customHeader) {
-    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    
-    // School/Institution name (if provided in custom header)
-    if (customHeader?.institution) {
-      doc.fontSize(16)
-         .font('Helvetica-Bold')
-         .text(customHeader.institution, { align: 'center' });
-      doc.moveDown(0.5);
-    }
+  /**
+   * Generate QR codes sheet PDF
+   */
+  async generateQRCodesSheet(exam, variations, outputPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
+        });
 
-    // Exam title
-    doc.fontSize(14)
-       .font('Helvetica-Bold')
-       .text(exam.title, { align: 'center' });
-    
-    // Subject name (if available through association)
-    if (exam.subject?.name) {
-      doc.fontSize(12)
-         .font('Helvetica')
-         .text(`Disciplina: ${exam.subject.name}`, { align: 'center' });
-    }
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
 
-    doc.moveDown(1);
+        // Header
+        this.addHeader(doc, 'Exam QR Codes');
+        
+        // Exam info
+        doc.fontSize(14).font(this.fonts.bold);
+        doc.text(`Exam: ${exam.title}`, 50, 120);
+        doc.text(`Access Code: ${exam.accessCode}`, 50, 140);
+        doc.text(`Total Variations: ${variations.length}`, 50, 160);
+        
+        doc.moveDown(2);
 
-    // Create a box for exam info and QR code
-    const boxY = doc.y;
-    const qrSize = 80;
-    
-    // Left side - Exam information
-    doc.fontSize(10)
-       .font('Helvetica');
+        // QR codes grid
+        this.addQRCodesGrid(doc, variations);
+        
+        // Footer
+        this.addFooter(doc);
 
-    const leftInfo = [
-      `Versão: ${variation.variationLetter}`,
-      `Data: ${new Date().toLocaleDateString('pt-BR')}`,
-      `Total de Questões: ${variation.questions.length}`,
-      exam.timeLimit ? `Tempo Limite: ${exam.timeLimit} minutos` : null,
-      `Nota Mínima: ${exam.passingScore}%`
-    ].filter(Boolean);
+        doc.end();
 
-    leftInfo.forEach((info, index) => {
-      doc.text(info, doc.page.margins.left, boxY + (index * 15));
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
+  }
 
-    // Right side - QR Code
-    const qrX = pageWidth - qrSize + doc.page.margins.left;
-    
-    // Convert base64 QR code to buffer
-    const qrBuffer = Buffer.from(qrCodeDataURL.split(',')[1], 'base64');
-    doc.image(qrBuffer, qrX, boxY, {
-      width: qrSize,
-      height: qrSize
+  /**
+   * Generate student results PDF
+   */
+  async generateStudentResults(submission, outputPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
+        });
+
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
+
+        // Header
+        this.addHeader(doc, 'Exam Results');
+        
+        // Student information
+        this.addStudentInfo(doc, submission);
+        
+        // Results summary
+        this.addResultsSummary(doc, submission);
+        
+        // Detailed answers (if allowed)
+        if (submission.exam.showCorrectAnswers) {
+          this.addDetailedAnswers(doc, submission);
+        }
+        
+        // Footer
+        this.addFooter(doc);
+
+        doc.end();
+
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
+  }
 
-    // QR Code label
-    doc.fontSize(8)
-       .text('Código da Prova', qrX, boxY + qrSize + 5, {
-         width: qrSize,
-         align: 'center'
-       });
+  /**
+   * Generate exam answer sheet PDF
+   */
+  async generateAnswerSheet(exam, variation, outputPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
+        });
 
-    // Student information section
-    doc.y = boxY + qrSize + 30;
-    doc.fontSize(10)
-       .font('Helvetica-Bold')
-       .text('DADOS DO ALUNO:', doc.page.margins.left);
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
+
+        // Header
+        this.addHeader(doc, 'Answer Sheet');
+        
+        // Exam information
+        doc.fontSize(12).font(this.fonts.bold);
+        doc.text(`Exam: ${exam.title}`, 50, 120);
+        doc.text(`Variation: ${variation.variationNumber}`, 50, 140);
+        doc.text(`Date: ${formatDateBR(new Date())}`, 50, 160);
+        
+        doc.moveDown(2);
+
+        // Student information fields
+        this.addStudentInfoFields(doc);
+        
+        // Answer grid
+        this.addAnswerGrid(doc, exam.totalQuestions);
+        
+        // Footer
+        this.addFooter(doc);
+
+        doc.end();
+
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Add header to PDF
+   */
+  addHeader(doc, title) {
+    doc.fontSize(20).font(this.fonts.bold);
+    doc.text('Exam System', 50, 50);
     
-    doc.moveDown(0.5);
-    doc.font('Helvetica');
+    doc.fontSize(16).font(this.fonts.regular);
+    doc.text(title, 50, 80);
     
-    const studentFields = [
-      'Nome: ___________________________________________________________',
-      'Matrícula: ___________________________ Turma: ___________________',
-      'Data: _____________________ Assinatura: _________________________'
+    // Line under header
+    doc.moveTo(50, 105)
+       .lineTo(550, 105)
+       .stroke();
+  }
+
+  /**
+   * Add exam information section
+   */
+  addExamInfo(doc, exam) {
+    let y = 130;
+    
+    doc.fontSize(14).font(this.fonts.bold);
+    doc.text('Exam Information', 50, y);
+    
+    y += 25;
+    doc.fontSize(10).font(this.fonts.regular);
+    
+    const info = [
+      [`Title: ${exam.title}`],
+      [`Subject: ${exam.subject?.name || 'N/A'}`],
+      [`Total Questions: ${exam.totalQuestions}`],
+      [`Time Limit: ${exam.timeLimit ? `${exam.timeLimit} minutes` : 'No limit'}`],
+      [`Passing Score: ${exam.passingScore}`],
+      [`Published: ${exam.publishedAt ? formatDateBR(exam.publishedAt) : 'Not published'}`],
+      [`Access Code: ${exam.accessCode || 'N/A'}`]
     ];
 
-    studentFields.forEach(field => {
-      doc.text(field);
-      doc.moveDown(0.5);
+    info.forEach(([text]) => {
+      doc.text(text, 50, y);
+      y += 15;
     });
 
-    // Separator line
-    doc.moveDown(0.5);
-    doc.strokeColor('#000000')
-       .lineWidth(1)
-       .moveTo(doc.page.margins.left, doc.y)
-       .lineTo(pageWidth + doc.page.margins.left, doc.y)
+    return y + 10;
+  }
+
+  /**
+   * Add statistics section
+   */
+  addStatistics(doc, stats) {
+    let y = doc.y + 20;
+    
+    doc.fontSize(14).font(this.fonts.bold);
+    doc.text('Statistics', 50, y);
+    
+    y += 25;
+    doc.fontSize(10).font(this.fonts.regular);
+    
+    const statistics = [
+      [`Total Submissions: ${stats.totalSubmissions}`],
+      [`Average Score: ${stats.averageScore}`],
+      [`Minimum Score: ${stats.minScore}`],
+      [`Maximum Score: ${stats.maxScore}`],
+      [`Students Passed: ${stats.passedCount} (${stats.passRate}%)`],
+      [`Students Failed: ${stats.failedCount}`]
+    ];
+
+    statistics.forEach(([text]) => {
+      doc.text(text, 50, y);
+      y += 15;
+    });
+
+    return y + 10;
+  }
+
+  /**
+   * Add submissions summary
+   */
+  addSubmissionsSummary(doc, submissions) {
+    let y = doc.y + 20;
+    
+    doc.fontSize(14).font(this.fonts.bold);
+    doc.text('Recent Submissions', 50, y);
+    
+    y += 25;
+    doc.fontSize(8).font(this.fonts.regular);
+    
+    // Table headers
+    doc.font(this.fonts.bold);
+    doc.text('Student Name', 50, y);
+    doc.text('Score', 200, y);
+    doc.text('Grade', 250, y);
+    doc.text('Status', 300, y);
+    doc.text('Submitted', 400, y);
+    
+    y += 15;
+    
+    // Line under headers
+    doc.moveTo(50, y)
+       .lineTo(550, y)
        .stroke();
     
-    doc.moveDown(1);
-  }
-
-  addInstructions(doc, instructions) {
-    doc.fontSize(12)
-       .font('Helvetica-Bold')
-       .text('INSTRUÇÕES:', { underline: true });
+    y += 10;
     
-    doc.moveDown(0.5);
-    doc.fontSize(10)
-       .font('Helvetica')
-       .text(instructions, {
-         align: 'justify',
-         lineGap: 2
-       });
-    
-    doc.moveDown(1);
-  }
-
-  async addQuestions(doc, questions, includeAnswerKey = false) {
-    doc.fontSize(12)
-       .font('Helvetica-Bold')
-       .text('QUESTÕES:', { underline: true });
-    
-    doc.moveDown(1);
-
-    for (let i = 0; i < questions.length; i++) {
-      const question = questions[i];
-      const questionNumber = i + 1;
-
+    // Submissions data
+    doc.font(this.fonts.regular);
+    submissions.slice(0, 20).forEach(submission => { // Limit to 20 entries
+      doc.text(submission.studentName || 'Anonymous', 50, y);
+      doc.text(submission.score?.toFixed(2) || '0.00', 200, y);
+      doc.text(submission.calculateGrade?.() || 'N/A', 250, y);
+      doc.text(submission.isPassed ? 'Passed' : 'Failed', 300, y);
+      doc.text(formatDateBR(submission.submittedAt), 400, y);
+      
+      y += 12;
+      
       // Check if we need a new page
-      if (doc.y > 650) {
+      if (y > 750) {
         doc.addPage();
+        y = 50;
       }
+    });
 
-      // Question number and text
-      doc.fontSize(11)
-         .font('Helvetica-Bold')
-         .text(`${questionNumber}. `, { continued: true })
-         .font('Helvetica')
-         .text(question.text, {
-           align: 'justify',
-           lineGap: 2
-         });
-
-      doc.moveDown(0.5);
-
-      // Alternatives
-      question.alternatives.forEach(alternative => {
-        const prefix = includeAnswerKey && alternative.letter === question.correctAnswer 
-          ? `● ${alternative.letter}) ` 
-          : `${alternative.letter}) `;
-        
-        doc.fontSize(10)
-           .font(includeAnswerKey && alternative.letter === question.correctAnswer ? 'Helvetica-Bold' : 'Helvetica')
-           .text(prefix, { continued: true })
-           .text(alternative.text, {
-             align: 'justify',
-             indent: 20,
-             lineGap: 1
-           });
-        
-        doc.moveDown(0.3);
-      });
-
-      // Answer space for students
-      if (!includeAnswerKey) {
-        doc.fontSize(10)
-           .text(`Resposta: ____`, {
-             align: 'right'
-           });
-      }
-
-      doc.moveDown(1);
-
-      // Add some spacing between questions
-      if (i < questions.length - 1) {
-        doc.moveDown(0.5);
-      }
-    }
+    return y + 10;
   }
 
-  addFooter(doc, exam, variation) {
-    const pageCount = doc.bufferedPageRange().count;
+  /**
+   * Add QR codes grid
+   */
+  addQRCodesGrid(doc, variations) {
+    let x = 50;
+    let y = 200;
+    const qrSize = 100;
+    const spacing = 20;
+    const cols = 2;
     
-    for (let i = 0; i < pageCount; i++) {
+    variations.forEach((variation, index) => {
+      if (index > 0 && index % cols === 0) {
+        y += qrSize + spacing + 40;
+        x = 50;
+      }
+
+      // Variation label
+      doc.fontSize(10).font(this.fonts.bold);
+      doc.text(`Variation ${variation.variationNumber}`, x, y);
+      
+      // QR code placeholder (would need actual QR code image)
+      doc.rect(x, y + 15, qrSize, qrSize).stroke();
+      doc.fontSize(8).font(this.fonts.regular);
+      doc.text('QR Code', x + qrSize/2 - 15, y + qrSize/2 + 10);
+      
+      x += qrSize + spacing + 100;
+      
+      // Check if we need a new page
+      if (y > 650) {
+        doc.addPage();
+        y = 50;
+        x = 50;
+      }
+    });
+  }
+
+  /**
+   * Add student information section
+   */
+  addStudentInfo(doc, submission) {
+    let y = 130;
+    
+    doc.fontSize(14).font(this.fonts.bold);
+    doc.text('Student Information', 50, y);
+    
+    y += 25;
+    doc.fontSize(10).font(this.fonts.regular);
+    
+    const info = [
+      [`Name: ${submission.studentName}`],
+      [`ID: ${submission.studentId || 'Not provided'}`],
+      [`Email: ${submission.studentEmail || 'Not provided'}`],
+      [`Exam: ${submission.exam.title}`],
+      [`Subject: ${submission.exam.subject?.name || 'N/A'}`],
+      [`Submitted: ${formatDateBR(submission.submittedAt)}`],
+      [`Time Spent: ${submission.getTimeSpentFormatted?.() || 'N/A'}`]
+    ];
+
+    info.forEach(([text]) => {
+      doc.text(text, 50, y);
+      y += 15;
+    });
+
+    return y + 10;
+  }
+
+  /**
+   * Add results summary section
+   */
+  addResultsSummary(doc, submission) {
+    let y = doc.y + 20;
+    
+    doc.fontSize(14).font(this.fonts.bold);
+    doc.text('Results Summary', 50, y);
+    
+    y += 25;
+    
+    // Score box
+    doc.rect(50, y, 100, 60).stroke();
+    doc.fontSize(24).font(this.fonts.bold);
+    doc.text(submission.score?.toFixed(1) || '0.0', 75, y + 15);
+    doc.fontSize(12).font(this.fonts.regular);
+    doc.text('Score', 75, y + 45);
+    
+    // Grade box
+    doc.rect(170, y, 80, 60).stroke();
+    doc.fontSize(20).font(this.fonts.bold);
+    doc.text(submission.calculateGrade?.() || 'N/A', 195, y + 20);
+    doc.fontSize(12).font(this.fonts.regular);
+    doc.text('Grade', 195, y + 45);
+    
+    // Status
+    y += 80;
+    doc.fontSize(12).font(this.fonts.bold);
+    const status = submission.isPassed ? 'PASSED' : 'FAILED';
+    const color = submission.isPassed ? 'green' : 'red';
+    doc.fillColor(color).text(`Status: ${status}`, 50, y);
+    doc.fillColor('black');
+    
+    y += 25;
+    doc.fontSize(10).font(this.fonts.regular);
+    doc.text(`Correct Answers: ${submission.correctAnswers} of ${submission.totalQuestions}`, 50, y);
+    doc.text(`Accuracy: ${((submission.correctAnswers / submission.totalQuestions) * 100).toFixed(1)}%`, 50, y + 15);
+
+    return y + 30;
+  }
+
+  /**
+   * Add detailed answers section
+   */
+  addDetailedAnswers(doc, submission) {
+    let y = doc.y + 20;
+    
+    doc.fontSize(14).font(this.fonts.bold);
+    doc.text('Detailed Results', 50, y);
+    
+    y += 25;
+    doc.fontSize(8).font(this.fonts.regular);
+    
+    if (submission.answers && Array.isArray(submission.answers)) {
+      submission.answers.forEach((answer, index) => {
+        if (y > 720) {
+          doc.addPage();
+          y = 50;
+        }
+
+        doc.font(this.fonts.bold);
+        doc.text(`Question ${index + 1}:`, 50, y);
+        
+        const status = answer.correct ? '✓ Correct' : '✗ Incorrect';
+        const statusColor = answer.correct ? 'green' : 'red';
+        doc.fillColor(statusColor).text(status, 450, y);
+        doc.fillColor('black');
+        
+        y += 12;
+        doc.font(this.fonts.regular);
+        doc.text(`Your answer: ${answer.answer}`, 60, y);
+        doc.text(`Correct answer: ${answer.correctAnswer}`, 60, y + 10);
+        doc.text(`Points: ${answer.points}/${answer.maxPoints}`, 60, y + 20);
+        
+        y += 35;
+      });
+    }
+
+    return y;
+  }
+
+  /**
+   * Add student information fields for answer sheet
+   */
+  addStudentInfoFields(doc) {
+    let y = 180;
+    
+    doc.fontSize(12).font(this.fonts.bold);
+    doc.text('Student Information:', 50, y);
+    
+    y += 25;
+    doc.fontSize(10).font(this.fonts.regular);
+    
+    // Name field
+    doc.text('Name: ', 50, y);
+    doc.moveTo(80, y + 12).lineTo(300, y + 12).stroke();
+    
+    // ID field
+    y += 25;
+    doc.text('Student ID: ', 50, y);
+    doc.moveTo(100, y + 12).lineTo(300, y + 12).stroke();
+    
+    // Email field
+    y += 25;
+    doc.text('Email: ', 50, y);
+    doc.moveTo(80, y + 12).lineTo(300, y + 12).stroke();
+    
+    // Date field
+    y += 25;
+    doc.text('Date: ', 50, y);
+    doc.moveTo(80, y + 12).lineTo(200, y + 12).stroke();
+
+    return y + 40;
+  }
+
+  /**
+   * Add answer grid for answer sheet
+   */
+  addAnswerGrid(doc, totalQuestions) {
+    let y = 320;
+    
+    doc.fontSize(12).font(this.fonts.bold);
+    doc.text('Answer Grid:', 50, y);
+    doc.fontSize(8).font(this.fonts.regular);
+    doc.text('Fill in the circle completely for your answer choice', 50, y + 15);
+    
+    y += 40;
+    
+    const questionsPerRow = 5;
+    const questionWidth = 100;
+    const rowHeight = 60;
+    
+    for (let i = 0; i < totalQuestions; i++) {
+      const row = Math.floor(i / questionsPerRow);
+      const col = i % questionsPerRow;
+      
+      const x = 50 + (col * questionWidth);
+      const questionY = y + (row * rowHeight);
+      
+      // Check if we need a new page
+      if (questionY > 700) {
+        doc.addPage();
+        y = 50;
+        continue;
+      }
+      
+      // Question number
+      doc.fontSize(10).font(this.fonts.bold);
+      doc.text(`${i + 1}`, x + 20, questionY);
+      
+      // Answer options (A, B, C, D, E)
+      const options = ['A', 'B', 'C', 'D', 'E'];
+      options.forEach((option, optIndex) => {
+        const optY = questionY + 15 + (optIndex * 8);
+        
+        // Circle for answer
+        doc.circle(x + 5, optY + 3, 3).stroke();
+        
+        // Option letter
+        doc.fontSize(8).font(this.fonts.regular);
+        doc.text(option, x + 15, optY);
+      });
+    }
+
+    return y + Math.ceil(totalQuestions / questionsPerRow) * rowHeight + 20;
+  }
+
+  /**
+   * Add footer to PDF
+   */
+  addFooter(doc) {
+    const pages = doc.bufferedPageRange();
+    
+    for (let i = 0; i < pages.count; i++) {
       doc.switchToPage(i);
       
       // Footer line
-      const footerY = doc.page.height - doc.page.margins.bottom + 10;
-      doc.strokeColor('#CCCCCC')
-         .lineWidth(0.5)
-         .moveTo(doc.page.margins.left, footerY)
-         .lineTo(doc.page.width - doc.page.margins.right, footerY)
+      doc.moveTo(50, 770)
+         .lineTo(550, 770)
          .stroke();
-
+      
       // Footer text
-      doc.fontSize(8)
-         .fillColor('#666666')
-         .text(
-           `${exam.title} - Versão ${variation.variationLetter} | Página ${i + 1} de ${pageCount}`,
-           doc.page.margins.left,
-           footerY + 5,
-           {
-             width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
-             align: 'center'
-           }
-         );
+      doc.fontSize(8).font(this.fonts.regular);
+      doc.text('Generated by Exam System', 50, 780);
+      doc.text(`Generated on ${formatDateBR(new Date())}`, 50, 790);
+      doc.text(`Page ${i + 1} of ${pages.count}`, 500, 780);
     }
   }
 
-  addWatermark(doc, watermarkText) {
-    const pageCount = doc.bufferedPageRange().count;
-    
-    for (let i = 0; i < pageCount; i++) {
-      doc.switchToPage(i);
-      
-      doc.save();
-      doc.rotate(45, {
-        origin: [doc.page.width / 2, doc.page.height / 2]
-      });
-      
-      doc.fontSize(60)
-         .fillColor('#EEEEEE')
-         .text(watermarkText, 0, 0, {
-           width: doc.page.width,
-           height: doc.page.height,
-           align: 'center',
-           valign: 'center'
-         });
-      
-      doc.restore();
-    }
-  }
+  /**
+   * Generate submissions export CSV
+   */
+  async generateSubmissionsCSV(submissions, outputPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const headers = [
+          'Student Name',
+          'Student ID',
+          'Student Email',
+          'Score',
+          'Grade',
+          'Correct Answers',
+          'Total Questions',
+          'Status',
+          'Time Spent',
+          'Submitted At'
+        ];
 
-  async generateAnswerKeyPDF(exam, variations) {
-    try {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
-      });
+        let csvContent = headers.join(',') + '\n';
 
-      const filename = `answer_key_${exam.id}_${Date.now()}.pdf`;
-      const filepath = path.join(this.uploadPaths.pdfs, filename);
-      
-      doc.pipe(fs.createWriteStream(filepath));
-
-      // Header
-      doc.fontSize(16)
-         .font('Helvetica-Bold')
-         .text('GABARITO', { align: 'center' });
-      
-      doc.fontSize(14)
-         .text(exam.title, { align: 'center' });
-      
-      doc.moveDown(2);
-
-      // Answer key for each variation
-      variations.forEach((variation, index) => {
-        if (index > 0) doc.addPage();
-
-        doc.fontSize(14)
-           .font('Helvetica-Bold')
-           .text(`Versão ${variation.variationLetter}`, { underline: true });
-        
-        doc.moveDown(1);
-
-        // Create answer table
-        const cols = 5;
-        const questionsPerCol = Math.ceil(variation.questions.length / cols);
-        
-        doc.fontSize(10);
-        
-        for (let col = 0; col < cols; col++) {
-          const startQuestion = col * questionsPerCol;
-          const endQuestion = Math.min(startQuestion + questionsPerCol, variation.questions.length);
+        submissions.forEach(submission => {
+          const row = [
+            `"${submission.studentName || ''}"`,
+            `"${submission.studentId || ''}"`,
+            `"${submission.studentEmail || ''}"`,
+            submission.score?.toFixed(2) || '0.00',
+            `"${submission.calculateGrade?.() || 'N/A'}"`,
+            submission.correctAnswers || 0,
+            submission.totalQuestions || 0,
+            submission.isPassed ? 'Passed' : 'Failed',
+            `"${submission.getTimeSpentFormatted?.() || 'N/A'}"`,
+            `"${formatDateBR(submission.submittedAt)}"`
+          ];
           
-          const colX = doc.page.margins.left + (col * 100);
-          let currentY = doc.y;
-          
-          for (let q = startQuestion; q < endQuestion; q++) {
-            const questionNum = q + 1;
-            const answer = variation.answerKey[q]?.correctAnswer || 'N/A';
-            
-            doc.text(`${questionNum.toString().padStart(2, '0')}. ${answer}`, colX, currentY);
-            currentY += 15;
-          }
-        }
-      });
-
-      doc.end();
-
-      return new Promise((resolve, reject) => {
-        doc.on('end', () => {
-          resolve({
-            filename,
-            filepath,
-            url: `/uploads/pdfs/${filename}`
-          });
+          csvContent += row.join(',') + '\n';
         });
 
-        doc.on('error', reject);
-      });
+        fs.writeFileSync(outputPath, csvContent, 'utf8');
+        resolve(outputPath);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 
-    } catch (error) {
-      console.error('Error generating answer key PDF:', error);
-      throw error;
+  /**
+   * Generate question analysis report PDF
+   */
+  async generateQuestionAnalysis(exam, questionStats, outputPath) {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
+        });
+
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
+
+        // Header
+        this.addHeader(doc, 'Question Analysis Report');
+        
+        // Exam info
+        let y = 130;
+        doc.fontSize(12).font(this.fonts.bold);
+        doc.text(`Exam: ${exam.title}`, 50, y);
+        doc.text(`Analysis Date: ${formatDateBR(new Date())}`, 50, y + 15);
+        
+        y += 50;
+        
+        // Question statistics
+        Object.keys(questionStats).forEach((questionId, index) => {
+          const stats = questionStats[questionId];
+          
+          if (y > 700) {
+            doc.addPage();
+            y = 50;
+          }
+          
+          doc.fontSize(10).font(this.fonts.bold);
+          doc.text(`Question ${stats.questionNumber}`, 50, y);
+          
+          y += 15;
+          doc.fontSize(8).font(this.fonts.regular);
+          doc.text(`Difficulty: ${stats.difficulty}`, 50, y);
+          doc.text(`Success Rate: ${stats.successRate}%`, 200, y);
+          doc.text(`Total Attempts: ${stats.totalAttempts}`, 350, y);
+          
+          y += 12;
+          doc.text(`Correct Attempts: ${stats.correctAttempts}`, 50, y);
+          
+          // Answer distribution
+          if (stats.alternativeDistribution) {
+            y += 15;
+            doc.text('Answer Distribution:', 50, y);
+            y += 10;
+            
+            Object.keys(stats.alternativeDistribution).forEach(answer => {
+              const count = stats.alternativeDistribution[answer];
+              const percentage = ((count / stats.totalAttempts) * 100).toFixed(1);
+              doc.text(`  Option ${answer}: ${count} (${percentage}%)`, 60, y);
+              y += 10;
+            });
+          }
+          
+          y += 15;
+          
+          // Separator line
+          doc.moveTo(50, y)
+             .lineTo(550, y)
+             .stroke();
+          
+          y += 10;
+        });
+        
+        // Footer
+        this.addFooter(doc);
+
+        doc.end();
+
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Ensure output directory exists
+   */
+  ensureOutputDir(outputPath) {
+    const dir = path.dirname(outputPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
   }
 
-  deleteFile(filepath) {
-    try {
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-        return true;
+  /**
+   * Generate temporary file path
+   */
+  generateTempPath(prefix, extension = 'pdf') {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    const filename = `${prefix}_${timestamp}_${random}.${extension}`;
+    return path.join(__dirname, '../uploads/temp', filename);
+  }
+
+  /**
+   * Clean up temporary files
+   */
+  async cleanupTempFiles(filePaths) {
+    for (const filePath of filePaths) {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (error) {
+        console.error('Error cleaning up temp file:', filePath, error);
       }
-      return false;
-    } catch (error) {
-      console.error('Error deleting PDF file:', error);
-      return false;
     }
+  }
+
+  /**
+   * Batch generate PDFs
+   */
+  async batchGenerate(operations) {
+    const results = [];
+    
+    for (const operation of operations) {
+      try {
+        let result;
+        
+        switch (operation.type) {
+          case 'exam_report':
+            result = await this.generateExamReport(
+              operation.exam,
+              operation.submissions,
+              operation.statistics,
+              operation.outputPath
+            );
+            break;
+            
+          case 'student_results':
+            result = await this.generateStudentResults(
+              operation.submission,
+              operation.outputPath
+            );
+            break;
+            
+          case 'qr_codes':
+            result = await this.generateQRCodesSheet(
+              operation.exam,
+              operation.variations,
+              operation.outputPath
+            );
+            break;
+            
+          case 'answer_sheet':
+            result = await this.generateAnswerSheet(
+              operation.exam,
+              operation.variation,
+              operation.outputPath
+            );
+            break;
+            
+          default:
+            throw new Error(`Unknown operation type: ${operation.type}`);
+        }
+        
+        results.push({
+          id: operation.id,
+          status: 'success',
+          path: result
+        });
+      } catch (error) {
+        results.push({
+          id: operation.id,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+    
+    return results;
   }
 }
 

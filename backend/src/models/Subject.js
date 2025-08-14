@@ -33,6 +33,10 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
     metadata: {
       type: DataTypes.JSONB,
       defaultValue: {}
@@ -48,6 +52,9 @@ module.exports = (sequelize, DataTypes) => {
         fields: ['name']
       },
       {
+        fields: ['isActive']
+      },
+      {
         fields: ['createdAt']
       },
       {
@@ -55,11 +62,11 @@ module.exports = (sequelize, DataTypes) => {
         fields: ['userId', 'name']
       }
     ]
-  })
+  });
 
   // Instance methods
   Subject.prototype.canCreateExam = async function(requirements) {
-    const Question = sequelize.models.Question
+    const Question = sequelize.models.Question;
     
     const [easyCount, mediumCount, hardCount] = await Promise.all([
       Question.count({
@@ -83,17 +90,89 @@ module.exports = (sequelize, DataTypes) => {
           isActive: true 
         }
       })
-    ])
+    ]);
 
-    const available = { easy: easyCount, medium: mediumCount, hard: hardCount }
-    const required = requirements || { easy: 0, medium: 0, hard: 0 }
+    const available = { easy: easyCount, medium: mediumCount, hard: hardCount };
+    const required = requirements || { easy: 0, medium: 0, hard: 0 };
 
     const canCreate = available.easy >= required.easy && 
                      available.medium >= required.medium && 
-                     available.hard >= required.hard
+                     available.hard >= required.hard;
 
-    return { canCreate, available, required }
-  }
+    return { canCreate, available, required };
+  };
 
-  return Subject
-}
+  Subject.prototype.getQuestionsCount = async function() {
+    const Question = sequelize.models.Question;
+    
+    const total = await Question.count({
+      where: { subjectId: this.id, isActive: true }
+    });
+
+    const byDifficulty = await Question.findAll({
+      where: { subjectId: this.id, isActive: true },
+      attributes: [
+        'difficulty',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['difficulty'],
+      raw: true
+    });
+
+    const counts = {
+      total,
+      easy: 0,
+      medium: 0,
+      hard: 0
+    };
+
+    byDifficulty.forEach(item => {
+      counts[item.difficulty] = parseInt(item.count);
+    });
+
+    return counts;
+  };
+
+  Subject.prototype.getExamsCount = async function() {
+    const Exam = sequelize.models.Exam;
+    
+    const total = await Exam.count({
+      where: { subjectId: this.id }
+    });
+
+    const published = await Exam.count({
+      where: { subjectId: this.id, isPublished: true }
+    });
+
+    return { total, published, draft: total - published };
+  };
+
+  // Class methods
+  Subject.findByUserId = function(userId, options = {}) {
+    return this.findAll({
+      where: { userId, isActive: true },
+      order: [['name', 'ASC']],
+      ...options
+    });
+  };
+
+  Subject.findActiveWithCounts = async function(userId) {
+    const subjects = await this.findAll({
+      where: { userId, isActive: true },
+      order: [['name', 'ASC']]
+    });
+
+    // Add counts to each subject
+    for (let subject of subjects) {
+      const questionsCount = await subject.getQuestionsCount();
+      const examsCount = await subject.getExamsCount();
+      
+      subject.dataValues.questionsCount = questionsCount;
+      subject.dataValues.examsCount = examsCount;
+    }
+
+    return subjects;
+  };
+
+  return Subject;
+};

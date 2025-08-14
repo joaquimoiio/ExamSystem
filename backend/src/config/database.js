@@ -1,61 +1,56 @@
 require('dotenv').config();
 
-const config = {
+module.exports = {
   development: {
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'exam_system',
-    host: process.env.DB_HOST || 'localhost',
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,
     port: process.env.DB_PORT || 5432,
-    dialect: process.env.DB_DIALECT || 'postgres',
+    dialect: 'postgres',
+    timezone: '-03:00',
     dialectOptions: {
       charset: 'utf8',
-      timezone: '-03:00', // São Paulo timezone
+      collate: 'utf8_general_ci',
     },
-    timezone: '-03:00',
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
       idle: 10000
     },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: process.env.NODE_ENV === 'development' ? console.log : false
   },
-  
   test: {
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME + '_test' || 'exam_system_test',
-    host: process.env.DB_HOST || 'localhost',
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME + '_test',
+    host: process.env.DB_HOST,
     port: process.env.DB_PORT || 5432,
-    dialect: process.env.DB_DIALECT || 'postgres',
-    logging: false,
+    dialect: 'postgres',
+    timezone: '-03:00',
+    logging: false
   },
-  
   production: {
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 5432,
-    dialect: process.env.DB_DIALECT || 'postgres',
+    dialect: 'postgres',
+    timezone: '-03:00',
     dialectOptions: {
       ssl: {
         require: true,
         rejectUnauthorized: false
-      },
-      charset: 'utf8',
-      timezone: '-03:00',
+      }
     },
-    timezone: '-03:00',
     pool: {
-      max: 10,
-      min: 0,
+      max: 20,
+      min: 5,
       acquire: 30000,
       idle: 10000
     },
-    logging: false,
+    logging: false
   }
 };
-
-module.exports = config;

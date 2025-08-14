@@ -2,66 +2,131 @@ const express = require('express');
 const router = express.Router();
 
 const correctionController = require('../controllers/correctionController');
-const { authenticateToken, requireTeacher, optionalAuth } = require('../middleware/auth');
-const { uploadOCRImage, handleUploadError } = require('../middleware/upload');
+const { optionalAuth, authenticateToken, requireTeacher } = require('../middleware/auth');
 const {
-  validateAnswerSubmit,
-  validateAnswerReview,
+  validateAnswerSubmission,
+  validateUUIDParam,
   validatePagination
 } = require('../middleware/validation');
 
-// Public routes (no authentication required) - for student submissions
-router.post('/submit/:examId/:variationId', validateAnswerSubmit, correctionController.submitAnswers);
-router.get('/submission/:submissionId', correctionController.getSubmission);
-router.post('/validate-qr', correctionController.validateQRCode);
+// Public route for submitting answers
+router.post('/submit/:examId/:variationId',
+  validateUUIDParam('examId'),
+  validateUUIDParam('variationId'),
+  validateAnswerSubmission,
+  correctionController.submitAnswers
+);
 
-// Protected routes (teacher access required)
-router.use(authenticateToken, requireTeacher);
+// Get submission result (public with optional auth for security)
+router.get('/result/:submissionId',
+  validateUUIDParam('submissionId'),
+  optionalAuth,
+  correctionController.getSubmissionResult
+);
 
-// Teacher submission management
-router.get('/exams/:examId/submissions', validatePagination, correctionController.getExamSubmissions);
-router.get('/exams/:examId/statistics', correctionController.getSubmissionStatistics);
-router.put('/submissions/:submissionId/review', validateAnswerReview, correctionController.reviewSubmission);
+// Protected routes (authentication required)
+router.use(authenticateToken);
 
-// Export functionality
-router.get('/exams/:examId/export', correctionController.exportSubmissions);
+// Get all submissions for teacher/admin
+router.get('/submissions', 
+  validatePagination, 
+  correctionController.getSubmissions
+);
 
-// OCR processing routes
-router.post('/ocr/process', uploadOCRImage, handleUploadError, async (req, res) => {
-  try {
-    const { totalQuestions } = req.body;
-    
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No images uploaded'
-      });
-    }
+// Get submissions by exam
+router.get('/submissions/exam/:examId',
+  validateUUIDParam('examId'),
+  validatePagination,
+  correctionController.getSubmissionsByExam
+);
 
-    const ocrService = require('../services/ocrService');
-    const imagePaths = req.files.map(file => file.path);
-    
-    const results = await ocrService.batchProcessAnswerSheets(
-      imagePaths, 
-      parseInt(totalQuestions)
-    );
+// Get submissions by student
+router.get('/submissions/student/:studentId',
+  validatePagination,
+  correctionController.getSubmissionsByStudent
+);
 
-    // Clean up uploaded files
-    ocrService.cleanupFiles(imagePaths);
+// Get pending submissions for grading
+router.get('/pending',
+  validatePagination,
+  correctionController.getPendingSubmissions
+);
 
-    res.json({
-      success: true,
-      message: 'OCR processing completed',
-      data: results
-    });
-  } catch (error) {
-    console.error('OCR processing error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error processing images',
-      error: error.message
-    });
-  }
-});
+// Get specific submission details
+router.get('/submissions/:submissionId',
+  validateUUIDParam('submissionId'),
+  correctionController.getSubmissionDetails
+);
+
+// Update submission (manual grading)
+router.put('/submissions/:submissionId',
+  validateUUIDParam('submissionId'),
+  requireTeacher,
+  correctionController.updateSubmission
+);
+
+// Add feedback to submission
+router.post('/submissions/:submissionId/feedback',
+  validateUUIDParam('submissionId'),
+  requireTeacher,
+  correctionController.addFeedback
+);
+
+// Manual score adjustment
+router.post('/submissions/:submissionId/adjust-score',
+  validateUUIDParam('submissionId'),
+  requireTeacher,
+  correctionController.adjustScore
+);
+
+// Bulk grade submissions
+router.post('/bulk-grade',
+  requireTeacher,
+  correctionController.bulkGradeSubmissions
+);
+
+// Regrade submission
+router.post('/submissions/:submissionId/regrade',
+  validateUUIDParam('submissionId'),
+  requireTeacher,
+  correctionController.regradeSubmission
+);
+
+// Export submissions data
+router.post('/export',
+  requireTeacher,
+  correctionController.exportSubmissions
+);
+
+// Get correction statistics
+router.get('/stats/:examId',
+  validateUUIDParam('examId'),
+  correctionController.getCorrectionStats
+);
+
+// Question analysis for exam
+router.get('/question-analysis/:examId',
+  validateUUIDParam('examId'),
+  correctionController.getQuestionAnalysis
+);
+
+// Performance analytics
+router.get('/analytics/:examId',
+  validateUUIDParam('examId'),
+  correctionController.getPerformanceAnalytics
+);
+
+// Compare student performances
+router.post('/compare-students',
+  requireTeacher,
+  correctionController.compareStudents
+);
+
+// Flag suspicious submissions
+router.get('/suspicious/:examId',
+  validateUUIDParam('examId'),
+  requireTeacher,
+  correctionController.getSuspiciousSubmissions
+);
 
 module.exports = router;

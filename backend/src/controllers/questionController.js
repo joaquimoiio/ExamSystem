@@ -1,995 +1,582 @@
-const { Question, Subject, Exam, ExamQuestion } = require('../models');
+const { Question, Subject, Exam } = require('../models');
+const { AppError, catchAsync } = require('../utils/appError');
+const { paginate, buildPaginationMeta } = require('../utils/helpers');
 const { Op } = require('sequelize');
-const { catchAsync } = require('../utils/catchAsync');
-const { AppError } = require('../utils/appError');
-const logger = require('../utils/logger');
-const Papa = require('papaparse');
-const path = require('path');
-const fs = require('fs').promises;
 
-/**
- * Get questions with filtering, pagination and statistics
- */
-const getQuestions = catchAsync(async (req, res) => {
-  const {
-    page = 1,
-    limit = 10,
-    subjectId,
-    difficulty,
-    tags,
-    search,
-    isActive = true,
-    sortBy = 'createdAt',
-    sortOrder = 'DESC'
-  } = req.query;
+// Get questions with pagination and filters
+const getQuestions = catchAsync(async (req, res, next) => {
+  const { page = 1, limit = 10, search, subjectId, difficulty } = req.query;
+  const { limit: queryLimit, offset } = paginate(page, limit);
 
-  const userId = req.user.id;
+  const where = { userId: req.user.id, isActive: true };
 
-  try {
-    const whereClause = { userId };
-
-    // Apply filters
-    if (subjectId) whereClause.subjectId = subjectId;
-    if (difficulty) whereClause.difficulty = difficulty;
-    if (isActive !== undefined) whereClause.isActive = isActive === 'true';
-    
-    if (tags) {
-      const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-      whereClause.tags = { [Op.overlap]: tagArray };
-    }
-
-    if (search) {
-      whereClause[Op.or] = [
-        { text: { [Op.iLike]: `%${search}%` } },
-        { explanation: { [Op.iLike]: `%${search}%` } }
-      ];
-    }
-
-    const offset = (page - 1) * limit;
-    
-    const { count, rows: questions } = await Question.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'color']
-        }
-      ],
-      order: [[sortBy, sortOrder.toUpperCase()]],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-
-    // Calculate statistics
-    const stats = {
-      totalQuestions: count,
-      byDifficulty: {
-        easy: 0,
-        medium: 0,
-        hard: 0
-      },
-      bySubject: {},
-      popularTags: {},
-      averageUsage: 0
-    };
-
-    // Calculate stats from all user questions (not just current page)
-    const allQuestions = await Question.findAll({
-      where: { userId, isActive: true },
-      attributes: ['difficulty', 'subjectId', 'tags', 'timesUsed'],
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['name']
-        }
-      ]
-    });
-
-    let totalUsage = 0;
-    allQuestions.forEach(q => {
-      // Difficulty stats
-      if (q.difficulty) stats.byDifficulty[q.difficulty]++;
-      
-      // Subject stats
-      if (q.subject) {
-        stats.bySubject[q.subject.name] = (stats.bySubject[q.subject.name] || 0) + 1;
-      }
-      
-      // Usage stats
-      totalUsage += q.timesUsed || 0;
-      
-      // Tags stats
-      if (q.tags && Array.isArray(q.tags)) {
-        q.tags.forEach(tag => {
-          stats.popularTags[tag] = (stats.popularTags[tag] || 0) + 1;
-        });
-      }
-    });
-
-    stats.averageUsage = allQuestions.length > 0 ? totalUsage / allQuestions.length : 0;
-
-    res.json({
-      success: true,
-      data: {
-        questions,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: count,
-          pages: Math.ceil(count / limit),
-          hasNext: page < Math.ceil(count / limit),
-          hasPrev: page > 1
-        },
-        statistics: stats
-      }
-    });
-
-  } catch (error) {
-    logger.error('Error fetching questions:', error);
-    throw new AppError('Erro ao buscar questões', 500);
+  if (search) {
+    where[Op.or] = [
+      { text: { [Op.iLike]: `%${search}%` } },
+      { tags: { [Op.overlap]: [search] } }
+    ];
   }
+
+  if (subjectId) {
+    where.subjectId = subjectId;
+  }
+
+  if (difficulty) {
+    where.difficulty = difficulty;
+  }
+
+  const { count, rows: questions } = await Question.findAndCountAll({
+    where,
+    limit: queryLimit,
+    offset,
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['id', 'name', 'color']
+      }
+    ]
+  });
+
+  const pagination = buildPaginationMeta(page, limit, count);
+
+  res.json({
+    success: true,
+    data: { questions, pagination }
+  });
 });
 
-/**
- * Get single question with full details
- */
-const getQuestion = catchAsync(async (req, res) => {
-  const { id } = req.params;
+// Get questions statistics
+const getQuestionsStats = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
 
-  try {
-    const question = await Question.findOne({
-      where: { id, userId },
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'color']
-        }
-      ]
-    });
+  const stats = await Question.findAll({
+    where: { userId, isActive: true },
+    attributes: [
+      [Question.sequelize.fn('COUNT', Question.sequelize.col('id')), 'total'],
+      'difficulty'
+    ],
+    group: ['difficulty'],
+    raw: true
+  });
 
-    if (!question) {
-      throw new AppError('Questão não encontrada', 404);
+  const result = {
+    total: 0,
+    easy: 0,
+    medium: 0,
+    hard: 0
+  };
+
+  stats.forEach(stat => {
+    result[stat.difficulty] = parseInt(stat.total);
+    result.total += parseInt(stat.total);
+  });
+
+  // Get recent questions
+  const recentQuestions = await Question.findAll({
+    where: { userId, isActive: true },
+    order: [['createdAt', 'DESC']],
+    limit: 5,
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['id', 'name', 'color']
+      }
+    ]
+  });
+
+  res.json({
+    success: true,
+    data: { 
+      stats: result,
+      recentQuestions
     }
-
-    res.json({
-      success: true,
-      data: { question }
-    });
-
-  } catch (error) {
-    logger.error('Error fetching question:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao buscar questão', 500);
-  }
+  });
 });
 
-/**
- * Create new question with comprehensive validation
- */
-const createQuestion = catchAsync(async (req, res) => {
+// Create question
+const createQuestion = catchAsync(async (req, res, next) => {
   const {
     text,
     alternatives,
     correctAnswer,
     difficulty,
     subjectId,
-    tags = [],
     explanation,
     points = 1,
-    timeEstimate
+    tags = []
   } = req.body;
-  const userId = req.user.id;
 
-  try {
-    // Validate required fields
-    if (!text || !text.trim()) {
-      throw new AppError('Texto da questão é obrigatório', 400);
-    }
+  // Validate subject exists and belongs to user
+  const subject = await Subject.findOne({
+    where: { id: subjectId, userId: req.user.id }
+  });
 
-    if (!alternatives || !Array.isArray(alternatives) || alternatives.length < 2) {
-      throw new AppError('A questão deve ter pelo menos 2 alternativas', 400);
-    }
-
-    if (alternatives.length > 5) {
-      throw new AppError('A questão pode ter no máximo 5 alternativas', 400);
-    }
-
-    if (correctAnswer === undefined || correctAnswer === null || correctAnswer < 0 || correctAnswer >= alternatives.length) {
-      throw new AppError('Resposta correta inválida', 400);
-    }
-
-    if (!['easy', 'medium', 'hard'].includes(difficulty)) {
-      throw new AppError('Dificuldade deve ser: easy, medium ou hard', 400);
-    }
-
-    // Verify subject ownership
-    const subject = await Subject.findOne({
-      where: { id: subjectId, userId }
-    });
-
-    if (!subject) {
-      throw new AppError('Disciplina não encontrada', 404);
-    }
-
-    // Validate alternatives content
-    for (let i = 0; i < alternatives.length; i++) {
-      if (!alternatives[i] || !alternatives[i].trim()) {
-        throw new AppError(`Alternativa ${i + 1} não pode estar vazia`, 400);
-      }
-    }
-
-    // Create question
-    const question = await Question.create({
-      text: text.trim(),
-      alternatives,
-      correctAnswer,
-      difficulty,
-      subjectId,
-      userId,
-      tags: Array.isArray(tags) ? tags : [],
-      explanation: explanation ? explanation.trim() : null,
-      points: points && points > 0 ? parseInt(points) : 1,
-      timeEstimate: timeEstimate && timeEstimate > 0 ? parseInt(timeEstimate) : null,
-      isActive: true,
-      timesUsed: 0,
-      metadata: {
-        createdBy: req.user.name,
-        createdAt: new Date(),
-        version: 1
-      }
-    });
-
-    // Fetch complete question data for response
-    const createdQuestion = await Question.findByPk(question.id, {
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'color']
-        }
-      ]
-    });
-
-    logger.info(`Question created: ${question.id}`, { 
-      userId, 
-      subjectId, 
-      difficulty 
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Questão criada com sucesso',
-      data: { question: createdQuestion }
-    });
-
-  } catch (error) {
-    logger.error('Error creating question:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao criar questão', 500);
+  if (!subject) {
+    return next(new AppError('Subject not found', 404));
   }
-});
 
-/**
- * Update question with validation and versioning
- */
-const updateQuestion = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const {
-    text,
-    alternatives,
+  // Validate alternatives and correct answer
+  if (!Array.isArray(alternatives) || alternatives.length < 2 || alternatives.length > 5) {
+    return next(new AppError('Must have between 2 and 5 alternatives', 400));
+  }
+
+  // Clean empty alternatives
+  const cleanAlternatives = alternatives.filter(alt => alt && alt.trim().length > 0);
+  if (cleanAlternatives.length < 2) {
+    return next(new AppError('Must have at least 2 non-empty alternatives', 400));
+  }
+
+  if (correctAnswer < 0 || correctAnswer >= cleanAlternatives.length) {
+    return next(new AppError('Correct answer index is invalid', 400));
+  }
+
+  const question = await Question.create({
+    text: text.trim(),
+    alternatives: cleanAlternatives.map(alt => alt.trim()),
     correctAnswer,
     difficulty,
-    tags,
-    explanation,
-    points,
-    timeEstimate,
-    isActive
-  } = req.body;
-  const userId = req.user.id;
+    subjectId,
+    userId: req.user.id,
+    explanation: explanation?.trim(),
+    points: parseFloat(points),
+    tags: Array.isArray(tags) ? tags.filter(tag => tag && tag.trim().length > 0) : []
+  });
 
-  try {
-    const question = await Question.findOne({
-      where: { id, userId }
-    });
-
-    if (!question) {
-      throw new AppError('Questão não encontrada', 404);
-    }
-
-    // Check if question is being used in published exams
-    if (question.timesUsed > 0 && !req.body.allowUpdateUsed) {
-      throw new AppError('Questão em uso não pode ser editada. Use allowUpdateUsed=true para forçar.', 400);
-    }
-
-    // Validate fields if provided
-    if (text !== undefined && (!text || !text.trim())) {
-      throw new AppError('Texto da questão é obrigatório', 400);
-    }
-
-    if (alternatives !== undefined) {
-      if (!Array.isArray(alternatives) || alternatives.length < 2) {
-        throw new AppError('A questão deve ter pelo menos 2 alternativas', 400);
-      }
-      if (alternatives.length > 5) {
-        throw new AppError('A questão pode ter no máximo 5 alternativas', 400);
-      }
-      
-      // Validate alternatives content
-      for (let i = 0; i < alternatives.length; i++) {
-        if (!alternatives[i] || !alternatives[i].trim()) {
-          throw new AppError(`Alternativa ${i + 1} não pode estar vazia`, 400);
-        }
-      }
-    }
-
-    if (correctAnswer !== undefined) {
-      const altLength = alternatives ? alternatives.length : question.alternatives.length;
-      if (correctAnswer < 0 || correctAnswer >= altLength) {
-        throw new AppError('Resposta correta inválida', 400);
-      }
-    }
-
-    if (difficulty !== undefined && !['easy', 'medium', 'hard'].includes(difficulty)) {
-      throw new AppError('Dificuldade deve ser: easy, medium ou hard', 400);
-    }
-
-    // Prepare update data
-    const updateData = {};
-    if (text !== undefined) updateData.text = text.trim();
-    if (alternatives !== undefined) updateData.alternatives = alternatives;
-    if (correctAnswer !== undefined) updateData.correctAnswer = correctAnswer;
-    if (difficulty !== undefined) updateData.difficulty = difficulty;
-    if (tags !== undefined) updateData.tags = Array.isArray(tags) ? tags : [];
-    if (explanation !== undefined) updateData.explanation = explanation ? explanation.trim() : null;
-    if (points !== undefined) updateData.points = points && points > 0 ? parseInt(points) : 1;
-    if (timeEstimate !== undefined) updateData.timeEstimate = timeEstimate && timeEstimate > 0 ? parseInt(timeEstimate) : null;
-    if (isActive !== undefined) updateData.isActive = isActive;
-
-    // Update metadata
-    updateData.metadata = {
-      ...question.metadata,
-      lastModifiedBy: req.user.name,
-      lastModifiedAt: new Date(),
-      version: (question.metadata?.version || 1) + 1
-    };
-
-    await question.update(updateData);
-
-    // Fetch updated question
-    const updatedQuestion = await Question.findByPk(id, {
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'color']
-        }
-      ]
-    });
-
-    logger.info(`Question updated: ${id}`, { userId });
-
-    res.json({
-      success: true,
-      message: 'Questão atualizada com sucesso',
-      data: { question: updatedQuestion }
-    });
-
-  } catch (error) {
-    logger.error('Error updating question:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao atualizar questão', 500);
-  }
+  res.status(201).json({
+    success: true,
+    message: 'Question created successfully',
+    data: { question }
+  });
 });
 
-/**
- * Delete question with dependency check
- */
-const deleteQuestion = catchAsync(async (req, res) => {
+// Get question by ID
+const getQuestionById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
-  const { force = false } = req.query;
-  const userId = req.user.id;
 
-  try {
-    const question = await Question.findOne({
-      where: { id, userId }
-    });
-
-    if (!question) {
-      throw new AppError('Questão não encontrada', 404);
-    }
-
-    // Check if question is being used in exams
-    if (question.timesUsed > 0 && !force) {
-      throw new AppError(
-        `Questão foi utilizada ${question.timesUsed} vez${question.timesUsed > 1 ? 'es' : ''} em provas. Use force=true para excluir mesmo assim.`,
-        400
-      );
-    }
-
-    if (force && question.timesUsed > 0) {
-      // Soft delete for questions in use
-      await question.update({ 
-        isActive: false,
-        deletedAt: new Date(),
-        metadata: {
-          ...question.metadata,
-          deletedBy: req.user.name,
-          deletedAt: new Date(),
-          reason: 'force_delete'
-        }
-      });
-    } else {
-      // Hard delete for unused questions
-      await question.destroy();
-    }
-
-    logger.info(`Question deleted: ${id}`, { userId, force });
-
-    res.json({
-      success: true,
-      message: 'Questão excluída com sucesso'
-    });
-
-  } catch (error) {
-    logger.error('Error deleting question:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao excluir questão', 500);
-  }
-});
-
-/**
- * Get unique tags from user's questions
- */
-const getQuestionTags = catchAsync(async (req, res) => {
-  const userId = req.user.id;
-
-  try {
-    const questions = await Question.findAll({
-      where: { userId, isActive: true },
-      attributes: ['tags']
-    });
-
-    const allTags = new Set();
-    questions.forEach(question => {
-      if (question.tags && Array.isArray(question.tags)) {
-        question.tags.forEach(tag => allTags.add(tag));
+  const question = await Question.findByPk(id, {
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['id', 'name', 'color']
       }
-    });
+    ]
+  });
 
-    const tags = Array.from(allTags).sort();
-
-    res.json({
-      success: true,
-      data: { tags }
-    });
-
-  } catch (error) {
-    logger.error('Error fetching question tags:', error);
-    throw new AppError('Erro ao buscar tags', 500);
+  if (!question) {
+    return next(new AppError('Question not found', 404));
   }
+
+  // Check if user owns the question or is admin
+  if (req.user.role !== 'admin' && question.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  res.json({
+    success: true,
+    data: { question }
+  });
 });
 
-/**
- * Get questions for exam creation
- */
-const getQuestionsForExam = catchAsync(async (req, res) => {
-  const { 
-    subjectId, 
-    difficulty, 
-    tags, 
-    excludeUsed = false,
-    limit = 50 
-  } = req.query;
-  const userId = req.user.id;
+// Update question
+const updateQuestion = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const updateData = req.body;
 
-  try {
-    const whereClause = { 
-      userId, 
-      isActive: true 
-    };
+  const question = await Question.findByPk(id);
 
-    if (subjectId) whereClause.subjectId = subjectId;
-    if (difficulty) whereClause.difficulty = difficulty;
-    if (excludeUsed) whereClause.timesUsed = 0;
+  if (!question) {
+    return next(new AppError('Question not found', 404));
+  }
+
+  // Check ownership
+  if (req.user.role !== 'admin' && question.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  // Check if question is being used in published exams
+  const usageCount = await Question.sequelize.query(`
+    SELECT COUNT(*) as count 
+    FROM exam_questions eq 
+    JOIN exams e ON eq.exam_id = e.id 
+    WHERE eq.question_id = :questionId AND e.is_published = true
+  `, {
+    replacements: { questionId: id },
+    type: Question.sequelize.QueryTypes.SELECT
+  });
+
+  if (usageCount[0]?.count > 0) {
+    return next(new AppError('Cannot modify question that is used in published exams', 400));
+  }
+
+  // Validate alternatives and correct answer if being updated
+  if (updateData.alternatives) {
+    const cleanAlternatives = updateData.alternatives.filter(alt => alt && alt.trim().length > 0);
     
-    if (tags) {
-      const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-      whereClause.tags = { [Op.overlap]: tagArray };
+    if (cleanAlternatives.length < 2 || cleanAlternatives.length > 5) {
+      return next(new AppError('Must have between 2 and 5 non-empty alternatives', 400));
     }
-
-    const questions = await Question.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'color']
-        }
-      ],
-      order: [['createdAt', 'DESC']],
-      limit: parseInt(limit)
-    });
-
-    res.json({
-      success: true,
-      data: { questions }
-    });
-
-  } catch (error) {
-    logger.error('Error fetching questions for exam:', error);
-    throw new AppError('Erro ao buscar questões para prova', 500);
+    updateData.alternatives = cleanAlternatives.map(alt => alt.trim());
   }
+
+  if (updateData.correctAnswer !== undefined) {
+    const alternatives = updateData.alternatives || question.alternatives;
+    if (updateData.correctAnswer < 0 || updateData.correctAnswer >= alternatives.length) {
+      return next(new AppError('Correct answer index is invalid', 400));
+    }
+  }
+
+  // Clean tags
+  if (updateData.tags) {
+    updateData.tags = Array.isArray(updateData.tags) ? 
+      updateData.tags.filter(tag => tag && tag.trim().length > 0) : [];
+  }
+
+  await question.update(updateData);
+
+  res.json({
+    success: true,
+    message: 'Question updated successfully',
+    data: { question }
+  });
 });
 
-/**
- * Bulk create questions from import
- */
-const bulkCreateQuestions = catchAsync(async (req, res) => {
-  const { questions, subjectId, validateOnly = false } = req.body;
-  const userId = req.user.id;
-
-  if (!questions || !Array.isArray(questions) || questions.length === 0) {
-    throw new AppError('Lista de questões é obrigatória', 400);
-  }
-
-  if (questions.length > 100) {
-    throw new AppError('Máximo de 100 questões por importação', 400);
-  }
-
-  try {
-    // Verify subject ownership
-    const subject = await Subject.findOne({
-      where: { id: subjectId, userId }
-    });
-
-    if (!subject) {
-      throw new AppError('Disciplina não encontrada', 404);
-    }
-
-    const results = [];
-    const errors = [];
-
-    // Validate all questions first
-    for (let i = 0; i < questions.length; i++) {
-      const questionData = questions[i];
-      
-      try {
-        // Validate required fields
-        if (!questionData.text || !questionData.text.trim()) {
-          throw new Error('Texto da questão é obrigatório');
-        }
-
-        if (!questionData.alternatives || !Array.isArray(questionData.alternatives) || questionData.alternatives.length < 2) {
-          throw new Error('Pelo menos 2 alternativas são obrigatórias');
-        }
-
-        if (questionData.alternatives.length > 5) {
-          throw new Error('Máximo de 5 alternativas permitidas');
-        }
-
-        if (questionData.correctAnswer === undefined || 
-            questionData.correctAnswer < 0 || 
-            questionData.correctAnswer >= questionData.alternatives.length) {
-          throw new Error('Resposta correta inválida');
-        }
-
-        if (!['easy', 'medium', 'hard'].includes(questionData.difficulty)) {
-          throw new Error('Dificuldade deve ser: easy, medium ou hard');
-        }
-
-        // Validate alternatives content
-        for (let j = 0; j < questionData.alternatives.length; j++) {
-          if (!questionData.alternatives[j] || !questionData.alternatives[j].trim()) {
-            throw new Error(`Alternativa ${j + 1} não pode estar vazia`);
-          }
-        }
-
-        results.push({
-          index: i,
-          valid: true,
-          data: questionData
-        });
-
-      } catch (error) {
-        errors.push({
-          index: i,
-          error: error.message,
-          data: questionData
-        });
-      }
-    }
-
-    // If validation only, return results
-    if (validateOnly) {
-      return res.json({
-        success: true,
-        data: {
-          valid: results.length,
-          invalid: errors.length,
-          results,
-          errors
-        }
-      });
-    }
-
-    // If there are errors, don't proceed with creation
-    if (errors.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `${errors.length} questões inválidas encontradas`,
-        data: {
-          valid: results.length,
-          invalid: errors.length,
-          errors
-        }
-      });
-    }
-
-    // Create questions in bulk
-    const createdQuestions = [];
-    for (const result of results) {
-      const questionData = result.data;
-      
-      const question = await Question.create({
-        text: questionData.text.trim(),
-        alternatives: questionData.alternatives,
-        correctAnswer: questionData.correctAnswer,
-        difficulty: questionData.difficulty,
-        subjectId,
-        userId,
-        tags: Array.isArray(questionData.tags) ? questionData.tags : [],
-        explanation: questionData.explanation ? questionData.explanation.trim() : null,
-        points: questionData.points && questionData.points > 0 ? parseInt(questionData.points) : 1,
-        timeEstimate: questionData.timeEstimate && questionData.timeEstimate > 0 ? parseInt(questionData.timeEstimate) : null,
-        isActive: true,
-        timesUsed: 0,
-        metadata: {
-          createdBy: req.user.name,
-          createdAt: new Date(),
-          version: 1,
-          importedAt: new Date()
-        }
-      });
-
-      createdQuestions.push(question);
-    }
-
-    logger.info(`Bulk created ${createdQuestions.length} questions`, { userId, subjectId });
-
-    res.status(201).json({
-      success: true,
-      message: `${createdQuestions.length} questões criadas com sucesso`,
-      data: {
-        created: createdQuestions.length,
-        questions: createdQuestions
-      }
-    });
-
-  } catch (error) {
-    logger.error('Error bulk creating questions:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao criar questões em lote', 500);
-  }
-});
-
-/**
- * Duplicate question
- */
-const duplicateQuestion = catchAsync(async (req, res) => {
+// Delete question
+const deleteQuestion = catchAsync(async (req, res, next) => {
   const { id } = req.params;
-  const { subjectId: newSubjectId } = req.body;
-  const userId = req.user.id;
 
-  try {
-    const originalQuestion = await Question.findOne({
-      where: { id, userId }
-    });
+  const question = await Question.findByPk(id);
 
-    if (!originalQuestion) {
-      throw new AppError('Questão não encontrada', 404);
-    }
-
-    // If changing subject, verify new subject ownership
-    let targetSubjectId = originalQuestion.subjectId;
-    if (newSubjectId && newSubjectId !== originalQuestion.subjectId) {
-      const newSubject = await Subject.findOne({
-        where: { id: newSubjectId, userId }
-      });
-
-      if (!newSubject) {
-        throw new AppError('Nova disciplina não encontrada', 404);
-      }
-
-      targetSubjectId = newSubjectId;
-    }
-
-    const duplicatedQuestion = await Question.create({
-      text: originalQuestion.text,
-      alternatives: originalQuestion.alternatives,
-      correctAnswer: originalQuestion.correctAnswer,
-      difficulty: originalQuestion.difficulty,
-      subjectId: targetSubjectId,
-      userId,
-      tags: originalQuestion.tags,
-      explanation: originalQuestion.explanation,
-      points: originalQuestion.points,
-      timeEstimate: originalQuestion.timeEstimate,
-      isActive: true,
-      timesUsed: 0, // Reset usage for duplicate
-      metadata: {
-        ...originalQuestion.metadata,
-        duplicatedFrom: originalQuestion.id,
-        duplicatedAt: new Date(),
-        duplicatedBy: req.user.name
-      }
-    });
-
-    // Fetch complete duplicated question
-    const createdQuestion = await Question.findByPk(duplicatedQuestion.id, {
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'color']
-        }
-      ]
-    });
-
-    logger.info(`Question duplicated: ${id} -> ${duplicatedQuestion.id}`, { userId });
-
-    res.status(201).json({
-      success: true,
-      message: 'Questão duplicada com sucesso',
-      data: { question: createdQuestion }
-    });
-
-  } catch (error) {
-    logger.error('Error duplicating question:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao duplicar questão', 500);
+  if (!question) {
+    return next(new AppError('Question not found', 404));
   }
+
+  // Check ownership
+  if (req.user.role !== 'admin' && question.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  // Check if question is being used in any exams
+  const usageCount = await Question.sequelize.query(`
+    SELECT COUNT(*) as count 
+    FROM exam_questions eq 
+    WHERE eq.question_id = :questionId
+  `, {
+    replacements: { questionId: id },
+    type: Question.sequelize.QueryTypes.SELECT
+  });
+
+  if (usageCount[0]?.count > 0) {
+    return next(new AppError('Cannot delete question that is used in exams', 400));
+  }
+
+  // Soft delete by setting isActive to false
+  await question.update({ isActive: false });
+
+  res.json({
+    success: true,
+    message: 'Question deleted successfully'
+  });
 });
 
-/**
- * Import questions from file
- */
-const importQuestions = catchAsync(async (req, res) => {
+// Get questions by difficulty for a subject
+const getQuestionsByDifficulty = catchAsync(async (req, res, next) => {
+  const { subjectId, difficulty } = req.params;
+
+  // Validate subject belongs to user
+  const subject = await Subject.findOne({
+    where: { id: subjectId, userId: req.user.id }
+  });
+
+  if (!subject) {
+    return next(new AppError('Subject not found', 404));
+  }
+
+  const questions = await Question.findAll({
+    where: {
+      subjectId,
+      difficulty,
+      isActive: true
+    },
+    order: [['createdAt', 'DESC']],
+    limit: 50 // Limit for performance
+  });
+
+  res.json({
+    success: true,
+    data: { questions }
+  });
+});
+
+// Search questions
+const searchQuestions = catchAsync(async (req, res, next) => {
+  const { page = 1, limit = 10, q, subjectId, difficulty } = req.query;
+  const { limit: queryLimit, offset } = paginate(page, limit);
+
+  const where = { userId: req.user.id, isActive: true };
+
+  if (q) {
+    where[Op.or] = [
+      { text: { [Op.iLike]: `%${q}%` } },
+      { tags: { [Op.overlap]: [q] } }
+    ];
+  }
+
+  if (subjectId) {
+    where.subjectId = subjectId;
+  }
+
+  if (difficulty) {
+    where.difficulty = difficulty;
+  }
+
+  const { count, rows: questions } = await Question.findAndCountAll({
+    where,
+    limit: queryLimit,
+    offset,
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['id', 'name', 'color']
+      }
+    ]
+  });
+
+  const pagination = buildPaginationMeta(page, limit, count);
+
+  res.json({
+    success: true,
+    data: { questions, pagination }
+  });
+});
+
+// Duplicate question
+const duplicateQuestion = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const originalQuestion = await Question.findByPk(id);
+
+  if (!originalQuestion) {
+    return next(new AppError('Question not found', 404));
+  }
+
+  // Check ownership
+  if (req.user.role !== 'admin' && originalQuestion.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  const duplicatedQuestion = await Question.create({
+    text: `${originalQuestion.text} (Copy)`,
+    alternatives: originalQuestion.alternatives,
+    correctAnswer: originalQuestion.correctAnswer,
+    difficulty: originalQuestion.difficulty,
+    subjectId: originalQuestion.subjectId,
+    userId: req.user.id,
+    explanation: originalQuestion.explanation,
+    points: originalQuestion.points,
+    tags: originalQuestion.tags
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Question duplicated successfully',
+    data: { question: duplicatedQuestion }
+  });
+});
+
+// Bulk delete questions
+const bulkDeleteQuestions = catchAsync(async (req, res, next) => {
+  const { questionIds } = req.body;
+
+  if (!Array.isArray(questionIds) || questionIds.length === 0) {
+    return next(new AppError('Question IDs are required', 400));
+  }
+
+  // Check ownership for all questions
+  const questions = await Question.findAll({
+    where: {
+      id: { [Op.in]: questionIds },
+      userId: req.user.id
+    }
+  });
+
+  if (questions.length !== questionIds.length) {
+    return next(new AppError('Some questions not found or access denied', 403));
+  }
+
+  // Check if any questions are being used in exams
+  const usageCount = await Question.sequelize.query(`
+    SELECT COUNT(*) as count 
+    FROM exam_questions eq 
+    WHERE eq.question_id IN (:questionIds)
+  `, {
+    replacements: { questionIds },
+    type: Question.sequelize.QueryTypes.SELECT
+  });
+
+  if (usageCount[0]?.count > 0) {
+    return next(new AppError('Cannot delete questions that are used in exams', 400));
+  }
+
+  await Question.update(
+    { isActive: false },
+    {
+      where: {
+        id: { [Op.in]: questionIds },
+        userId: req.user.id
+      }
+    }
+  );
+
+  res.json({
+    success: true,
+    message: `${questionIds.length} questions deleted successfully`
+  });
+});
+
+// Import questions from file
+const importQuestions = catchAsync(async (req, res, next) => {
   const { subjectId } = req.body;
-  const userId = req.user.id;
 
   if (!req.file) {
-    throw new AppError('Arquivo é obrigatório', 400);
+    return next(new AppError('Please upload a file', 400));
   }
 
-  try {
-    // Verify subject ownership
-    const subject = await Subject.findOne({
-      where: { id: subjectId, userId }
-    });
+  // Validate subject
+  const subject = await Subject.findOne({
+    where: { id: subjectId, userId: req.user.id }
+  });
 
-    if (!subject) {
-      throw new AppError('Disciplina não encontrada', 404);
-    }
-
-    const filePath = req.file.path;
-    const fileExtension = path.extname(req.file.originalname).toLowerCase();
-
-    let questions = [];
-
-    // Parse different file formats
-    if (fileExtension === '.csv') {
-      const fileContent = await fs.readFile(filePath, 'utf8');
-      const parsed = Papa.parse(fileContent, {
-        header: true,
-        skipEmptyLines: true
-      });
-
-      questions = parsed.data.map(row => ({
-        text: row.text || row.question,
-        alternatives: [
-          row.alternative1 || row.a,
-          row.alternative2 || row.b,
-          row.alternative3 || row.c,
-          row.alternative4 || row.d,
-          row.alternative5 || row.e
-        ].filter(alt => alt && alt.trim()),
-        correctAnswer: parseInt(row.correctAnswer || row.correct) || 0,
-        difficulty: row.difficulty || 'medium',
-        tags: row.tags ? row.tags.split(',').map(tag => tag.trim()) : [],
-        explanation: row.explanation || '',
-        points: parseInt(row.points) || 1
-      }));
-    } else if (fileExtension === '.json') {
-      const fileContent = await fs.readFile(filePath, 'utf8');
-      questions = JSON.parse(fileContent);
-    } else {
-      throw new AppError('Formato de arquivo não suportado. Use CSV ou JSON.', 400);
-    }
-
-    // Clean up uploaded file
-    await fs.unlink(filePath);
-
-    // Validate and create questions
-    const result = await bulkCreateQuestions.bind(this)({
-      ...req,
-      body: { questions, subjectId, validateOnly: false }
-    }, res);
-
-    return result;
-
-  } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file && req.file.path) {
-      try {
-        await fs.unlink(req.file.path);
-      } catch (unlinkError) {
-        logger.error('Error deleting uploaded file:', unlinkError);
-      }
-    }
-
-    logger.error('Error importing questions:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao importar questões', 500);
+  if (!subject) {
+    return next(new AppError('Subject not found', 404));
   }
+
+  // For now, return a placeholder response
+  // TODO: Implement actual file parsing logic
+  res.json({
+    success: true,
+    message: 'Import functionality will be implemented based on file format',
+    data: {
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      subjectId
+    }
+  });
 });
 
-/**
- * Export questions to file
- */
-const exportQuestions = catchAsync(async (req, res) => {
-  const { 
-    subjectId, 
-    difficulty, 
-    tags, 
-    format = 'csv' 
-  } = req.query;
-  const userId = req.user.id;
+// Export questions
+const exportQuestions = catchAsync(async (req, res, next) => {
+  const { subjectId, format = 'json' } = req.body;
 
-  try {
-    const whereClause = { userId, isActive: true };
+  const where = { userId: req.user.id, isActive: true };
+  
+  if (subjectId) {
+    where.subjectId = subjectId;
+  }
 
-    if (subjectId) whereClause.subjectId = subjectId;
-    if (difficulty) whereClause.difficulty = difficulty;
-    
-    if (tags) {
-      const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-      whereClause.tags = { [Op.overlap]: tagArray };
-    }
+  const questions = await Question.findAll({
+    where,
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['name']
+      }
+    ]
+  });
 
-    const questions = await Question.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['name']
-        }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
-
-    if (format === 'csv') {
-      const csvData = questions.map(q => ({
+  res.json({
+    success: true,
+    message: `Export format ${format} ready`,
+    data: {
+      questions: questions.map(q => ({
         text: q.text,
-        alternative1: q.alternatives[0] || '',
-        alternative2: q.alternatives[1] || '',
-        alternative3: q.alternatives[2] || '',
-        alternative4: q.alternatives[3] || '',
-        alternative5: q.alternatives[4] || '',
+        alternatives: q.alternatives,
         correctAnswer: q.correctAnswer,
         difficulty: q.difficulty,
-        subject: q.subject?.name || '',
-        tags: q.tags ? q.tags.join(',') : '',
-        explanation: q.explanation || '',
+        subject: q.subject.name,
+        explanation: q.explanation,
         points: q.points,
-        timesUsed: q.timesUsed
-      }));
-
-      const csv = Papa.unparse(csvData);
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=questions.csv');
-      res.send(csv);
-    } else {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', 'attachment; filename=questions.json');
-      res.json({
-        exportedAt: new Date().toISOString(),
-        totalQuestions: questions.length,
-        questions: questions.map(q => ({
-          text: q.text,
-          alternatives: q.alternatives,
-          correctAnswer: q.correctAnswer,
-          difficulty: q.difficulty,
-          subject: q.subject?.name || '',
-          tags: q.tags || [],
-          explanation: q.explanation || '',
-          points: q.points,
-          metadata: q.metadata
-        }))
-      });
+        tags: q.tags
+      })),
+      format,
+      count: questions.length
     }
-
-  } catch (error) {
-    logger.error('Error exporting questions:', error);
-    throw new AppError('Erro ao exportar questões', 500);
-  }
+  });
 });
 
-/**
- * Get question statistics
- */
-const getQuestionStats = catchAsync(async (req, res) => {
+// Get question usage statistics
+const getQuestionStats = catchAsync(async (req, res, next) => {
   const { id } = req.params;
-  const userId = req.user.id;
 
-  try {
-    const question = await Question.findOne({
-      where: { id, userId }
-    });
+  const question = await Question.findByPk(id);
 
-    if (!question) {
-      throw new AppError('Questão não encontrada', 404);
-    }
+  if (!question) {
+    return next(new AppError('Question not found', 404));
+  }
 
-    // Get usage statistics from exams
-    const examUsage = await ExamQuestion.findAll({
-      where: { questionId: id },
-      include: [
-        {
-          model: Exam,
-          as: 'exam',
-          attributes: ['id', 'title', 'status', 'createdAt']
-        }
-      ]
-    });
+  // Check ownership
+  if (req.user.role !== 'admin' && question.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
 
-    const stats = {
+  // Get usage statistics
+  const usageStats = await Question.sequelize.query(`
+    SELECT 
+      COUNT(DISTINCT eq.exam_id) as exams_count,
+      COUNT(DISTINCT eq.variation_id) as variations_count,
+      COUNT(a.id) as total_attempts,
+      COUNT(CASE WHEN a.answers::jsonb @> '[{"questionId": "' || :questionId || '", "correct": true}]' THEN 1 END) as correct_attempts
+    FROM exam_questions eq
+    LEFT JOIN answers a ON eq.exam_id = a.exam_id
+    WHERE eq.question_id = :questionId
+  `, {
+    replacements: { questionId: id },
+    type: Question.sequelize.QueryTypes.SELECT
+  });
+
+  const stats = usageStats[0] || {};
+  const successRate = stats.total_attempts > 0 ? 
+    ((stats.correct_attempts / stats.total_attempts) * 100).toFixed(2) : 0;
+
+  res.json({
+    success: true,
+    data: {
       question: {
         id: question.id,
-        timesUsed: question.timesUsed,
+        text: question.text,
         difficulty: question.difficulty,
-        tags: question.tags || []
+        timesUsed: question.timesUsed || 0,
+        timesCorrect: question.timesCorrect || 0,
+        averageScore: question.averageScore || 0
       },
       usage: {
-        totalExams: examUsage.length,
-        activeExams: examUsage.filter(eu => eu.exam.status === 'published').length,
-        draftExams: examUsage.filter(eu => eu.exam.status === 'draft').length
-      },
-      exams: examUsage.map(eu => ({
-        id: eu.exam.id,
-        title: eu.exam.title,
-        status: eu.exam.status,
-        createdAt: eu.exam.createdAt
-      }))
-    };
-
-    res.json({
-      success: true,
-      data: { stats }
-    });
-
-  } catch (error) {
-    logger.error('Error fetching question stats:', error);
-    if (error instanceof AppError) throw error;
-    throw new AppError('Erro ao buscar estatísticas da questão', 500);
-  }
+        examsCount: parseInt(stats.exams_count) || 0,
+        variationsCount: parseInt(stats.variations_count) || 0,
+        totalAttempts: parseInt(stats.total_attempts) || 0,
+        correctAttempts: parseInt(stats.correct_attempts) || 0,
+        successRate: parseFloat(successRate)
+      }
+    }
+  });
 });
 
 module.exports = {
   getQuestions,
-  getQuestion,
+  getQuestionsStats,
   createQuestion,
+  getQuestionById,
   updateQuestion,
   deleteQuestion,
-  getQuestionTags,
-  getQuestionsForExam,
-  bulkCreateQuestions,
+  getQuestionsByDifficulty,
+  searchQuestions,
   duplicateQuestion,
+  bulkDeleteQuestions,
   importQuestions,
   exportQuestions,
   getQuestionStats

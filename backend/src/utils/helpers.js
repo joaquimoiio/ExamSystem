@@ -1,15 +1,9 @@
 const crypto = require('crypto');
 
-/**
- * Generate a random string of specified length
- */
 const generateRandomString = (length = 32) => {
   return crypto.randomBytes(length).toString('hex');
 };
 
-/**
- * Generate a secure random password
- */
 const generateSecurePassword = (length = 12) => {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
   let password = '';
@@ -21,9 +15,6 @@ const generateSecurePassword = (length = 12) => {
   return password;
 };
 
-/**
- * Format date to Brazilian format
- */
 const formatDateBR = (date) => {
   return new Date(date).toLocaleDateString('pt-BR', {
     year: 'numeric',
@@ -34,18 +25,12 @@ const formatDateBR = (date) => {
   });
 };
 
-/**
- * Calculate time difference in minutes
- */
 const getTimeDifferenceInMinutes = (start, end) => {
   const startTime = new Date(start);
   const endTime = new Date(end);
   return Math.floor((endTime - startTime) / (1000 * 60));
 };
 
-/**
- * Format duration from seconds to human readable
- */
 const formatDuration = (seconds) => {
   if (!seconds || seconds < 0) return '0s';
   
@@ -61,17 +46,11 @@ const formatDuration = (seconds) => {
   return formatted.trim();
 };
 
-/**
- * Validate email format
- */
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/**
- * Validate password strength
- */
 const validatePasswordStrength = (password) => {
   const minLength = 6;
   const hasUpperCase = /[A-Z]/.test(password);
@@ -96,207 +75,47 @@ const validatePasswordStrength = (password) => {
       !hasUpperCase ? 'Add uppercase letters' : null,
       !hasLowerCase ? 'Add lowercase letters' : null,
       !hasNumbers ? 'Add numbers' : null,
-      !hasSpecialChar ? 'Add special characters' : null
+      !hasSpecialChar ? 'Add special characters' : null,
     ].filter(Boolean)
   };
 };
 
-/**
- * Sanitize string for filename
- */
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+const generateAccessCode = (length = 6) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 const sanitizeFilename = (filename) => {
-  return filename
-    .replace(/[^a-z0-9]/gi, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^_|_$/g, '')
-    .toLowerCase();
+  return filename.replace(/[^a-zA-Z0-9.-]/g, '_');
 };
 
-/**
- * Generate slug from text
- */
-const generateSlug = (text) => {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim('-');
-};
-
-/**
- * Deep clone object
- */
-const deepClone = (obj) => {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (obj instanceof Date) return new Date(obj);
-  if (obj instanceof Array) return obj.map(item => deepClone(item));
-  if (typeof obj === 'object') {
-    const clonedObj = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        clonedObj[key] = deepClone(obj[key]);
-      }
-    }
-    return clonedObj;
-  }
-};
-
-/**
- * Calculate percentage with precision
- */
-const calculatePercentage = (value, total, precision = 2) => {
-  if (total === 0) return 0;
-  return parseFloat(((value / total) * 100).toFixed(precision));
-};
-
-/**
- * Get grade letter from percentage
- */
-const getGradeLetter = (percentage) => {
-  if (percentage >= 90) return 'A';
-  if (percentage >= 80) return 'B';
-  if (percentage >= 70) return 'C';
-  if (percentage >= 60) return 'D';
-  return 'F';
-};
-
-/**
- * Paginate array
- */
-const paginateArray = (array, page = 1, limit = 10) => {
+const paginate = (page, limit) => {
   const offset = (page - 1) * limit;
-  const paginatedItems = array.slice(offset, offset + limit);
-  
+  return { limit: parseInt(limit), offset };
+};
+
+const buildPaginationMeta = (page, limit, total) => {
+  const totalPages = Math.ceil(total / limit);
   return {
-    data: paginatedItems,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total: array.length,
-      pages: Math.ceil(array.length / limit)
-    }
-  };
-};
-
-/**
- * Group array by key
- */
-const groupBy = (array, key) => {
-  return array.reduce((grouped, item) => {
-    const group = item[key];
-    if (!grouped[group]) {
-      grouped[group] = [];
-    }
-    grouped[group].push(item);
-    return grouped;
-  }, {});
-};
-
-/**
- * Remove duplicates from array
- */
-const removeDuplicates = (array, key = null) => {
-  if (key) {
-    const seen = new Set();
-    return array.filter(item => {
-      const value = item[key];
-      if (seen.has(value)) {
-        return false;
-      }
-      seen.add(value);
-      return true;
-    });
-  }
-  return [...new Set(array)];
-};
-
-/**
- * Retry function with exponential backoff
- */
-const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxRetries) {
-        throw error;
-      }
-      
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-};
-
-/**
- * Capitalize first letter of string
- */
-const capitalize = (str) => {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-};
-
-/**
- * Convert camelCase to snake_case
- */
-const camelToSnake = (str) => {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-};
-
-/**
- * Convert snake_case to camelCase
- */
-const snakeToCamel = (str) => {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-};
-
-/**
- * Validate UUID format
- */
-const isValidUUID = (uuid) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-};
-
-/**
- * Safe JSON parse
- */
-const safeJsonParse = (str, defaultValue = null) => {
-  try {
-    return JSON.parse(str);
-  } catch {
-    return defaultValue;
-  }
-};
-
-/**
- * Debounce function
- */
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
-/**
- * Throttle function
- */
-const throttle = (func, limit) => {
-  let inThrottle;
-  return function(...args) {
-    if (!inThrottle) {
-      func.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
+    page: parseInt(page),
+    limit: parseInt(limit),
+    total,
+    totalPages,
+    hasNext: page < totalPages,
+    hasPrev: page > 1
   };
 };
 
@@ -308,20 +127,9 @@ module.exports = {
   formatDuration,
   isValidEmail,
   validatePasswordStrength,
+  shuffleArray,
+  generateAccessCode,
   sanitizeFilename,
-  generateSlug,
-  deepClone,
-  calculatePercentage,
-  getGradeLetter,
-  paginateArray,
-  groupBy,
-  removeDuplicates,
-  retryWithBackoff,
-  capitalize,
-  camelToSnake,
-  snakeToCamel,
-  isValidUUID,
-  safeJsonParse,
-  debounce,
-  throttle
+  paginate,
+  buildPaginationMeta
 };

@@ -1,303 +1,365 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
+const { AppError } = require('../utils/appError');
 
+/**
+ * Email Service for sending notifications and reports
+ */
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: process.env.EMAIL_PORT || 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    this.fromEmail = process.env.EMAIL_USER || 'noreply@examsystem.com';
-    this.frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    this.transporter = null;
+    this.initializeTransporter();
   }
 
-  async sendEmail(to, subject, html, text = null) {
+  /**
+   * Initialize email transporter
+   */
+  initializeTransporter() {
     try {
-      const mailOptions = {
-        from: `"Sistema de Provas" <${this.fromEmail}>`,
-        to,
-        subject,
-        html,
-        text: text || this.stripHtml(html)
-      };
-
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent:', info.messageId);
-      return info;
+      this.transporter = nodemailer.createTransporter({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: process.env.EMAIL_PORT || 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        }
+      });
     } catch (error) {
-      console.error('Error sending email:', error);
-      throw new Error('Failed to send email');
+      console.error('Failed to initialize email transporter:', error);
     }
   }
 
-  stripHtml(html) {
-    return html.replace(/<[^>]*>/g, '');
-  }
-
-  async sendPasswordResetEmail(user, resetToken) {
-    const resetUrl = `${this.frontendUrl}/reset-password?token=${resetToken}`;
-    
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Redefinir Senha - Sistema de Provas</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #3B82F6; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .button { display: inline-block; padding: 12px 24px; background: #3B82F6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-          .footer { padding: 20px; text-align: center; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Sistema de Provas Online</h1>
-          </div>
-          <div class="content">
-            <h2>Olá, ${user.name}!</h2>
-            <p>Você solicitou a redefinição de sua senha. Clique no botão abaixo para criar uma nova senha:</p>
-            <a href="${resetUrl}" class="button">Redefinir Senha</a>
-            <p>Se você não conseguir clicar no botão, copie e cole este link no seu navegador:</p>
-            <p><a href="${resetUrl}">${resetUrl}</a></p>
-            <p><strong>Este link expira em 1 hora.</strong></p>
-            <p>Se você não solicitou esta redefinição, ignore este email.</p>
-          </div>
-          <div class="footer">
-            <p>Sistema de Provas Online | Não responda este email</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return await this.sendEmail(
-      user.email,
-      'Redefinir Senha - Sistema de Provas',
-      html
-    );
-  }
-
-  async sendWelcomeEmail(user, temporaryPassword = null) {
-    const loginUrl = `${this.frontendUrl}/login`;
-    
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Bem-vindo - Sistema de Provas</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #10B981; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .button { display: inline-block; padding: 12px 24px; background: #10B981; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-          .credentials { background: #EFF6FF; padding: 15px; border-radius: 6px; margin: 15px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Bem-vindo ao Sistema de Provas!</h1>
-          </div>
-          <div class="content">
-            <h2>Olá, ${user.name}!</h2>
-            <p>Sua conta foi criada com sucesso no Sistema de Provas Online.</p>
-            
-            ${temporaryPassword ? `
-            <div class="credentials">
-              <h3>Suas credenciais de acesso:</h3>
-              <p><strong>Email:</strong> ${user.email}</p>
-              <p><strong>Senha temporária:</strong> ${temporaryPassword}</p>
-              <p><em>Por favor, altere sua senha no primeiro acesso.</em></p>
-            </div>
-            ` : ''}
-            
-            <p>Agora você pode:</p>
-            <ul>
-              <li>Criar e gerenciar disciplinas</li>
-              <li>Cadastrar questões com diferentes níveis de dificuldade</li>
-              <li>Gerar provas com múltiplas variações</li>
-              <li>Corrigir provas automaticamente via QR Code</li>
-              <li>Acompanhar estatísticas de desempenho</li>
-            </ul>
-            
-            <a href="${loginUrl}" class="button">Acessar Sistema</a>
-          </div>
-          <div class="footer">
-            <p>Sistema de Provas Online | Não responda este email</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return await this.sendEmail(
-      user.email,
-      'Bem-vindo ao Sistema de Provas Online',
-      html
-    );
-  }
-
-  async sendExamNotificationEmail(teacher, exam, type = 'created') {
-    let subject, content;
-    
-    switch (type) {
-      case 'published':
-        subject = `Prova "${exam.title}" foi publicada`;
-        content = `
-          <h2>Prova Publicada</h2>
-          <p>A prova "${exam.title}" foi publicada com sucesso e está disponível para os alunos.</p>
-          <p><strong>Detalhes:</strong></p>
-          <ul>
-            <li>Total de questões: ${exam.totalQuestions}</li>
-            <li>Variações geradas: ${exam.totalVariations}</li>
-            <li>Nota mínima: ${exam.passingScore}%</li>
-            ${exam.expiresAt ? `<li>Expira em: ${new Date(exam.expiresAt).toLocaleString('pt-BR')}</li>` : ''}
-          </ul>
-        `;
-        break;
-      
-      default:
-        subject = `Nova prova "${exam.title}" foi criada`;
-        content = `
-          <h2>Nova Prova Criada</h2>
-          <p>A prova "${exam.title}" foi criada com sucesso.</p>
-          <p>Lembre-se de publicá-la quando estiver pronta para disponibilizar aos alunos.</p>
-        `;
-    }
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${subject}</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #3B82F6; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .button { display: inline-block; padding: 12px 24px; background: #3B82F6; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Sistema de Provas Online</h1>
-          </div>
-          <div class="content">
-            <h2>Olá, ${teacher.name}!</h2>
-            ${content}
-            <a href="${this.frontendUrl}/exams/${exam.id}" class="button">Ver Prova</a>
-          </div>
-          <div class="footer">
-            <p>Sistema de Provas Online | Não responda este email</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return await this.sendEmail(teacher.email, subject, html);
-  }
-
-  async sendSubmissionNotificationEmail(teacher, submission, exam) {
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Nova Submissão - ${exam.title}</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #10B981; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .button { display: inline-block; padding: 12px 24px; background: #10B981; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-          .score { font-size: 24px; font-weight: bold; color: ${submission.isPassed ? '#10B981' : '#EF4444'}; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Nova Submissão Recebida</h1>
-          </div>
-          <div class="content">
-            <h2>Olá, ${teacher.name}!</h2>
-            <p>Uma nova submissão foi recebida para a prova "${exam.title}".</p>
-            
-            <h3>Detalhes da Submissão:</h3>
-            <ul>
-              <li><strong>Aluno:</strong> ${submission.studentName}</li>
-              ${submission.studentId ? `<li><strong>Matrícula:</strong> ${submission.studentId}</li>` : ''}
-              <li><strong>Nota:</strong> <span class="score">${submission.score.toFixed(1)}%</span></li>
-              <li><strong>Acertos:</strong> ${submission.correctAnswers}/${submission.totalQuestions}</li>
-              <li><strong>Status:</strong> ${submission.isPassed ? 'Aprovado' : 'Reprovado'}</li>
-              <li><strong>Submetido em:</strong> ${new Date(submission.submittedAt).toLocaleString('pt-BR')}</li>
-            </ul>
-            
-            <a href="${this.frontendUrl}/exams/${exam.id}/submissions" class="button">Ver Todas as Submissões</a>
-          </div>
-          <div class="footer">
-            <p>Sistema de Provas Online | Não responda este email</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return await this.sendEmail(
-      teacher.email,
-      `Nova Submissão - ${exam.title}`,
-      html
-    );
-  }
-
-  async sendBulkEmail(recipients, subject, html) {
-    const promises = recipients.map(email => 
-      this.sendEmail(email, subject, html)
-    );
-    
-    try {
-      const results = await Promise.allSettled(promises);
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
-      
-      return {
-        sent: successful,
-        failed: failed,
-        total: recipients.length
-      };
-    } catch (error) {
-      console.error('Error in bulk email sending:', error);
-      throw error;
-    }
-  }
-
+  /**
+   * Test email connection
+   */
   async testConnection() {
-    try {
-      await this.transporter.verify();
-      console.log('Email service is ready');
-      return true;
-    } catch (error) {
-      console.error('Email service connection failed:', error);
+    if (!this.transporter) {
       return false;
     }
+
+    try {
+      await this.transporter.verify();
+      return true;
+    } catch (error) {
+      console.error('Email connection test failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send email
+   */
+  async sendEmail(options) {
+    if (!this.transporter) {
+      throw new AppError('Email service not configured', 500);
+    }
+
+    const { to, subject, text, html, attachments } = options;
+
+    const mailOptions = {
+      from: `"Exam System" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      text,
+      html,
+      attachments
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      return {
+        success: true,
+        messageId: info.messageId,
+        message: 'Email sent successfully'
+      };
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new AppError('Failed to send email', 500);
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordReset(email, resetToken, userName) {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Password Reset Request</h2>
+        <p>Hello ${userName},</p>
+        <p>You requested a password reset for your Exam System account.</p>
+        <p>Click the button below to reset your password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" 
+             style="background-color: #007bff; color: white; padding: 12px 30px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+        <p>Or copy and paste this link in your browser:</p>
+        <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+        <p><strong>This link will expire in 10 minutes.</strong></p>
+        <p>If you didn't request this password reset, please ignore this email.</p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666;">
+          This is an automated message from Exam System. Please do not reply to this email.
+        </p>
+      </div>
+    `;
+
+    const text = `
+      Password Reset Request
+      
+      Hello ${userName},
+      
+      You requested a password reset for your Exam System account.
+      
+      Please visit the following link to reset your password:
+      ${resetUrl}
+      
+      This link will expire in 10 minutes.
+      
+      If you didn't request this password reset, please ignore this email.
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: 'Password Reset - Exam System',
+      text,
+      html
+    });
+  }
+
+  /**
+   * Send welcome email
+   */
+  async sendWelcomeEmail(email, userName) {
+    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Welcome to Exam System!</h2>
+        <p>Hello ${userName},</p>
+        <p>Welcome to the Exam System! Your account has been created successfully.</p>
+        <p>You can now:</p>
+        <ul>
+          <li>Create and manage subjects</li>
+          <li>Build question banks</li>
+          <li>Create and publish exams</li>
+          <li>Track student performance</li>
+        </ul>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${loginUrl}" 
+             style="background-color: #28a745; color: white; padding: 12px 30px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            Login Now
+          </a>
+        </div>
+        <p>If you have any questions, feel free to contact our support team.</p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666;">
+          This is an automated message from Exam System.
+        </p>
+      </div>
+    `;
+
+    const text = `
+      Welcome to Exam System!
+      
+      Hello ${userName},
+      
+      Welcome to the Exam System! Your account has been created successfully.
+      
+      You can now:
+      - Create and manage subjects
+      - Build question banks
+      - Create and publish exams
+      - Track student performance
+      
+      Visit ${loginUrl} to get started.
+      
+      If you have any questions, feel free to contact our support team.
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: 'Welcome to Exam System!',
+      text,
+      html
+    });
+  }
+
+  /**
+   * Send exam published notification
+   */
+  async sendExamPublishedNotification(email, userName, examTitle, accessCode) {
+    const examUrl = `${process.env.FRONTEND_URL}/exam/access/${accessCode}`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Exam Published Successfully!</h2>
+        <p>Hello ${userName},</p>
+        <p>Your exam <strong>"${examTitle}"</strong> has been published successfully!</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Exam Details:</h3>
+          <p><strong>Exam Title:</strong> ${examTitle}</p>
+          <p><strong>Access Code:</strong> <code style="background-color: #e9ecef; padding: 2px 6px; border-radius: 3px;">${accessCode}</code></p>
+          <p><strong>Exam URL:</strong> <a href="${examUrl}">${examUrl}</a></p>
+        </div>
+        <p>Students can now access your exam using the access code or direct URL.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${examUrl}" 
+             style="background-color: #007bff; color: white; padding: 12px 30px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            View Exam
+          </a>
+        </div>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666;">
+          This is an automated notification from Exam System.
+        </p>
+      </div>
+    `;
+
+    const text = `
+      Exam Published Successfully!
+      
+      Hello ${userName},
+      
+      Your exam "${examTitle}" has been published successfully!
+      
+      Exam Details:
+      - Exam Title: ${examTitle}
+      - Access Code: ${accessCode}
+      - Exam URL: ${examUrl}
+      
+      Students can now access your exam using the access code or direct URL.
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: `Exam Published: ${examTitle}`,
+      text,
+      html
+    });
+  }
+
+  /**
+   * Send exam results summary
+   */
+  async sendExamResultsSummary(email, userName, examTitle, stats) {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Exam Results Summary</h2>
+        <p>Hello ${userName},</p>
+        <p>Here's a summary of results for your exam <strong>"${examTitle}"</strong>:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Statistics:</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+              <p><strong>Total Submissions:</strong> ${stats.totalSubmissions}</p>
+              <p><strong>Average Score:</strong> ${stats.averageScore}</p>
+            </div>
+            <div>
+              <p><strong>Passed:</strong> ${stats.passedCount} (${stats.passRate}%)</p>
+              <p><strong>Failed:</strong> ${stats.failedCount}</p>
+            </div>
+          </div>
+        </div>
+        
+        <p>You can view detailed results and analytics in your dashboard.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL}/dashboard" 
+             style="background-color: #28a745; color: white; padding: 12px 30px; 
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            View Dashboard
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666;">
+          This is an automated summary from Exam System.
+        </p>
+      </div>
+    `;
+
+    const text = `
+      Exam Results Summary
+      
+      Hello ${userName},
+      
+      Here's a summary of results for your exam "${examTitle}":
+      
+      Statistics:
+      - Total Submissions: ${stats.totalSubmissions}
+      - Average Score: ${stats.averageScore}
+      - Passed: ${stats.passedCount} (${stats.passRate}%)
+      - Failed: ${stats.failedCount}
+      
+      You can view detailed results and analytics in your dashboard.
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: `Results Summary: ${examTitle}`,
+      text,
+      html
+    });
+  }
+
+  /**
+   * Send bulk email (for notifications to multiple users)
+   */
+  async sendBulkEmail(recipients, subject, message) {
+    const results = [];
+    
+    for (const recipient of recipients) {
+      try {
+        const result = await this.sendEmail({
+          to: recipient.email,
+          subject,
+          text: message,
+          html: message.replace(/\n/g, '<br>')
+        });
+        
+        results.push({
+          email: recipient.email,
+          status: 'sent',
+          messageId: result.messageId
+        });
+      } catch (error) {
+        results.push({
+          email: recipient.email,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Send email with attachment
+   */
+  async sendEmailWithAttachment(options) {
+    const { to, subject, text, html, attachmentPath, attachmentName } = options;
+    
+    const attachments = attachmentPath ? [{
+      filename: attachmentName || 'attachment',
+      path: attachmentPath
+    }] : [];
+
+    return await this.sendEmail({
+      to,
+      subject,
+      text,
+      html,
+      attachments
+    });
   }
 }
 

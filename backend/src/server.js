@@ -14,14 +14,18 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'exam-system-backend' },
   transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: process.env.LOG_FILE || 'combined.log' }),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: process.env.LOG_FILE || 'logs/combined.log' }),
   ],
 });
 
+// Console logging in development
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
-    format: winston.format.simple()
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
   }));
 }
 
@@ -29,44 +33,46 @@ if (process.env.NODE_ENV !== 'production') {
 async function testDatabaseConnection() {
   try {
     await sequelize.authenticate();
-    logger.info('Database connection established successfully');
+    logger.info('✅ Database connection established successfully');
     
     // Sync models in development
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: false });
-      logger.info('Database models synchronized');
+      await sequelize.sync({ alter: true });
+      logger.info('✅ Database models synchronized');
     }
   } catch (error) {
-    logger.error('Unable to connect to database:', error);
+    logger.error('❌ Unable to connect to database:', error);
     process.exit(1);
   }
 }
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
+// Graceful shutdown handlers
+const gracefulShutdown = async (signal) => {
+  logger.info(`${signal} received, shutting down gracefully`);
   
   try {
     await sequelize.close();
-    logger.info('Database connection closed');
+    logger.info('✅ Database connection closed');
   } catch (error) {
-    logger.error('Error closing database connection:', error);
+    logger.error('❌ Error closing database connection:', error);
   }
   
   process.exit(0);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Unhandled promise rejection handler
+process.on('unhandledRejection', (err, promise) => {
+  logger.error('Unhandled Promise Rejection:', err);
+  process.exit(1);
 });
 
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  
-  try {
-    await sequelize.close();
-    logger.info('Database connection closed');
-  } catch (error) {
-    logger.error('Error closing database connection:', error);
-  }
-  
-  process.exit(0);
+// Uncaught exception handler
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+  process.exit(1);
 });
 
 // Start server
@@ -75,16 +81,18 @@ async function startServer() {
     await testDatabaseConnection();
     
     const server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+      logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+      logger.info(`📚 API Documentation: http://localhost:${PORT}/api/health`);
     });
 
     // Handle server errors
     server.on('error', (error) => {
-      logger.error('Server error:', error);
+      logger.error('❌ Server error:', error);
+      process.exit(1);
     });
 
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
