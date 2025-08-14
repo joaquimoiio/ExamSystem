@@ -421,3 +421,5 @@ Para suporte e dúvidas:
 ---
 
 **Sistema de Provas Online** - Desenvolvido com ❤️ para revolucionar a educação digital.
+
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
