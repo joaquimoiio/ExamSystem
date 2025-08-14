@@ -566,6 +566,151 @@ const getQuestionStats = catchAsync(async (req, res, next) => {
   });
 });
 
+
+// Bulk update questions
+const bulkUpdateQuestions = catchAsync(async (req, res, next) => {
+  const { questionIds, updateData } = req.body;
+
+  if (!Array.isArray(questionIds) || questionIds.length === 0) {
+    return next(new AppError('Question IDs are required', 400));
+  }
+
+  if (!updateData || Object.keys(updateData).length === 0) {
+    return next(new AppError('Update data is required', 400));
+  }
+
+  // Check ownership for all questions
+  const questions = await Question.findAll({
+    where: {
+      id: { [Op.in]: questionIds },
+      userId: req.user.id
+    }
+  });
+
+  if (questions.length !== questionIds.length) {
+    return next(new AppError('Some questions not found or access denied', 403));
+  }
+
+  // Check if any questions are being used in published exams
+  const usageCount = await Question.sequelize.query(`
+    SELECT COUNT(*) as count 
+    FROM exam_questions eq 
+    JOIN exams e ON eq.exam_id = e.id 
+    WHERE eq.question_id IN (:questionIds) AND e.is_published = true
+  `, {
+    replacements: { questionIds },
+    type: Question.sequelize.QueryTypes.SELECT
+  });
+
+  if (usageCount[0]?.count > 0) {
+    return next(new AppError('Cannot modify questions that are used in published exams', 400));
+  }
+
+  // Validate update data
+  const allowedFields = ['difficulty', 'points', 'tags', 'explanation'];
+  const cleanUpdateData = {};
+
+  for (const [key, value] of Object.entries(updateData)) {
+    if (allowedFields.includes(key)) {
+      if (key === 'tags' && Array.isArray(value)) {
+        cleanUpdateData[key] = value.filter(tag => tag && tag.trim().length > 0);
+      } else if (key === 'points') {
+        cleanUpdateData[key] = parseFloat(value);
+      } else if (key === 'explanation' && value) {
+        cleanUpdateData[key] = value.trim();
+      } else {
+        cleanUpdateData[key] = value;
+      }
+    }
+  }
+
+  const [updatedCount] = await Question.update(cleanUpdateData, {
+    where: {
+      id: { [Op.in]: questionIds },
+      userId: req.user.id
+    }
+  });
+
+  res.json({
+    success: true,
+    message: `${updatedCount} questions updated successfully`,
+    data: { updatedCount }
+  });
+});
+
+// Recalculate question difficulty based on performance
+const recalculateDifficulty = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const question = await Question.findByPk(id);
+
+  if (!question) {
+    return next(new AppError('Question not found', 404));
+  }
+
+  // Check ownership
+  if (req.user.role !== 'admin' && question.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  // Get performance statistics
+  const performanceStats = await Question.sequelize.query(`
+    SELECT 
+      COUNT(a.id) as total_attempts,
+      COUNT(CASE WHEN a.answers::jsonb @> '[{"questionId": "' || :questionId || '", "correct": true}]' THEN 1 END) as correct_attempts
+    FROM answers a
+    WHERE a.answers::jsonb @> '[{"questionId": "' || :questionId || '"}]'
+    AND a.created_at >= NOW() - INTERVAL '30 days'
+  `, {
+    replacements: { questionId: id },
+    type: Question.sequelize.QueryTypes.SELECT
+  });
+
+  const stats = performanceStats[0] || {};
+  const totalAttempts = parseInt(stats.total_attempts) || 0;
+  const correctAttempts = parseInt(stats.correct_attempts) || 0;
+
+  if (totalAttempts < 10) {
+    return next(new AppError('Insufficient data to recalculate difficulty (minimum 10 attempts required)', 400));
+  }
+
+  const successRate = (correctAttempts / totalAttempts) * 100;
+  let newDifficulty = question.difficulty;
+
+  // Recalculate difficulty based on success rate
+  if (successRate >= 80) {
+    newDifficulty = 'easy';
+  } else if (successRate >= 50) {
+    newDifficulty = 'medium';
+  } else {
+    newDifficulty = 'hard';
+  }
+
+  // Update question with new difficulty
+  await question.update({
+    difficulty: newDifficulty,
+    timesUsed: totalAttempts,
+    timesCorrect: correctAttempts,
+    averageScore: successRate.toFixed(2)
+  });
+
+  res.json({
+    success: true,
+    message: 'Question difficulty recalculated successfully',
+    data: {
+      question: {
+        id: question.id,
+        oldDifficulty: question.difficulty,
+        newDifficulty: newDifficulty,
+        totalAttempts,
+        correctAttempts,
+        successRate: parseFloat(successRate.toFixed(2))
+      }
+    }
+  });
+});
+
+
 module.exports = {
   getQuestions,
   getQuestionsStats,
@@ -577,7 +722,9 @@ module.exports = {
   searchQuestions,
   duplicateQuestion,
   bulkDeleteQuestions,
+  bulkUpdateQuestions,
   importQuestions,
   exportQuestions,
-  getQuestionStats
+  getQuestionStats,
+  recalculateDifficulty
 };

@@ -729,12 +729,201 @@ const generateExamVariations = async (exam) => {
   }
 };
 
+// Get recent exams
+const getRecentExams = catchAsync(async (req, res, next) => {
+  const recentExams = await Exam.findAll({
+    where: { userId: req.user.id },
+    order: [['createdAt', 'DESC']],
+    limit: 10,
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['name', 'color']
+      }
+    ],
+    attributes: {
+      include: [
+        [
+          Exam.sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM answers
+            WHERE answers.exam_id = "Exam".id
+          )`),
+          'submissionsCount'
+        ]
+      ]
+    }
+  });
+
+  res.json({
+    success: true,
+    data: { exams: recentExams }
+  });
+});
+
+// Get specific exam variation
+const getExamVariation = catchAsync(async (req, res, next) => {
+  const { id, variationId } = req.params;
+
+  const variation = await ExamVariation.findOne({
+    where: { id: variationId, examId: id },
+    include: [
+      {
+        model: Question,
+        as: 'questions',
+        through: { attributes: ['questionOrder'] },
+        attributes: ['id', 'text', 'alternatives', 'difficulty', 'points']
+      }
+    ]
+  });
+
+  if (!variation) {
+    return next(new AppError('Variation not found', 404));
+  }
+
+  res.json({
+    success: true,
+    data: { variation }
+  });
+});
+
+// Get exam answers/submissions
+const getExamAnswers = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  const { limit: queryLimit, offset } = paginate(page, limit);
+
+  const { count, rows: answers } = await Answer.findAndCountAll({
+    where: { examId: id },
+    limit: queryLimit,
+    offset,
+    order: [['submittedAt', 'DESC']],
+    include: [
+      {
+        model: ExamVariation,
+        as: 'variation',
+        attributes: ['variationNumber']
+      }
+    ]
+  });
+
+  const pagination = buildPaginationMeta(page, limit, count);
+
+  res.json({
+    success: true,
+    data: { answers, pagination }
+  });
+});
+
+// Export exam results
+const exportExamResults = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { format = 'json' } = req.body;
+
+  const answers = await Answer.findAll({
+    where: { examId: id },
+    include: [
+      {
+        model: ExamVariation,
+        as: 'variation',
+        attributes: ['variationNumber']
+      }
+    ],
+    order: [['submittedAt', 'DESC']]
+  });
+
+  res.json({
+    success: true,
+    message: `Export in ${format} format ready`,
+    data: { 
+      answers: answers.map(answer => ({
+        studentName: answer.studentName,
+        studentEmail: answer.studentEmail,
+        score: answer.score,
+        isPassed: answer.isPassed,
+        submittedAt: answer.submittedAt,
+        variation: answer.variation?.variationNumber
+      })),
+      format,
+      count: answers.length
+    }
+  });
+});
+
+// Generate exam report
+const generateExamReport = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const exam = await Exam.findByPk(id, {
+    include: [
+      { model: Subject, as: 'subject', attributes: ['name'] }
+    ]
+  });
+
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  // Basic report data
+  const submissionsCount = await Answer.count({ where: { examId: id } });
+  
+  res.json({
+    success: true,
+    message: 'Report generated successfully',
+    data: {
+      exam: {
+        title: exam.title,
+        subject: exam.subject.name,
+        totalSubmissions: submissionsCount,
+        generatedAt: new Date()
+      }
+    }
+  });
+});
+
+// Bulk grade exam submissions
+const bulkGradeExam = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { action = 'auto-grade' } = req.body;
+
+  res.json({
+    success: true,
+    message: `Bulk grading (${action}) functionality to be implemented`,
+    data: { examId: id }
+  });
+});
+
+// Regenerate variations
+const regenerateVariations = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const exam = await Exam.findByPk(id);
+
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  // Delete existing variations
+  await ExamVariation.destroy({ where: { examId: id } });
+  await ExamQuestion.destroy({ where: { examId: id } });
+
+  // Generate new variations
+  await generateExamVariations(exam);
+
+  res.json({
+    success: true,
+    message: 'Exam variations regenerated successfully'
+  });
+});
+
 module.exports = {
   getPublicExams,
   getExamByAccessCode,
   getExamForTaking,
   getExams,
   getExamsStats,
+  getRecentExams,        // <- ADICIONAR
   createExam,
   getExamById,
   updateExam,
@@ -742,7 +931,13 @@ module.exports = {
   publishExam,
   unpublishExam,
   duplicateExam,
+  regenerateVariations,  // <- ADICIONAR
   getExamVariations,
+  getExamVariation,      // <- ADICIONAR
+  getExamAnswers,        // <- ADICIONAR
   getExamAnalytics,
+  exportExamResults,     // <- ADICIONAR
+  generateExamReport,    // <- ADICIONAR
+  bulkGradeExam,         // <- ADICIONAR
   downloadQRCodes
 };

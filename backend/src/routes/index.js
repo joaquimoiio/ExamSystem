@@ -6,7 +6,7 @@ const authRoutes = require('./auth');
 const subjectRoutes = require('./subjects');
 const questionRoutes = require('./questions');
 const examRoutes = require('./exams');
-const correctionRoutes = require('./correction');
+const correctionRoutes = require('./corrections');
 
 // API version and info
 router.get('/', (req, res) => {

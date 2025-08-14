@@ -511,13 +511,245 @@ const bulkGradeSubmissions = catchAsync(async (req, res, next) => {
   });
 });
 
+// Get submissions by exam
+const getSubmissionsByExam = catchAsync(async (req, res, next) => {
+  const { examId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  const { limit: queryLimit, offset } = paginate(page, limit);
+
+  // Check exam ownership
+  const exam = await Exam.findByPk(examId);
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  if (req.user.role !== 'admin' && exam.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  const { count, rows: submissions } = await Answer.findAndCountAll({
+    where: { examId },
+    limit: queryLimit,
+    offset,
+    order: [['submittedAt', 'DESC']],
+    include: [
+      {
+        model: ExamVariation,
+        as: 'variation',
+        attributes: ['variationNumber']
+      }
+    ]
+  });
+
+  const pagination = buildPaginationMeta(page, limit, count);
+
+  res.json({
+    success: true,
+    data: { submissions, pagination }
+  });
+});
+
+// Get submissions by student
+const getSubmissionsByStudent = catchAsync(async (req, res, next) => {
+  const { studentId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  const { limit: queryLimit, offset } = paginate(page, limit);
+
+  const where = { studentId };
+
+  // Filter by exam ownership for non-admin users
+  if (req.user.role !== 'admin') {
+    const userExams = await Exam.findAll({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+    where.examId = { [Op.in]: userExams.map(exam => exam.id) };
+  }
+
+  const { count, rows: submissions } = await Answer.findAndCountAll({
+    where,
+    limit: queryLimit,
+    offset,
+    order: [['submittedAt', 'DESC']],
+    include: [
+      {
+        model: Exam,
+        as: 'exam',
+        attributes: ['title']
+      }
+    ]
+  });
+
+  const pagination = buildPaginationMeta(page, limit, count);
+
+  res.json({
+    success: true,
+    data: { submissions, pagination }
+  });
+});
+
+// Get pending submissions
+const getPendingSubmissions = catchAsync(async (req, res, next) => {
+  const { page = 1, limit = 10 } = req.query;
+  const { limit: queryLimit, offset } = paginate(page, limit);
+
+  const where = { status: 'submitted' };
+
+  // Filter by exam ownership for non-admin users
+  if (req.user.role !== 'admin') {
+    const userExams = await Exam.findAll({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+    where.examId = { [Op.in]: userExams.map(exam => exam.id) };
+  }
+
+  const { count, rows: submissions } = await Answer.findAndCountAll({
+    where,
+    limit: queryLimit,
+    offset,
+    order: [['submittedAt', 'ASC']],
+    include: [
+      {
+        model: Exam,
+        as: 'exam',
+        attributes: ['title']
+      }
+    ]
+  });
+
+  const pagination = buildPaginationMeta(page, limit, count);
+
+  res.json({
+    success: true,
+    data: { submissions, pagination }
+  });
+});
+
+// Add feedback
+const addFeedback = catchAsync(async (req, res, next) => {
+  const { submissionId } = req.params;
+  const { feedback } = req.body;
+
+  const submission = await Answer.findByPk(submissionId, {
+    include: [{ model: Exam, as: 'exam', attributes: ['userId'] }]
+  });
+
+  if (!submission) {
+    return next(new AppError('Submission not found', 404));
+  }
+
+  if (req.user.role !== 'admin' && submission.exam.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  await submission.update({ feedback });
+
+  res.json({
+    success: true,
+    message: 'Feedback added successfully'
+  });
+});
+
+// Adjust score
+const adjustScore = catchAsync(async (req, res, next) => {
+  const { submissionId } = req.params;
+  const { score, reason } = req.body;
+
+  const submission = await Answer.findByPk(submissionId, {
+    include: [{ model: Exam, as: 'exam', attributes: ['userId', 'passingScore'] }]
+  });
+
+  if (!submission) {
+    return next(new AppError('Submission not found', 404));
+  }
+
+  if (req.user.role !== 'admin' && submission.exam.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  const isPassed = score >= submission.exam.passingScore;
+
+  await submission.update({
+    score: parseFloat(score),
+    isPassed,
+    feedback: reason ? `${submission.feedback || ''}\n\nScore adjusted: ${reason}`.trim() : submission.feedback
+  });
+
+  res.json({
+    success: true,
+    message: 'Score adjusted successfully',
+    data: { newScore: score, isPassed }
+  });
+});
+
+// Regrade submission
+const regradeSubmission = catchAsync(async (req, res, next) => {
+  const { submissionId } = req.params;
+
+  res.json({
+    success: true,
+    message: 'Regrade functionality to be implemented'
+  });
+});
+
+// Export submissions
+const exportSubmissions = catchAsync(async (req, res, next) => {
+  const { format = 'json' } = req.body;
+
+  res.json({
+    success: true,
+    message: `Export in ${format} format to be implemented`
+  });
+});
+
+// Performance analytics
+const getPerformanceAnalytics = catchAsync(async (req, res, next) => {
+  const { examId } = req.params;
+
+  res.json({
+    success: true,
+    message: 'Performance analytics to be implemented',
+    data: { examId }
+  });
+});
+
+// Compare students
+const compareStudents = catchAsync(async (req, res, next) => {
+  res.json({
+    success: true,
+    message: 'Student comparison to be implemented'
+  });
+});
+
+// Get suspicious submissions
+const getSuspiciousSubmissions = catchAsync(async (req, res, next) => {
+  const { examId } = req.params;
+
+  res.json({
+    success: true,
+    message: 'Suspicious submissions detection to be implemented',
+    data: { examId }
+  });
+});
+
 module.exports = {
   submitAnswers,
   getSubmissionResult,
   getSubmissions,
+  getSubmissionsByExam,      // <- ADICIONAR
+  getSubmissionsByStudent,   // <- ADICIONAR
+  getPendingSubmissions,     // <- ADICIONAR
   getSubmissionDetails,
   updateSubmission,
+  addFeedback,               // <- ADICIONAR
+  adjustScore,               // <- ADICIONAR
+  regradeSubmission,         // <- ADICIONAR
+  exportSubmissions,         // <- ADICIONAR
   getCorrectionStats,
   getQuestionAnalysis,
+  getPerformanceAnalytics,   // <- ADICIONAR
+  compareStudents,           // <- ADICIONAR
+  getSuspiciousSubmissions,  // <- ADICIONAR
   bulkGradeSubmissions
 };
