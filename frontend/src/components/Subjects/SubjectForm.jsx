@@ -1,91 +1,171 @@
-import React, { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import Modal from '../Common/Modal'
-import Button from '../Common/Button'
-import Input from '../Common/Input'
+// frontend/src/components/Subjects/SubjectForm.jsx
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { X, Shuffle, Palette } from 'lucide-react';
+import { Button, Input, Modal } from '../Common';
+import { subjectService } from '../../services/api/subjectService';
 
-const SUBJECT_COLORS = [
-  { value: '#3B82F6', label: 'Azul', class: 'bg-blue-500' },
-  { value: '#10B981', label: 'Verde', class: 'bg-green-500' },
-  { value: '#F59E0B', label: 'Amarelo', class: 'bg-yellow-500' },
-  { value: '#EF4444', label: 'Vermelho', class: 'bg-red-500' },
-  { value: '#8B5CF6', label: 'Roxo', class: 'bg-purple-500' },
-  { value: '#F97316', label: 'Laranja', class: 'bg-orange-500' },
-  { value: '#06B6D4', label: 'Ciano', class: 'bg-cyan-500' },
-  { value: '#84CC16', label: 'Lima', class: 'bg-lime-500' },
-  { value: '#EC4899', label: 'Rosa', class: 'bg-pink-500' },
-  { value: '#6B7280', label: 'Cinza', class: 'bg-gray-500' }
-]
+// Cores predefinidas para disciplinas
+const PREDEFINED_COLORS = [
+  { value: '#3B82F6', label: 'Azul' },
+  { value: '#10B981', label: 'Verde' },
+  { value: '#F59E0B', label: 'Amarelo' },
+  { value: '#EF4444', label: 'Vermelho' },
+  { value: '#8B5CF6', label: 'Roxo' },
+  { value: '#06B6D4', label: 'Ciano' },
+  { value: '#84CC16', label: 'Lima' },
+  { value: '#F97316', label: 'Laranja' },
+  { value: '#EC4899', label: 'Rosa' },
+  { value: '#6B7280', label: 'Cinza' },
+  { value: '#14B8A6', label: 'Teal' },
+  { value: '#A855F7', label: 'Violeta' }
+];
 
-const SubjectForm = ({
-  subject = null,
-  onSubmit,
-  onCancel,
-  loading = false
+const SubjectForm = ({ 
+  subject = null, 
+  onSubmit, 
+  onCancel, 
+  loading = false 
 }) => {
-  const isEditing = !!subject
+  const isEditing = !!subject;
+  
+  // Estados locais
+  const [selectedColor, setSelectedColor] = useState(subject?.color || PREDEFINED_COLORS[0].value);
+  const [validatingName, setValidatingName] = useState(false);
+  const [validatingCode, setValidatingCode] = useState(false);
 
+  // Hook do formulário
   const {
     register,
     handleSubmit,
-    reset,
     watch,
     setValue,
-    formState: { errors, isValid }
+    setError,
+    clearErrors,
+    formState: { errors, isValid, isDirty }
   } = useForm({
     defaultValues: {
-      name: '',
-      description: '',
-      color: SUBJECT_COLORS[0].value,
-      code: '',
-      credits: 1,
-      isActive: true // Corrigido para isActive em vez de active
-    }
-  })
+      name: subject?.name || '',
+      description: subject?.description || '',
+      color: subject?.color || PREDEFINED_COLORS[0].value,
+      code: subject?.code || '',
+      credits: subject?.credits || 1,
+      isActive: subject?.isActive !== undefined ? subject.isActive : true
+    },
+    mode: 'onChange'
+  });
 
-  const selectedColor = watch('color')
+  // Observar mudanças nos campos
+  const watchedName = watch('name');
+  const watchedCode = watch('code');
+  const watchedCredits = watch('credits');
 
+  // Atualizar cor selecionada quando mudar no formulário
   useEffect(() => {
-    if (subject) {
-      reset({
-        name: subject.name || '',
-        description: subject.description || '',
-        color: subject.color || SUBJECT_COLORS[0].value,
-        code: subject.code || '',
-        credits: subject.credits || 1,
-        isActive: subject.isActive !== undefined ? subject.isActive : true
-      })
-    }
-  }, [subject, reset])
+    setValue('color', selectedColor);
+  }, [selectedColor, setValue]);
 
-  const onFormSubmit = (data) => {
-    // Garantir que todos os campos obrigatórios estão presentes
-    const formattedData = {
-      name: data.name.trim(),
-      description: data.description?.trim() || '',
-      color: data.color,
-      code: data.code?.trim() || '',
-      credits: parseInt(data.credits) || 1,
-      isActive: Boolean(data.isActive)
-    }
-    
-    console.log('Dados enviados:', formattedData) // Debug
-    onSubmit(formattedData)
-  }
+  // Validação em tempo real do nome
+  useEffect(() => {
+    const validateName = async () => {
+      if (watchedName && watchedName.trim() && watchedName.trim() !== subject?.name) {
+        setValidatingName(true);
+        try {
+          const result = await subjectService.validateName(
+            watchedName.trim(), 
+            isEditing ? subject.id : null
+          );
+          
+          if (!result.isValid) {
+            setError('name', { 
+              type: 'manual', 
+              message: result.message 
+            });
+          } else {
+            clearErrors('name');
+          }
+        } catch (error) {
+          console.error('Erro na validação do nome:', error);
+        } finally {
+          setValidatingName(false);
+        }
+      }
+    };
 
+    const timeoutId = setTimeout(validateName, 500);
+    return () => clearTimeout(timeoutId);
+  }, [watchedName, subject?.name, subject?.id, isEditing, setError, clearErrors]);
+
+  // Validação em tempo real do código
+  useEffect(() => {
+    const validateCode = async () => {
+      if (watchedCode && watchedCode.trim() && watchedCode.trim() !== subject?.code) {
+        setValidatingCode(true);
+        try {
+          const result = await subjectService.validateCode(
+            watchedCode.trim(), 
+            isEditing ? subject.id : null
+          );
+          
+          if (!result.isValid) {
+            setError('code', { 
+              type: 'manual', 
+              message: result.message 
+            });
+          } else {
+            clearErrors('code');
+          }
+        } catch (error) {
+          console.error('Erro na validação do código:', error);
+        } finally {
+          setValidatingCode(false);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(validateCode, 500);
+    return () => clearTimeout(timeoutId);
+  }, [watchedCode, subject?.code, subject?.id, isEditing, setError, clearErrors]);
+
+  // Função para gerar código automático
   const generateCode = () => {
-    const name = watch('name')
-    if (name) {
-      const code = name
-        .toUpperCase()
-        .replace(/[^A-Z0-9\s]/g, '')
-        .split(' ')
-        .map(word => word.charAt(0))
-        .join('')
-        .substring(0, 6)
-      setValue('code', code)
+    if (watchedName && watchedName.trim()) {
+      const generatedCode = subjectService.generateCode(watchedName.trim());
+      setValue('code', generatedCode, { shouldValidate: true });
     }
-  }
+  };
+
+  // Função para selecionar cor aleatória
+  const selectRandomColor = () => {
+    const randomIndex = Math.floor(Math.random() * PREDEFINED_COLORS.length);
+    const randomColor = PREDEFINED_COLORS[randomIndex];
+    setSelectedColor(randomColor.value);
+  };
+
+  // Handler do submit
+  const onFormSubmit = async (data) => {
+    try {
+      console.log('📝 Enviando formulário:', { isEditing, data });
+      
+      // Preparar dados
+      const formData = {
+        name: data.name.trim(),
+        description: data.description ? data.description.trim() : '',
+        color: selectedColor,
+        code: data.code ? data.code.trim() : null,
+        credits: parseInt(data.credits) || 1,
+        isActive: Boolean(data.isActive)
+      };
+
+      if (isEditing) {
+        await onSubmit(subject.id, formData);
+      } else {
+        await onSubmit(formData);
+      }
+    } catch (error) {
+      console.error('❌ Erro no submit:', error);
+    }
+  };
 
   return (
     <Modal
@@ -94,46 +174,48 @@ const SubjectForm = ({
       title={isEditing ? 'Editar Disciplina' : 'Nova Disciplina'}
       size="lg"
       footer={
-        <>
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
           <Button
             type="submit"
             form="subject-form"
             variant="primary"
             loading={loading}
-            disabled={!isValid}
+            disabled={!isValid || !isDirty || validatingName || validatingCode}
           >
             {isEditing ? 'Atualizar' : 'Criar'}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={onCancel}
-            disabled={loading}
-            className="mr-3"
-          >
-            Cancelar
-          </Button>
-        </>
+        </div>
       }
     >
       <form id="subject-form" onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
         {/* Nome da Disciplina */}
-        <Input
-          label="Nome da Disciplina"
-          {...register('name', {
-            required: 'Nome é obrigatório',
-            minLength: {
-              value: 2,
-              message: 'Nome deve ter pelo menos 2 caracteres'
-            },
-            maxLength: {
-              value: 100,
-              message: 'Nome deve ter no máximo 100 caracteres'
-            }
-          })}
-          error={errors.name?.message}
-          placeholder="Ex: Matemática, História, Programação..."
-          required
-        />
+        <div>
+          <Input
+            label="Nome da Disciplina"
+            {...register('name', {
+              required: 'Nome é obrigatório',
+              minLength: {
+                value: 2,
+                message: 'Nome deve ter pelo menos 2 caracteres'
+              },
+              maxLength: {
+                value: 100,
+                message: 'Nome deve ter no máximo 100 caracteres'
+              }
+            })}
+            error={errors.name?.message}
+            placeholder="Ex: Matemática, História, Programação..."
+            required
+            loading={validatingName}
+          />
+        </div>
 
         {/* Código da Disciplina */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -149,6 +231,7 @@ const SubjectForm = ({
               error={errors.code?.message}
               placeholder="Ex: MAT101, HIST200..."
               helperText="Código único para identificar a disciplina (opcional)"
+              loading={validatingCode}
             />
           </div>
           <div className="flex items-end">
@@ -157,9 +240,11 @@ const SubjectForm = ({
               variant="secondary"
               size="sm"
               onClick={generateCode}
-              className="w-full"
+              disabled={!watchedName || loading}
+              className="w-full flex items-center justify-center gap-2"
             >
-              Gerar Código
+              <Shuffle className="h-4 w-4" />
+              Gerar
             </Button>
           </div>
         </div>
@@ -177,35 +262,45 @@ const SubjectForm = ({
               }
             })}
             rows={3}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            placeholder="Descrição da disciplina (opcional)..."
+            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm resize-none"
+            placeholder="Descrição opcional da disciplina..."
           />
           {errors.description && (
             <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
           )}
         </div>
 
-        {/* Cor e Créditos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Cor */}
+        {/* Grid para Cor e Créditos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Seleção de Cor */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cor da Disciplina *
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {SUBJECT_COLORS.map((color) => (
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Cor da Disciplina
+              </label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={selectRandomColor}
+                className="flex items-center gap-1 text-xs"
+              >
+                <Palette className="h-3 w-3" />
+                Aleatória
+              </Button>
+            </div>
+            <div className="grid grid-cols-6 gap-2">
+              {PREDEFINED_COLORS.map((color) => (
                 <button
                   key={color.value}
                   type="button"
-                  onClick={() => setValue('color', color.value)}
-                  className={`
-                    w-10 h-10 rounded-lg border-2 transition-all duration-200
-                    ${color.class}
-                    ${selectedColor === color.value 
+                  onClick={() => setSelectedColor(color.value)}
+                  className={`w-10 h-10 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${
+                    selectedColor === color.value
                       ? 'border-gray-900 ring-2 ring-gray-300' 
                       : 'border-gray-300 hover:border-gray-400'
-                    }
-                  `}
+                  }`}
+                  style={{ backgroundColor: color.value }}
                   title={color.label}
                 />
               ))}
@@ -267,25 +362,26 @@ const SubjectForm = ({
           <h4 className="text-sm font-medium text-gray-900 mb-2">Preview:</h4>
           <div className="flex items-center space-x-3">
             <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-medium"
+              className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-medium text-lg"
               style={{ backgroundColor: selectedColor }}
             >
-              {watch('name')?.charAt(0)?.toUpperCase() || 'D'}
+              {watchedName?.charAt(0)?.toUpperCase() || 'D'}
             </div>
             <div>
               <p className="font-medium text-gray-900">
-                {watch('name') || 'Nome da Disciplina'}
+                {watchedName || 'Nome da Disciplina'}
               </p>
               <p className="text-sm text-gray-500">
                 {watch('code') && `${watch('code')} • `}
-                {watch('credits')} crédito{watch('credits') !== 1 ? 's' : ''}
+                {watchedCredits} crédito{watchedCredits !== 1 ? 's' : ''}
+                {!watch('isActive') && ' • Inativa'}
               </p>
             </div>
           </div>
         </div>
       </form>
     </Modal>
-  )
-}
+  );
+};
 
-export default SubjectForm
+export default SubjectForm;

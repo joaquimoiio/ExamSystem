@@ -1,103 +1,141 @@
 // backend/src/controllers/subjectController.js
-
 const { Subject, Question, Exam } = require('../models');
-const { AppError, catchAsync } = require('../utils/appError');
-const { paginate, buildPaginationMeta } = require('../utils/helpers');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 const { Op } = require('sequelize');
 
 // Função auxiliar para verificar autenticação
 const checkAuthentication = (req, next) => {
   if (!req.user || !req.user.id) {
-    console.error('❌ Usuário não autenticado:', req.user);
-    return next(new AppError('Authentication required', 401));
+    next(new AppError('Usuário não autenticado', 401));
+    return false;
   }
   return true;
 };
 
-// Get subjects with pagination and search
+// Função auxiliar para validar dados da disciplina
+const validateSubjectData = (data) => {
+  const errors = [];
+  
+  if (!data.name || !data.name.trim()) {
+    errors.push('Nome da disciplina é obrigatório');
+  }
+  
+  if (data.name && (data.name.trim().length < 2 || data.name.trim().length > 100)) {
+    errors.push('Nome deve ter entre 2 e 100 caracteres');
+  }
+  
+  if (!data.color || !/^#[0-9A-F]{6}$/i.test(data.color)) {
+    errors.push('Cor é obrigatória e deve estar no formato hexadecimal (#RRGGBB)');
+  }
+  
+  if (data.code && (data.code.trim().length < 2 || data.code.trim().length > 20)) {
+    errors.push('Código deve ter entre 2 e 20 caracteres');
+  }
+  
+  if (data.description && data.description.length > 500) {
+    errors.push('Descrição deve ter no máximo 500 caracteres');
+  }
+  
+  if (data.credits && (parseInt(data.credits) < 1 || parseInt(data.credits) > 20)) {
+    errors.push('Créditos devem ser um número entre 1 e 20');
+  }
+  
+  return errors;
+};
+
+// Get all subjects with pagination and filters
 const getSubjects = catchAsync(async (req, res, next) => {
-  // Verificar autenticação
+  console.log('🔍 Iniciando getSubjects...');
+  
   if (!checkAuthentication(req, next)) return;
 
-  const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+  const userId = req.user.id;
+  console.log('👤 Usuário ID:', userId);
+
+  // Parâmetros de paginação e filtros
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+  const search = req.query.search || '';
+  const isActive = req.query.isActive;
   
-  console.log('🔍 Parâmetros de busca:', { page, limit, search, sortBy, sortOrder });
-  console.log('👤 Usuário autenticado:', { id: req.user.id, email: req.user.email });
+  console.log('📋 Parâmetros:', { page, limit, offset, search, isActive });
+
+  // Construir condições da consulta
+  const whereConditions = { userId };
+  
+  if (search) {
+    whereConditions[Op.or] = [
+      { name: { [Op.iLike]: `%${search}%` } },
+      { code: { [Op.iLike]: `%${search}%` } },
+      { description: { [Op.iLike]: `%${search}%` } }
+    ];
+  }
+  
+  if (isActive !== undefined) {
+    whereConditions.isActive = isActive === 'true';
+  }
 
   try {
-    const { limit: queryLimit, offset } = paginate(page, limit);
-    
-    const where = { userId: req.user.id };
-    
-    // Add search filter
-    if (search && search.trim()) {
-      where[Op.or] = [
-        { name: { [Op.iLike]: `%${search.trim()}%` } },
-        { description: { [Op.iLike]: `%${search.trim()}%` } }
-      ];
-    }
+    console.log('🔍 Buscando disciplinas com condições:', whereConditions);
 
-    console.log('🔍 Condições de busca:', where);
-
-    // Busca básica primeiro
+    // Buscar disciplinas com contagens
     const { count, rows: subjects } = await Subject.findAndCountAll({
-      where,
-      limit: queryLimit,
+      where: whereConditions,
+      order: [['createdAt', 'DESC']],
+      limit,
       offset,
-      order: [[sortBy, sortOrder.toUpperCase()]],
-      attributes: ['id', 'name', 'description', 'color', 'code', 'credits', 'isActive', 'createdAt', 'updatedAt']
+      attributes: {
+        include: [
+          // Subconsulta para contar questões
+          [
+            Subject.sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM questions
+              WHERE questions.subject_id = "Subject"."id"
+              AND questions.is_active = true
+            )`),
+            'questionsCount'
+          ],
+          // Subconsulta para contar provas
+          [
+            Subject.sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM exams
+              WHERE exams.subject_id = "Subject"."id"
+            )`),
+            'examsCount'
+          ]
+        ]
+      }
     });
 
-    console.log(`✅ Encontradas ${count} disciplinas, retornando ${subjects.length}`);
+    console.log('✅ Disciplinas encontradas:', subjects.length);
 
-    // Adicionar contagens separadamente para cada disciplina
-    const subjectsWithCounts = await Promise.all(
-      subjects.map(async (subject) => {
-        try {
-          const [questionsCount, examsCount] = await Promise.all([
-            Question.count({ 
-              where: { 
-                subjectId: subject.id, 
-                isActive: true 
-              } 
-            }).catch(() => {
-              console.warn(`⚠️ Erro ao contar questões da disciplina ${subject.id}`);
-              return 0;
-            }),
-            Exam.count({ 
-              where: { 
-                subjectId: subject.id 
-              } 
-            }).catch(() => {
-              console.warn(`⚠️ Erro ao contar provas da disciplina ${subject.id}`);
-              return 0;
-            })
-          ]);
+    // Calcular dados de paginação
+    const totalPages = Math.ceil(count / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
-          return {
-            ...subject.toJSON(),
-            questionsCount,
-            examsCount
-          };
-        } catch (error) {
-          console.warn(`⚠️ Erro ao buscar contagens para disciplina ${subject.id}:`, error.message);
-          return {
-            ...subject.toJSON(),
-            questionsCount: 0,
-            examsCount: 0
-          };
-        }
-      })
-    );
-
-    const pagination = buildPaginationMeta(page, limit, count);
-
-    console.log('📊 Metadados de paginação:', pagination);
+    const pagination = {
+      currentPage: page,
+      totalPages,
+      totalItems: count,
+      itemsPerPage: limit,
+      hasNextPage,
+      hasPrevPage
+    };
 
     res.json({
       success: true,
+      message: count === 0 ? 'Nenhuma disciplina encontrada' : 'Disciplinas carregadas com sucesso',
       data: {
-        subjects: subjectsWithCounts,
+        subjects: subjects.map(subject => ({
+          ...subject.toJSON(),
+          questionsCount: parseInt(subject.dataValues.questionsCount) || 0,
+          examsCount: parseInt(subject.dataValues.examsCount) || 0
+        })),
         pagination
       }
     });
@@ -105,13 +143,19 @@ const getSubjects = catchAsync(async (req, res, next) => {
   } catch (error) {
     console.error('❌ Erro em getSubjects:', error);
     
-    // Resposta de fallback em caso de erro
-    const fallbackPagination = buildPaginationMeta(1, 10, 0);
-    
+    // Fallback para garantir resposta mesmo com erro
+    const fallbackPagination = {
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 0,
+      itemsPerPage: limit,
+      hasNextPage: false,
+      hasPrevPage: false
+    };
+
     res.status(500).json({
       success: false,
-      message: 'Erro ao buscar disciplinas',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      message: error.message || 'Internal server error',
       data: {
         subjects: [],
         pagination: fallbackPagination
@@ -122,16 +166,19 @@ const getSubjects = catchAsync(async (req, res, next) => {
 
 // Get subjects statistics for dashboard
 const getSubjectsStats = catchAsync(async (req, res, next) => {
-  // Verificar autenticação
+  console.log('📊 Iniciando getSubjectsStats...');
+  
   if (!checkAuthentication(req, next)) return;
 
   const userId = req.user.id;
 
   try {
+    console.log('📊 Calculando estatísticas para usuário:', userId);
+
     const [totalSubjects, totalQuestions, totalExams] = await Promise.all([
-      Subject.count({ where: { userId } }).catch(() => 0),
-      Question.count({ where: { userId } }).catch(() => 0),
-      Exam.count({ where: { userId } }).catch(() => 0)
+      Subject.count({ where: { userId } }),
+      Question.count({ where: { userId } }),
+      Exam.count({ where: { userId } })
     ]);
 
     // Buscar disciplinas recentes
@@ -140,7 +187,14 @@ const getSubjectsStats = catchAsync(async (req, res, next) => {
       order: [['createdAt', 'DESC']],
       limit: 5,
       attributes: ['id', 'name', 'color', 'createdAt']
-    }).catch(() => []);
+    });
+
+    console.log('📊 Estatísticas calculadas:', {
+      totalSubjects,
+      totalQuestions,
+      totalExams,
+      recentSubjects: recentSubjects.length
+    });
 
     res.json({
       success: true,
@@ -162,75 +216,84 @@ const getSubjectsStats = catchAsync(async (req, res, next) => {
 
 // Create new subject
 const createSubject = catchAsync(async (req, res, next) => {
-  // Verificar autenticação
+  console.log('🆕 Iniciando createSubject...');
+  
   if (!checkAuthentication(req, next)) return;
 
   const { name, description, color, code, credits, isActive } = req.body;
+  const userId = req.user.id;
   
-  console.log('🔨 DEBUG: Criando disciplina para usuário:', req.user.id);
-  console.log('🔨 DEBUG: Dados recebidos:', { name, description, color, code, credits, isActive });
+  console.log('🆕 Dados recebidos:', { name, description, color, code, credits, isActive, userId });
   
-  // Validar campos obrigatórios
-  if (!name || !name.trim()) {
-    return next(new AppError('Nome da disciplina é obrigatório', 400));
-  }
-
-  if (!color || !/^#[0-9A-F]{6}$/i.test(color)) {
-    return next(new AppError('Cor é obrigatória e deve estar no formato hexadecimal', 400));
+  // Validar dados
+  const validationErrors = validateSubjectData(req.body);
+  if (validationErrors.length > 0) {
+    console.log('❌ Erros de validação:', validationErrors);
+    return next(new AppError(validationErrors[0], 400));
   }
 
   try {
-    // Check if subject name already exists for this user
-    const existingSubject = await Subject.findOne({
+    // Verificar se já existe disciplina com o mesmo nome
+    const existingByName = await Subject.findOne({
       where: { 
         name: name.trim(),
-        userId: req.user.id 
+        userId 
       }
     });
 
-    if (existingSubject) {
+    if (existingByName) {
+      console.log('❌ Disciplina já existe com nome:', name);
       return next(new AppError('Já existe uma disciplina com este nome', 400));
     }
 
-    // Validar código se fornecido
+    // Verificar código se fornecido
     if (code && code.trim()) {
-      const existingCode = await Subject.findOne({
+      const existingByCode = await Subject.findOne({
         where: { 
           code: code.trim(),
-          userId: req.user.id 
+          userId 
         }
       });
 
-      if (existingCode) {
+      if (existingByCode) {
+        console.log('❌ Disciplina já existe com código:', code);
         return next(new AppError('Já existe uma disciplina com este código', 400));
       }
     }
 
-    // Criar disciplina - CORRIGIDO: incluindo userId
+    // Preparar dados para criação
     const subjectData = {
       name: name.trim(),
-      description: description?.trim() || '',
+      description: description ? description.trim() : '',
       color: color,
-      code: code?.trim() || null,
+      code: code ? code.trim() : null,
       credits: parseInt(credits) || 1,
-      isActive: Boolean(isActive !== undefined ? isActive : true),
-      userId: req.user.id // ✅ ESTA LINHA ESTAVA FALTANDO!
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+      userId: userId
     };
 
-    console.log('🔨 DEBUG: Dados para criar disciplina:', subjectData);
+    console.log('🆕 Criando disciplina com dados:', subjectData);
 
+    // Criar disciplina
     const subject = await Subject.create(subjectData);
 
-    console.log('✅ DEBUG: Disciplina criada com sucesso:', {
+    console.log('✅ Disciplina criada com sucesso:', {
       id: subject.id,
       name: subject.name,
       userId: subject.userId
     });
 
+    // Retornar disciplina criada com contagens zeradas
+    const subjectWithCounts = {
+      ...subject.toJSON(),
+      questionsCount: 0,
+      examsCount: 0
+    };
+
     res.status(201).json({
       success: true,
       message: 'Disciplina criada com sucesso',
-      data: { subject }
+      data: { subject: subjectWithCounts }
     });
 
   } catch (error) {
@@ -242,7 +305,7 @@ const createSubject = catchAsync(async (req, res, next) => {
     }
     
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return next(new AppError('Já existe uma disciplina com este nome', 400));
+      return next(new AppError('Já existe uma disciplina com estes dados', 400));
     }
 
     return next(new AppError('Erro interno do servidor ao criar disciplina', 500));
@@ -251,36 +314,43 @@ const createSubject = catchAsync(async (req, res, next) => {
 
 // Get subject by ID
 const getSubjectById = catchAsync(async (req, res, next) => {
-  // Verificar autenticação
+  console.log('🔍 Iniciando getSubjectById...');
+  
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
+  const userId = req.user.id;
+  
+  console.log('🔍 Buscando disciplina ID:', id, 'para usuário:', userId);
   
   try {
     const subject = await Subject.findOne({
       where: {
         id,
-        userId: req.user.id // Garantir que o usuário só acessa suas próprias disciplinas
+        userId
       }
     });
     
     if (!subject) {
+      console.log('❌ Disciplina não encontrada');
       return next(new AppError('Disciplina não encontrada', 404));
     }
 
-    // Buscar contagens separadamente
+    console.log('✅ Disciplina encontrada:', subject.name);
+
+    // Buscar contagens
     const [questionsCount, examsCount] = await Promise.all([
       Question.count({ 
         where: { 
           subjectId: id, 
           isActive: true 
         } 
-      }).catch(() => 0),
+      }),
       Exam.count({ 
         where: { 
           subjectId: id 
         } 
-      }).catch(() => 0)
+      })
     ]);
 
     const subjectWithCounts = {
@@ -288,6 +358,12 @@ const getSubjectById = catchAsync(async (req, res, next) => {
       questionsCount,
       examsCount
     };
+
+    console.log('✅ Disciplina com contagens:', {
+      name: subject.name,
+      questionsCount,
+      examsCount
+    });
 
     res.json({
       success: true,
@@ -302,67 +378,99 @@ const getSubjectById = catchAsync(async (req, res, next) => {
 
 // Update subject
 const updateSubject = catchAsync(async (req, res, next) => {
-  // Verificar autenticação
+  console.log('✏️ Iniciando updateSubject...');
+  
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
   const { name, description, color, code, credits, isActive } = req.body;
+  const userId = req.user.id;
+  
+  console.log('✏️ Atualizando disciplina:', { id, userId });
   
   try {
     const subject = await Subject.findOne({
       where: {
         id,
-        userId: req.user.id
+        userId
       }
     });
     
     if (!subject) {
+      console.log('❌ Disciplina não encontrada para atualização');
       return next(new AppError('Disciplina não encontrada', 404));
     }
 
-    // Check if name already exists for another subject of this user
-    if (name && name.trim()) {
-      const existingSubject = await Subject.findOne({
+    // Verificar nome único (se alterado)
+    if (name && name.trim() !== subject.name) {
+      const existingByName = await Subject.findOne({
         where: { 
           name: name.trim(),
-          userId: req.user.id,
+          userId,
           id: { [Op.ne]: id }
         }
       });
 
-      if (existingSubject) {
+      if (existingByName) {
         return next(new AppError('Já existe uma disciplina com este nome', 400));
       }
     }
 
-    // Check if code already exists for another subject of this user
-    if (code && code.trim()) {
-      const existingCode = await Subject.findOne({
+    // Verificar código único (se alterado)
+    if (code && code.trim() !== subject.code) {
+      const existingByCode = await Subject.findOne({
         where: { 
           code: code.trim(),
-          userId: req.user.id,
+          userId,
           id: { [Op.ne]: id }
         }
       });
 
-      if (existingCode) {
+      if (existingByCode) {
         return next(new AppError('Já existe uma disciplina com este código', 400));
       }
     }
 
-    await subject.update({
-      ...(name && { name: name.trim() }),
-      ...(description !== undefined && { description: description?.trim() || '' }),
-      ...(color && { color }),
-      ...(code !== undefined && { code: code?.trim() || null }),
-      ...(credits !== undefined && { credits: parseInt(credits) || 1 }),
-      ...(isActive !== undefined && { isActive: Boolean(isActive) })
-    });
+    // Preparar dados para atualização
+    const updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description ? description.trim() : '';
+    if (color !== undefined) updateData.color = color;
+    if (code !== undefined) updateData.code = code ? code.trim() : null;
+    if (credits !== undefined) updateData.credits = parseInt(credits) || 1;
+    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+
+    console.log('✏️ Dados para atualização:', updateData);
+
+    await subject.update(updateData);
+
+    console.log('✅ Disciplina atualizada com sucesso');
+
+    // Buscar contagens atualizadas
+    const [questionsCount, examsCount] = await Promise.all([
+      Question.count({ 
+        where: { 
+          subjectId: id, 
+          isActive: true 
+        } 
+      }),
+      Exam.count({ 
+        where: { 
+          subjectId: id 
+        } 
+      })
+    ]);
+
+    const updatedSubjectWithCounts = {
+      ...subject.toJSON(),
+      questionsCount,
+      examsCount
+    };
 
     res.json({
       success: true,
       message: 'Disciplina atualizada com sucesso',
-      data: { subject }
+      data: { subject: updatedSubjectWithCounts }
     });
 
   } catch (error) {
@@ -373,40 +481,55 @@ const updateSubject = catchAsync(async (req, res, next) => {
       return next(new AppError(`Erro de validação: ${validationErrors}`, 400));
     }
     
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return next(new AppError('Já existe uma disciplina com estes dados', 400));
+    }
+
     return next(new AppError('Erro interno do servidor ao atualizar disciplina', 500));
   }
 });
 
 // Delete subject
 const deleteSubject = catchAsync(async (req, res, next) => {
-  // Verificar autenticação
+  console.log('🗑️ Iniciando deleteSubject...');
+  
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
+  const userId = req.user.id;
+  
+  console.log('🗑️ Excluindo disciplina ID:', id, 'para usuário:', userId);
   
   try {
     const subject = await Subject.findOne({
       where: {
         id,
-        userId: req.user.id
+        userId
       }
     });
     
     if (!subject) {
+      console.log('❌ Disciplina não encontrada para exclusão');
       return next(new AppError('Disciplina não encontrada', 404));
     }
 
-    // Check if subject has questions or exams
-    const [questionsCount, examsCount] = await Promise.all([
-      Question.count({ where: { subjectId: id } }).catch(() => 0),
-      Exam.count({ where: { subjectId: id } }).catch(() => 0)
-    ]);
+    // Verificar se há questões associadas
+    const questionsCount = await Question.count({
+      where: { subjectId: id }
+    });
 
-    if (questionsCount > 0 || examsCount > 0) {
-      return next(new AppError('Não é possível excluir uma disciplina que possui questões ou provas', 400));
+    if (questionsCount > 0) {
+      console.log('❌ Não é possível excluir disciplina com questões');
+      return next(new AppError(
+        `Não é possível excluir esta disciplina pois ela possui ${questionsCount} questão${questionsCount !== 1 ? 'ões' : ''} cadastrada${questionsCount !== 1 ? 's' : ''}. Remova todas as questões primeiro.`,
+        400
+      ));
     }
 
+    console.log('🗑️ Excluindo disciplina:', subject.name);
     await subject.destroy();
+
+    console.log('✅ Disciplina excluída com sucesso');
 
     res.json({
       success: true,
@@ -415,11 +538,10 @@ const deleteSubject = catchAsync(async (req, res, next) => {
 
   } catch (error) {
     console.error('❌ Erro ao excluir disciplina:', error);
-    return next(new AppError('Erro interno do servidor ao excluir disciplina', 500));
+    return next(new AppError('Erro ao excluir disciplina', 500));
   }
 });
 
-// Export all functions
 module.exports = {
   getSubjects,
   getSubjectsStats,
