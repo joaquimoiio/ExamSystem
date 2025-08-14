@@ -39,7 +39,7 @@ const SubjectForm = ({
       color: SUBJECT_COLORS[0].value,
       code: '',
       credits: 1,
-      active: true
+      isActive: true // Corrigido para isActive em vez de active
     }
   })
 
@@ -53,13 +53,24 @@ const SubjectForm = ({
         color: subject.color || SUBJECT_COLORS[0].value,
         code: subject.code || '',
         credits: subject.credits || 1,
-        active: subject.active !== undefined ? subject.active : true
+        isActive: subject.isActive !== undefined ? subject.isActive : true
       })
     }
   }, [subject, reset])
 
   const onFormSubmit = (data) => {
-    onSubmit(data)
+    // Garantir que todos os campos obrigatórios estão presentes
+    const formattedData = {
+      name: data.name.trim(),
+      description: data.description?.trim() || '',
+      color: data.color,
+      code: data.code?.trim() || '',
+      credits: parseInt(data.credits) || 1,
+      isActive: Boolean(data.isActive)
+    }
+    
+    console.log('Dados enviados:', formattedData) // Debug
+    onSubmit(formattedData)
   }
 
   const generateCode = () => {
@@ -131,8 +142,8 @@ const SubjectForm = ({
               label="Código da Disciplina"
               {...register('code', {
                 maxLength: {
-                  value: 10,
-                  message: 'Código deve ter no máximo 10 caracteres'
+                  value: 20,
+                  message: 'Código deve ter no máximo 20 caracteres'
                 }
               })}
               error={errors.code?.message}
@@ -179,7 +190,7 @@ const SubjectForm = ({
           {/* Cor */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cor da Disciplina
+              Cor da Disciplina *
             </label>
             <div className="grid grid-cols-5 gap-2">
               {SUBJECT_COLORS.map((color) => (
@@ -202,6 +213,9 @@ const SubjectForm = ({
             <p className="mt-1 text-xs text-gray-500">
               Cor para identificação visual da disciplina
             </p>
+            {errors.color && (
+              <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
+            )}
           </div>
 
           {/* Créditos */}
@@ -217,13 +231,13 @@ const SubjectForm = ({
                   message: 'Deve ter pelo menos 1 crédito'
                 },
                 max: {
-                  value: 10,
-                  message: 'Máximo de 10 créditos'
+                  value: 20,
+                  message: 'Máximo de 20 créditos'
                 }
               })}
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+              {Array.from({length: 20}, (_, i) => i + 1).map(num => (
                 <option key={num} value={num}>{num}</option>
               ))}
             </select>
@@ -237,7 +251,7 @@ const SubjectForm = ({
         <div className="flex items-center">
           <input
             type="checkbox"
-            {...register('active')}
+            {...register('isActive')}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <label className="ml-2 block text-sm text-gray-900">

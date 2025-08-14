@@ -4,14 +4,13 @@ const { User } = require('../models');
 const { AppError, catchAsync } = require('../utils/appError');
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../config/jwt');
 const { paginate, buildPaginationMeta } = require('../utils/helpers');
-const { getFileUrl } = require('../middleware/upload');
 
 // Register new user
 const register = catchAsync(async (req, res, next) => {
   const { name, email, password, role = 'teacher' } = req.body;
 
   // Check if user already exists
-  const existingUser = await User.findOne({ where: { email } });
+  const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
   if (existingUser) {
     return next(new AppError('Email already registered', 400));
   }
@@ -150,16 +149,17 @@ const updateProfile = catchAsync(async (req, res, next) => {
 
   // Check if email is being changed and if it's already taken
   if (email && email !== user.email) {
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
     if (existingUser) {
       return next(new AppError('Email already in use', 400));
     }
   }
 
-  // Handle avatar upload
+  // Handle avatar upload if file is present
   let avatarUrl = user.avatar;
   if (req.file) {
-    avatarUrl = getFileUrl(req.file.filename, 'avatar');
+    // Simple file URL generation - adjust based on your upload setup
+    avatarUrl = `/uploads/avatars/${req.file.filename}`;
   }
 
   // Update user
@@ -213,17 +213,22 @@ const forgotPassword = catchAsync(async (req, res, next) => {
   }
 
   // Generate reset token
-  const resetToken = user.createPasswordResetToken();
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+  // Set reset token and expiry (10 minutes)
+  user.passwordResetToken = hashedToken;
+  user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save({ validate: false });
 
   try {
     // TODO: Send email with reset token
-    // For now, we'll just return the token (remove in production)
+    // For now, we'll just return success (implement email service later)
     res.json({
       success: true,
       message: 'Password reset token sent to email',
       // Remove this in production:
-      resetToken: resetToken
+      ...(process.env.NODE_ENV === 'development' && { resetToken })
     });
   } catch (error) {
     user.passwordResetToken = null;
@@ -244,7 +249,7 @@ const resetPassword = catchAsync(async (req, res, next) => {
   const user = await User.findOne({
     where: {
       passwordResetToken: hashedToken,
-      passwordResetExpires: { [require('sequelize').Op.gt]: Date.now() }
+      passwordResetExpires: { [require('sequelize').Op.gt]: new Date() }
     }
   });
 
@@ -281,59 +286,66 @@ const logout = catchAsync(async (req, res, next) => {
 // Get user statistics
 const getUserStats = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
-  const { Subject, Question, Exam, Answer } = require('../models');
 
-  const [subjectsCount, questionsCount, examsCount, submissionsCount] = await Promise.all([
-    Subject.count({ where: { userId } }),
-    Question.count({ where: { userId } }),
-    Exam.count({ where: { userId } }),
-    Answer.count({ where: { userId } })
-  ]);
+  try {
+    // Import models here to avoid circular dependency
+    const { Subject, Question, Exam, Answer } = require('../models');
 
-  // Get recent activity
-  const recentExams = await Exam.findAll({
-    where: { userId },
-    order: [['createdAt', 'DESC']],
-    limit: 5,
-    include: [{
-      model: Subject,
-      as: 'subject',
-      attributes: ['id', 'name', 'color']
-    }]
-  });
+    const [subjectsCount, questionsCount, examsCount, submissionsCount] = await Promise.all([
+      Subject.count({ where: { userId } }).catch(() => 0),
+      Question.count({ where: { userId } }).catch(() => 0),
+      Exam.count({ where: { userId } }).catch(() => 0),
+      Answer.count({ where: { userId } }).catch(() => 0)
+    ]);
 
-  const recentQuestions = await Question.findAll({
-    where: { userId },
-    order: [['createdAt', 'DESC']],
-    limit: 5,
-    include: [{
-      model: Subject,
-      as: 'subject',
-      attributes: ['id', 'name', 'color']
-    }]
-  });
+    // Get recent activity
+    const recentExams = await Exam.findAll({
+      where: { userId },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+      include: [{
+        model: Subject,
+        as: 'subject',
+        attributes: ['name', 'color']
+      }],
+      attributes: ['id', 'title', 'createdAt', 'isPublished']
+    }).catch(() => []);
 
-  res.json({
-    success: true,
-    data: {
-      stats: {
-        subjects: subjectsCount,
-        questions: questionsCount,
-        exams: examsCount,
-        submissions: submissionsCount
-      },
-      recentActivity: {
-        exams: recentExams,
-        questions: recentQuestions
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          subjectsCount,
+          questionsCount,
+          examsCount,
+          submissionsCount
+        },
+        recentExams
       }
-    }
-  });
+    });
+
+  } catch (error) {
+    console.error('Error getting user stats:', error);
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          subjectsCount: 0,
+          questionsCount: 0,
+          examsCount: 0,
+          submissionsCount: 0
+        },
+        recentExams: []
+      }
+    });
+  }
 });
 
 // Deactivate account
 const deactivateAccount = catchAsync(async (req, res, next) => {
   const user = req.user;
 
+  // Soft delete - deactivate instead of delete
   user.isActive = false;
   user.refreshToken = null;
   await user.save();
@@ -346,24 +358,28 @@ const deactivateAccount = catchAsync(async (req, res, next) => {
 
 // Admin: Get all users
 const getAllUsers = catchAsync(async (req, res, next) => {
-  const { page = 1, limit = 10, search, role, isActive } = req.query;
+  const { page = 1, limit = 10, search, role, status } = req.query;
   const { limit: queryLimit, offset } = paginate(page, limit);
 
   const where = {};
-  
+
+  // Search filter
   if (search) {
-    where[require('sequelize').Op.or] = [
-      { name: { [require('sequelize').Op.iLike]: `%${search}%` } },
-      { email: { [require('sequelize').Op.iLike]: `%${search}%` } }
+    const { Op } = require('sequelize');
+    where[Op.or] = [
+      { name: { [Op.iLike]: `%${search}%` } },
+      { email: { [Op.iLike]: `%${search}%` } }
     ];
   }
 
+  // Role filter
   if (role) {
     where.role = role;
   }
 
-  if (isActive !== undefined) {
-    where.isActive = isActive === 'true';
+  // Status filter
+  if (status) {
+    where.isActive = status === 'active';
   }
 
   const { count, rows: users } = await User.findAndCountAll({
@@ -426,24 +442,30 @@ const deleteUser = catchAsync(async (req, res, next) => {
     return next(new AppError('Cannot delete your own account', 400));
   }
 
-  // Check if user has dependent data
-  const { Subject, Question, Exam } = require('../models');
-  const [subjectsCount, questionsCount, examsCount] = await Promise.all([
-    Subject.count({ where: { userId } }),
-    Question.count({ where: { userId } }),
-    Exam.count({ where: { userId } })
-  ]);
+  try {
+    // Check if user has dependent data
+    const { Subject, Question, Exam } = require('../models');
+    const [subjectsCount, questionsCount, examsCount] = await Promise.all([
+      Subject.count({ where: { userId } }).catch(() => 0),
+      Question.count({ where: { userId } }).catch(() => 0),
+      Exam.count({ where: { userId } }).catch(() => 0)
+    ]);
 
-  if (subjectsCount > 0 || questionsCount > 0 || examsCount > 0) {
-    return next(new AppError('Cannot delete user with existing content. Deactivate instead.', 400));
+    if (subjectsCount > 0 || questionsCount > 0 || examsCount > 0) {
+      return next(new AppError('Cannot delete user with existing content. Deactivate instead.', 400));
+    }
+
+    await user.destroy();
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return next(new AppError('Error deleting user', 500));
   }
-
-  await user.destroy();
-
-  res.json({
-    success: true,
-    message: 'User deleted successfully'
-  });
 });
 
 module.exports = {

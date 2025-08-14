@@ -18,7 +18,7 @@ const SubjectsPage = () => {
   const { useApiQuery, useApiMutation } = useApi()
 
   // Fetch subjects
-  const { data: subjectsData, isLoading, refetch } = useApiQuery(
+  const { data: subjectsData, isLoading, refetch, error } = useApiQuery(
     ['subjects', currentPage, searchTerm],
     () => apiClient.get('/subjects', {
       params: {
@@ -26,25 +26,43 @@ const SubjectsPage = () => {
         limit: 10,
         search: searchTerm
       }
-    })
+    }),
+    {
+      retry: 2,
+      retryDelay: 1000,
+      onError: (error) => {
+        console.error('Erro ao carregar disciplinas:', error)
+      }
+    }
   )
 
   // Create subject mutation
   const createSubjectMutation = useApiMutation(
-    (subjectData) => apiClient.post('/subjects', subjectData),
+    (subjectData) => {
+      console.log('Criando disciplina com dados:', subjectData)
+      return apiClient.post('/subjects', subjectData)
+    },
     {
       successMessage: 'Disciplina criada com sucesso!',
       invalidateQueries: [['subjects']],
       onSuccess: () => {
         setShowForm(false)
+        setSelectedSubject(null)
         refetch()
+      },
+      onError: (error) => {
+        console.error('Erro ao criar disciplina:', error)
+        // A mensagem de erro será mostrada automaticamente pelo useApiMutation
       }
     }
   )
 
   // Update subject mutation
   const updateSubjectMutation = useApiMutation(
-    ({ id, ...data }) => apiClient.put(`/subjects/${id}`, data),
+    ({ id, ...data }) => {
+      console.log('Atualizando disciplina:', id, 'com dados:', data)
+      return apiClient.put(`/subjects/${id}`, data)
+    },
     {
       successMessage: 'Disciplina atualizada com sucesso!',
       invalidateQueries: [['subjects']],
@@ -52,6 +70,9 @@ const SubjectsPage = () => {
         setShowForm(false)
         setSelectedSubject(null)
         refetch()
+      },
+      onError: (error) => {
+        console.error('Erro ao atualizar disciplina:', error)
       }
     }
   )
@@ -66,6 +87,9 @@ const SubjectsPage = () => {
         setShowModal(false)
         setSelectedSubject(null)
         refetch()
+      },
+      onError: (error) => {
+        console.error('Erro ao excluir disciplina:', error)
       }
     }
   )
@@ -76,7 +100,14 @@ const SubjectsPage = () => {
     {
       successMessage: 'Disciplina duplicada com sucesso!',
       invalidateQueries: [['subjects']],
-      onSuccess: () => refetch()
+      onSuccess: () => {
+        setShowModal(false)
+        setSelectedSubject(null)
+        refetch()
+      },
+      onError: (error) => {
+        console.error('Erro ao duplicar disciplina:', error)
+      }
     }
   )
 
@@ -84,11 +115,35 @@ const SubjectsPage = () => {
   const pagination = subjectsData?.data?.pagination || {}
 
   const handleCreateSubject = (data) => {
-    createSubjectMutation.mutate(data)
+    // Garantir que todos os campos obrigatórios estão presentes
+    const formattedData = {
+      name: data.name,
+      description: data.description || '',
+      color: data.color,
+      code: data.code || '',
+      credits: data.credits || 1,
+      isActive: data.isActive !== undefined ? data.isActive : true
+    }
+    
+    console.log('Enviando dados para criação:', formattedData)
+    createSubjectMutation.mutate(formattedData)
   }
 
   const handleUpdateSubject = (data) => {
-    updateSubjectMutation.mutate({ id: selectedSubject.id, ...data })
+    if (!selectedSubject) return
+    
+    const formattedData = {
+      id: selectedSubject.id,
+      name: data.name,
+      description: data.description || '',
+      color: data.color,
+      code: data.code || '',
+      credits: data.credits || 1,
+      isActive: data.isActive !== undefined ? data.isActive : true
+    }
+    
+    console.log('Enviando dados para atualização:', formattedData)
+    updateSubjectMutation.mutate(formattedData)
   }
 
   const handleDeleteSubject = () => {
@@ -120,8 +175,36 @@ const SubjectsPage = () => {
     setCurrentPage(page)
   }
 
+  // Show loading state
   if (isLoading && subjects.length === 0) {
     return <Loading message="Carregando disciplinas..." />
+  }
+
+  // Show error state
+  if (error && !isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Erro ao carregar disciplinas</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Houve um problema ao conectar com o servidor.
+          </p>
+          <div className="mt-6">
+            <Button
+              variant="primary"
+              onClick={() => refetch()}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -182,7 +265,7 @@ const SubjectsPage = () => {
       />
 
       {/* Empty State */}
-      {subjects.length === 0 && !isLoading && (
+      {subjects.length === 0 && !isLoading && !error && (
         <div className="text-center bg-white shadow rounded-lg p-12">
           <svg
             className="mx-auto h-12 w-12 text-gray-400"

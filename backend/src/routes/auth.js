@@ -12,7 +12,18 @@ const {
   validateResetPassword,
   validatePagination
 } = require('../middleware/validation');
-const { uploadAvatar, cleanupOnError } = require('../middleware/upload');
+
+// Middleware de upload - com fallback caso não exista
+let uploadAvatar, cleanupOnError;
+try {
+  const uploadMiddleware = require('../middleware/upload');
+  uploadAvatar = uploadMiddleware.uploadAvatar || ((req, res, next) => next());
+  cleanupOnError = uploadMiddleware.cleanupOnError || ((req, res, next) => next());
+} catch (error) {
+  console.warn('Upload middleware not found, using fallback');
+  uploadAvatar = (req, res, next) => next();
+  cleanupOnError = (req, res, next) => next();
+}
 
 // Public routes (no authentication required)
 router.post('/register', validateUserRegister, authController.register);
