@@ -1,328 +1,98 @@
-// frontend/src/services/api/subjectService.js
-import apiClient from './apiClient';
+// frontend/src/services/api.js
+import axios from 'axios';
 
-class SubjectService {
-  constructor() {
-    this.baseUrl = '/subjects';
-  }
+// Configuração base da API
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  // Função auxiliar para tratar erros
-  handleError(error) {
-    console.error('❌ Erro na API de disciplinas:', error);
+// Criar instância do axios
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor para adicionar token de autenticação
+apiClient.interceptors.request.use(
+  (config) => {
+    // Adicionar token se existir
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     
-    if (error.response) {
-      // Erro da resposta do servidor
-      const message = error.response.data?.message || 'Erro no servidor';
-      const status = error.response.status;
-      
-      console.error(`❌ Status ${status}: ${message}`);
-      throw new Error(message);
-    } else if (error.request) {
-      // Erro de rede
-      console.error('❌ Erro de rede:', error.request);
-      throw new Error('Erro de conexão. Verifique sua internet.');
-    } else {
-      // Erro de configuração ou outro
-      console.error('❌ Erro desconhecido:', error.message);
-      throw new Error(error.message || 'Erro desconhecido');
-    }
-  }
-
-  // Buscar todas as disciplinas com paginação e filtros
-  async getAll(params = {}) {
-    try {
-      console.log('🔍 SubjectService.getAll - Parâmetros:', params);
-      
-      const response = await apiClient.get(this.baseUrl, { params });
-      
-      console.log('✅ SubjectService.getAll - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  // Buscar disciplina por ID
-  async getById(id) {
-    try {
-      console.log('🔍 SubjectService.getById - ID:', id);
-      
-      if (!id) {
-        throw new Error('ID da disciplina é obrigatório');
-      }
-      
-      const response = await apiClient.get(`${this.baseUrl}/${id}`);
-      
-      console.log('✅ SubjectService.getById - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  // Criar nova disciplina
-  async create(subjectData) {
-    try {
-      console.log('🆕 SubjectService.create - Dados:', subjectData);
-      
-      // Validações básicas
-      if (!subjectData.name || !subjectData.name.trim()) {
-        throw new Error('Nome da disciplina é obrigatório');
-      }
-      
-      if (!subjectData.color) {
-        throw new Error('Cor da disciplina é obrigatória');
-      }
-      
-      // Preparar dados
-      const dataToSend = {
-        name: subjectData.name.trim(),
-        description: subjectData.description ? subjectData.description.trim() : '',
-        color: subjectData.color,
-        code: subjectData.code ? subjectData.code.trim() : null,
-        credits: parseInt(subjectData.credits) || 1,
-        isActive: subjectData.isActive !== undefined ? Boolean(subjectData.isActive) : true
-      };
-
-      console.log('🆕 SubjectService.create - Dados preparados:', dataToSend);
-      
-      const response = await apiClient.post(this.baseUrl, dataToSend);
-      
-      console.log('✅ SubjectService.create - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  // Atualizar disciplina
-  async update(id, subjectData) {
-    try {
-      console.log('✏️ SubjectService.update - ID:', id, 'Dados:', subjectData);
-      
-      if (!id) {
-        throw new Error('ID da disciplina é obrigatório');
-      }
-      
-      // Preparar dados (remover campos undefined/null)
-      const dataToSend = {};
-      
-      if (subjectData.name !== undefined) {
-        dataToSend.name = subjectData.name.trim();
-      }
-      
-      if (subjectData.description !== undefined) {
-        dataToSend.description = subjectData.description ? subjectData.description.trim() : '';
-      }
-      
-      if (subjectData.color !== undefined) {
-        dataToSend.color = subjectData.color;
-      }
-      
-      if (subjectData.code !== undefined) {
-        dataToSend.code = subjectData.code ? subjectData.code.trim() : null;
-      }
-      
-      if (subjectData.credits !== undefined) {
-        dataToSend.credits = parseInt(subjectData.credits) || 1;
-      }
-      
-      if (subjectData.isActive !== undefined) {
-        dataToSend.isActive = Boolean(subjectData.isActive);
-      }
-
-      console.log('✏️ SubjectService.update - Dados preparados:', dataToSend);
-      
-      const response = await apiClient.put(`${this.baseUrl}/${id}`, dataToSend);
-      
-      console.log('✅ SubjectService.update - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  // Excluir disciplina
-  async delete(id) {
-    try {
-      console.log('🗑️ SubjectService.delete - ID:', id);
-      
-      if (!id) {
-        throw new Error('ID da disciplina é obrigatório');
-      }
-      
-      const response = await apiClient.delete(`${this.baseUrl}/${id}`);
-      
-      console.log('✅ SubjectService.delete - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  // Buscar estatísticas das disciplinas
-  async getStats() {
-    try {
-      console.log('📊 SubjectService.getStats');
-      
-      const response = await apiClient.get(`${this.baseUrl}/stats`);
-      
-      console.log('✅ SubjectService.getStats - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  // Buscar disciplinas ativas (para seleção em formulários)
-  async getActive() {
-    try {
-      console.log('🔍 SubjectService.getActive');
-      
-      const response = await apiClient.get(this.baseUrl, {
-        params: {
-          isActive: true,
-          limit: 100 // Buscar todas as ativas
-        }
+    // Log das requisições em desenvolvimento
+    if (import.meta.env.DEV) {
+      console.log(`🌐 ${config.method?.toUpperCase()} ${config.url}`, {
+        params: config.params,
+        data: config.data
       });
-      
-      console.log('✅ SubjectService.getActive - Resposta:', response.data);
-      
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
     }
+    
+    return config;
+  },
+  (error) => {
+    console.error('❌ Erro na configuração da requisição:', error);
+    return Promise.reject(error);
   }
+);
 
-  // Validar se o nome da disciplina já existe
-  async validateName(name, excludeId = null) {
-    try {
-      console.log('🔍 SubjectService.validateName - Nome:', name);
-      
-      if (!name || !name.trim()) {
-        return { isValid: false, message: 'Nome é obrigatório' };
-      }
-      
-      const response = await this.getAll({
-        search: name.trim(),
-        limit: 100
+// Interceptor para tratamento de respostas
+apiClient.interceptors.response.use(
+  (response) => {
+    // Log das respostas em desenvolvimento
+    if (import.meta.env.DEV) {
+      console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+        status: response.status,
+        data: response.data
       });
-      
-      if (response.success && response.data.subjects) {
-        const existingSubject = response.data.subjects.find(subject => 
-          subject.name.toLowerCase() === name.trim().toLowerCase() &&
-          subject.id !== excludeId
-        );
-        
-        if (existingSubject) {
-          return { 
-            isValid: false, 
-            message: 'Já existe uma disciplina com este nome' 
-          };
-        }
-      }
-      
-      return { isValid: true };
-    } catch (error) {
-      console.error('❌ Erro ao validar nome:', error);
-      return { isValid: true }; // Em caso de erro, permitir validação
-    }
-  }
-
-  // Validar se o código da disciplina já existe
-  async validateCode(code, excludeId = null) {
-    try {
-      console.log('🔍 SubjectService.validateCode - Código:', code);
-      
-      if (!code || !code.trim()) {
-        return { isValid: true }; // Código é opcional
-      }
-      
-      const response = await this.getAll({
-        search: code.trim(),
-        limit: 100
-      });
-      
-      if (response.success && response.data.subjects) {
-        const existingSubject = response.data.subjects.find(subject => 
-          subject.code && 
-          subject.code.toLowerCase() === code.trim().toLowerCase() &&
-          subject.id !== excludeId
-        );
-        
-        if (existingSubject) {
-          return { 
-            isValid: false, 
-            message: 'Já existe uma disciplina com este código' 
-          };
-        }
-      }
-      
-      return { isValid: true };
-    } catch (error) {
-      console.error('❌ Erro ao validar código:', error);
-      return { isValid: true }; // Em caso de erro, permitir validação
-    }
-  }
-
-  // Gerar código automático para disciplina
-  generateCode(name) {
-    if (!name || !name.trim()) {
-      return '';
     }
     
-    const words = name.trim().toUpperCase().split(' ');
-    let code = '';
+    return response;
+  },
+  (error) => {
+    // Log de erros
+    console.error('❌ Erro na resposta da API:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message
+    });
     
-    if (words.length === 1) {
-      // Uma palavra: primeiras 3 letras + 101
-      code = words[0].substring(0, 3) + '101';
-    } else if (words.length === 2) {
-      // Duas palavras: primeira letra de cada + 01
-      code = words[0].charAt(0) + words[1].charAt(0) + '01';
-    } else {
-      // Três ou mais palavras: primeira letra das 3 primeiras
-      code = words[0].charAt(0) + words[1].charAt(0) + words[2].charAt(0);
-    }
-    
-    // Adicionar número aleatório se muito curto
-    if (code.length < 4) {
-      code += Math.floor(Math.random() * 90) + 10; // 10-99
-    }
-    
-    return code;
-  }
-
-  // Buscar disciplinas para uso em dropdowns/selects
-  async getForSelect(activeOnly = true) {
-    try {
-      const params = activeOnly ? { isActive: true, limit: 100 } : { limit: 100 };
-      const response = await this.getAll(params);
+    // Tratamento específico de erros
+    if (error.response?.status === 401) {
+      // Token expirado ou inválido
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       
-      if (response.success && response.data.subjects) {
-        return response.data.subjects.map(subject => ({
-          value: subject.id,
-          label: subject.name,
-          code: subject.code,
-          color: subject.color
-        }));
+      // Redirecionar para login se não estiver na página de login
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
       }
-      
-      return [];
-    } catch (error) {
-      console.error('❌ Erro ao buscar disciplinas para select:', error);
-      return [];
     }
+    
+    return Promise.reject(error);
   }
-}
+);
 
-// Exportar instância única
-const subjectService = new SubjectService();
-export { subjectService };
-export default subjectService;
+// Métodos auxiliares para diferentes tipos de requisição
+apiClient.upload = (url, formData, config = {}) => {
+  return apiClient.post(url, formData, {
+    ...config,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      ...config.headers
+    }
+  });
+};
+
+apiClient.download = (url, config = {}) => {
+  return apiClient.get(url, {
+    ...config,
+    responseType: 'blob'
+  });
+};
+
+export { apiClient };
+export default apiClient;

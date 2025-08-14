@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { X, Shuffle, Palette } from 'lucide-react';
 import { Button, Input, Modal } from '../Common';
-import { subjectService } from '../../services/api/subjectService';
+// CORREÇÃO: Mudar para o import correto baseado na estrutura existente
+import { subjectService } from '../../services/subject';
 
 // Cores predefinidas para disciplinas
 const PREDEFINED_COLORS = [
@@ -65,21 +66,17 @@ const SubjectForm = ({
     setValue('color', selectedColor);
   }, [selectedColor, setValue]);
 
-  // Validação em tempo real do nome
+  // Validação em tempo real do nome (simplificada, já que o service atual não tem validateName)
   useEffect(() => {
     const validateName = async () => {
       if (watchedName && watchedName.trim() && watchedName.trim() !== subject?.name) {
         setValidatingName(true);
         try {
-          const result = await subjectService.validateName(
-            watchedName.trim(), 
-            isEditing ? subject.id : null
-          );
-          
-          if (!result.isValid) {
-            setError('name', { 
-              type: 'manual', 
-              message: result.message 
+          // Como o service atual não tem validateName, fazemos validação básica
+          if (watchedName.trim().length < 2) {
+            setError('name', {
+              type: 'minLength',
+              message: 'Nome deve ter pelo menos 2 caracteres'
             });
           } else {
             clearErrors('name');
@@ -94,23 +91,19 @@ const SubjectForm = ({
 
     const timeoutId = setTimeout(validateName, 500);
     return () => clearTimeout(timeoutId);
-  }, [watchedName, subject?.name, subject?.id, isEditing, setError, clearErrors]);
+  }, [watchedName, subject?.name, setError, clearErrors]);
 
-  // Validação em tempo real do código
+  // Validação em tempo real do código (simplificada)
   useEffect(() => {
     const validateCode = async () => {
       if (watchedCode && watchedCode.trim() && watchedCode.trim() !== subject?.code) {
         setValidatingCode(true);
         try {
-          const result = await subjectService.validateCode(
-            watchedCode.trim(), 
-            isEditing ? subject.id : null
-          );
-          
-          if (!result.isValid) {
-            setError('code', { 
-              type: 'manual', 
-              message: result.message 
+          // Validação básica de código
+          if (watchedCode.trim().length < 2) {
+            setError('code', {
+              type: 'minLength',
+              message: 'Código deve ter pelo menos 2 caracteres'
             });
           } else {
             clearErrors('code');
@@ -125,262 +118,238 @@ const SubjectForm = ({
 
     const timeoutId = setTimeout(validateCode, 500);
     return () => clearTimeout(timeoutId);
-  }, [watchedCode, subject?.code, subject?.id, isEditing, setError, clearErrors]);
+  }, [watchedCode, subject?.code, setError, clearErrors]);
+
+  // Função para gerar cor aleatória
+  const handleRandomColor = () => {
+    const randomIndex = Math.floor(Math.random() * PREDEFINED_COLORS.length);
+    setSelectedColor(PREDEFINED_COLORS[randomIndex].value);
+  };
 
   // Função para gerar código automático
-  const generateCode = () => {
+  const handleGenerateCode = () => {
     if (watchedName && watchedName.trim()) {
-      const generatedCode = subjectService.generateCode(watchedName.trim());
-      setValue('code', generatedCode, { shouldValidate: true });
+      const name = watchedName.trim();
+      const words = name.toUpperCase().split(' ');
+      let code = '';
+      
+      if (words.length === 1) {
+        code = words[0].substring(0, 3) + '101';
+      } else if (words.length === 2) {
+        code = words[0].charAt(0) + words[1].charAt(0) + '01';
+      } else {
+        code = words[0].charAt(0) + words[1].charAt(0) + words[2].charAt(0);
+      }
+      
+      setValue('code', code);
     }
   };
 
-  // Função para selecionar cor aleatória
-  const selectRandomColor = () => {
-    const randomIndex = Math.floor(Math.random() * PREDEFINED_COLORS.length);
-    const randomColor = PREDEFINED_COLORS[randomIndex];
-    setSelectedColor(randomColor.value);
-  };
-
-  // Handler do submit
-  const onFormSubmit = async (data) => {
+  // Submissão do formulário
+  const handleFormSubmit = async (data) => {
     try {
-      console.log('📝 Enviando formulário:', { isEditing, data });
+      console.log('Dados do formulário:', data);
       
-      // Preparar dados
       const formData = {
-        name: data.name.trim(),
-        description: data.description ? data.description.trim() : '',
+        ...data,
         color: selectedColor,
-        code: data.code ? data.code.trim() : null,
-        credits: parseInt(data.credits) || 1,
-        isActive: Boolean(data.isActive)
+        credits: parseInt(data.credits) || 1
       };
 
       if (isEditing) {
-        await onSubmit(subject.id, formData);
+        // Para edição, use updateSubject
+        await subjectService.updateSubject(subject.id, formData);
       } else {
-        await onSubmit(formData);
+        // Para criação, use createSubject
+        await subjectService.createSubject(formData);
+      }
+
+      // Chamar callback de sucesso
+      if (onSubmit) {
+        onSubmit(formData);
       }
     } catch (error) {
-      console.error('❌ Erro no submit:', error);
+      console.error('Erro ao salvar disciplina:', error);
+      // Aqui você pode exibir uma mensagem de erro para o usuário
     }
   };
 
   return (
-    <Modal
-      isOpen={true}
-      onClose={onCancel}
-      title={isEditing ? 'Editar Disciplina' : 'Nova Disciplina'}
-      size="lg"
-      footer={
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="secondary"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            form="subject-form"
-            variant="primary"
-            loading={loading}
-            disabled={!isValid || !isDirty || validatingName || validatingCode}
-          >
-            {isEditing ? 'Atualizar' : 'Criar'}
-          </Button>
-        </div>
-      }
-    >
-      <form id="subject-form" onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
-        {/* Nome da Disciplina */}
-        <div>
-          <Input
-            label="Nome da Disciplina"
-            {...register('name', {
-              required: 'Nome é obrigatório',
-              minLength: {
-                value: 2,
-                message: 'Nome deve ter pelo menos 2 caracteres'
-              },
-              maxLength: {
-                value: 100,
-                message: 'Nome deve ter no máximo 100 caracteres'
-              }
-            })}
-            error={errors.name?.message}
-            placeholder="Ex: Matemática, História, Programação..."
-            required
-            loading={validatingName}
-          />
-        </div>
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {isEditing ? 'Editar Disciplina' : 'Nova Disciplina'}
+        </h2>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X size={24} />
+        </button>
+      </div>
 
-        {/* Código da Disciplina */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
+      {/* Nome da disciplina */}
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          Nome da disciplina *
+        </label>
+        <Input
+          id="name"
+          {...register('name', {
+            required: 'Nome é obrigatório',
+            minLength: {
+              value: 2,
+              message: 'Nome deve ter pelo menos 2 caracteres'
+            }
+          })}
+          placeholder="Ex: Matemática, Português, História..."
+          error={errors.name?.message}
+          disabled={loading || validatingName}
+        />
+        {validatingName && (
+          <p className="text-xs text-blue-600 mt-1">Validando nome...</p>
+        )}
+      </div>
+
+      {/* Descrição */}
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          Descrição
+        </label>
+        <textarea
+          id="description"
+          {...register('description')}
+          rows={3}
+          placeholder="Descrição opcional da disciplina..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      {/* Código e Créditos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
+            Código
+          </label>
+          <div className="flex gap-2">
             <Input
-              label="Código da Disciplina"
-              {...register('code', {
-                maxLength: {
-                  value: 20,
-                  message: 'Código deve ter no máximo 20 caracteres'
-                }
-              })}
+              id="code"
+              {...register('code')}
+              placeholder="Ex: MAT101"
               error={errors.code?.message}
-              placeholder="Ex: MAT101, HIST200..."
-              helperText="Código único para identificar a disciplina (opcional)"
-              loading={validatingCode}
+              disabled={loading || validatingCode}
+              className="flex-1"
             />
-          </div>
-          <div className="flex items-end">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
-              onClick={generateCode}
+              onClick={handleGenerateCode}
               disabled={!watchedName || loading}
-              className="w-full flex items-center justify-center gap-2"
+              title="Gerar código automaticamente"
             >
-              <Shuffle className="h-4 w-4" />
-              Gerar
+              <Shuffle size={16} />
             </Button>
           </div>
-        </div>
-
-        {/* Descrição */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Descrição
-          </label>
-          <textarea
-            {...register('description', {
-              maxLength: {
-                value: 500,
-                message: 'Descrição deve ter no máximo 500 caracteres'
-              }
-            })}
-            rows={3}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm resize-none"
-            placeholder="Descrição opcional da disciplina..."
-          />
-          {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+          {validatingCode && (
+            <p className="text-xs text-blue-600 mt-1">Validando código...</p>
           )}
         </div>
 
-        {/* Grid para Cor e Créditos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Seleção de Cor */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Cor da Disciplina
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={selectRandomColor}
-                className="flex items-center gap-1 text-xs"
-              >
-                <Palette className="h-3 w-3" />
-                Aleatória
-              </Button>
-            </div>
-            <div className="grid grid-cols-6 gap-2">
-              {PREDEFINED_COLORS.map((color) => (
-                <button
-                  key={color.value}
-                  type="button"
-                  onClick={() => setSelectedColor(color.value)}
-                  className={`w-10 h-10 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${
-                    selectedColor === color.value
-                      ? 'border-gray-900 ring-2 ring-gray-300' 
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                  style={{ backgroundColor: color.value }}
-                  title={color.label}
-                />
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Cor para identificação visual da disciplina
-            </p>
-            {errors.color && (
-              <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
-            )}
-          </div>
-
-          {/* Créditos */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Créditos
-            </label>
-            <select
-              {...register('credits', {
-                required: 'Número de créditos é obrigatório',
-                min: {
-                  value: 1,
-                  message: 'Deve ter pelo menos 1 crédito'
-                },
-                max: {
-                  value: 20,
-                  message: 'Máximo de 20 créditos'
-                }
-              })}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              {Array.from({length: 20}, (_, i) => i + 1).map(num => (
-                <option key={num} value={num}>{num}</option>
-              ))}
-            </select>
-            {errors.credits && (
-              <p className="mt-1 text-sm text-red-600">{errors.credits.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Status Ativo */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            {...register('isActive')}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label className="ml-2 block text-sm text-gray-900">
-            Disciplina ativa
+        <div>
+          <label htmlFor="credits" className="block text-sm font-medium text-gray-700 mb-1">
+            Créditos
           </label>
-          <p className="ml-2 text-xs text-gray-500">
-            (disciplinas inativas não aparecem na criação de provas)
-          </p>
+          <Input
+            id="credits"
+            type="number"
+            min="1"
+            max="20"
+            {...register('credits', {
+              min: { value: 1, message: 'Mínimo 1 crédito' },
+              max: { value: 20, message: 'Máximo 20 créditos' }
+            })}
+            error={errors.credits?.message}
+            disabled={loading}
+          />
         </div>
+      </div>
 
-        {/* Preview */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Preview:</h4>
-          <div className="flex items-center space-x-3">
-            <div 
-              className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-medium text-lg"
-              style={{ backgroundColor: selectedColor }}
-            >
-              {watchedName?.charAt(0)?.toUpperCase() || 'D'}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">
-                {watchedName || 'Nome da Disciplina'}
-              </p>
-              <p className="text-sm text-gray-500">
-                {watch('code') && `${watch('code')} • `}
-                {watchedCredits} crédito{watchedCredits !== 1 ? 's' : ''}
-                {!watch('isActive') && ' • Inativa'}
-              </p>
-            </div>
-          </div>
+      {/* Cor */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          Cor da disciplina *
+        </label>
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-12 h-12 rounded-lg border-2 border-gray-300"
+            style={{ backgroundColor: selectedColor }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRandomColor}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <Shuffle size={16} />
+            Aleatória
+          </Button>
         </div>
-      </form>
-    </Modal>
+        <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-2">
+          {PREDEFINED_COLORS.map((color) => (
+            <button
+              key={color.value}
+              type="button"
+              onClick={() => setSelectedColor(color.value)}
+              className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                selectedColor === color.value
+                  ? 'border-gray-800 scale-110'
+                  : 'border-gray-300 hover:border-gray-500'
+              }`}
+              style={{ backgroundColor: color.value }}
+              title={color.label}
+              disabled={loading}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="flex items-center">
+        <input
+          id="isActive"
+          type="checkbox"
+          {...register('isActive')}
+          disabled={loading}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+          Disciplina ativa
+        </label>
+      </div>
+
+      {/* Botões */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="submit" 
+          loading={loading}
+          disabled={loading || !isValid}
+        >
+          {isEditing ? 'Atualizar' : 'Criar'} Disciplina
+        </Button>
+      </div>
+    </form>
   );
 };
 
