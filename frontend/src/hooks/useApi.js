@@ -23,13 +23,27 @@ export const useApi = () => {
       mutationFn,
       onSuccess: (data, variables) => {
         if (options.successMessage) {
-          toast.success(options.successMessage)
+          const message = typeof options.successMessage === 'function' 
+            ? options.successMessage(data, variables)
+            : options.successMessage
+          toast.success(message)
         }
+        
         if (options.invalidateQueries) {
-          options.invalidateQueries.forEach(key => {
-            queryClient.invalidateQueries({ queryKey: key })
+          options.invalidateQueries.forEach(query => {
+            if (typeof query === 'object' && query.queryKey) {
+              // Novo padrão: { queryKey: ['subjects'] }
+              queryClient.invalidateQueries(query)
+            } else if (Array.isArray(query)) {
+              // Padrão antigo: ['subjects']
+              queryClient.invalidateQueries({ queryKey: query })
+            } else {
+              // String simples
+              queryClient.invalidateQueries({ queryKey: [query] })
+            }
           })
         }
+        
         if (options.onSuccess) {
           options.onSuccess(data, variables)
         }
@@ -48,10 +62,16 @@ export const useApi = () => {
   const invalidateQueries = (keys) => {
     if (Array.isArray(keys)) {
       keys.forEach(key => {
-        queryClient.invalidateQueries({ queryKey: key })
+        if (typeof key === 'object' && key.queryKey) {
+          queryClient.invalidateQueries(key)
+        } else {
+          queryClient.invalidateQueries({ queryKey: Array.isArray(key) ? key : [key] })
+        }
       })
+    } else if (typeof keys === 'object' && keys.queryKey) {
+      queryClient.invalidateQueries(keys)
     } else {
-      queryClient.invalidateQueries({ queryKey: keys })
+      queryClient.invalidateQueries({ queryKey: Array.isArray(keys) ? keys : [keys] })
     }
   }
 
@@ -62,10 +82,16 @@ export const useApi = () => {
   const removeQueries = (keys) => {
     if (Array.isArray(keys)) {
       keys.forEach(key => {
-        queryClient.removeQueries({ queryKey: key })
+        if (typeof key === 'object' && key.queryKey) {
+          queryClient.removeQueries(key)
+        } else {
+          queryClient.removeQueries({ queryKey: Array.isArray(key) ? key : [key] })
+        }
       })
+    } else if (typeof keys === 'object' && keys.queryKey) {
+      queryClient.removeQueries(keys)
     } else {
-      queryClient.removeQueries({ queryKey: keys })
+      queryClient.removeQueries({ queryKey: Array.isArray(keys) ? keys : [keys] })
     }
   }
 
@@ -76,12 +102,29 @@ export const useApi = () => {
     })
   }
 
+  const refetchQueries = (keys) => {
+    if (Array.isArray(keys)) {
+      keys.forEach(key => {
+        if (typeof key === 'object' && key.queryKey) {
+          queryClient.refetchQueries(key)
+        } else {
+          queryClient.refetchQueries({ queryKey: Array.isArray(key) ? key : [key] })
+        }
+      })
+    } else if (typeof keys === 'object' && keys.queryKey) {
+      queryClient.refetchQueries(keys)
+    } else {
+      queryClient.refetchQueries({ queryKey: Array.isArray(keys) ? keys : [keys] })
+    }
+  }
+
   return {
     useApiQuery,
     useApiMutation,
     invalidateQueries,
     setQueryData,
     removeQueries,
-    prefetchQuery
+    prefetchQuery,
+    refetchQueries
   }
 }

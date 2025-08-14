@@ -167,6 +167,9 @@ const createSubject = catchAsync(async (req, res, next) => {
 
   const { name, description, color, code, credits, isActive } = req.body;
   
+  console.log('🔨 DEBUG: Criando disciplina para usuário:', req.user.id);
+  console.log('🔨 DEBUG: Dados recebidos:', { name, description, color, code, credits, isActive });
+  
   // Validar campos obrigatórios
   if (!name || !name.trim()) {
     return next(new AppError('Nome da disciplina é obrigatório', 400));
@@ -203,14 +206,25 @@ const createSubject = catchAsync(async (req, res, next) => {
       }
     }
 
-    const subject = await Subject.create({
+    // Criar disciplina - CORRIGIDO: incluindo userId
+    const subjectData = {
       name: name.trim(),
       description: description?.trim() || '',
       color: color,
       code: code?.trim() || null,
       credits: parseInt(credits) || 1,
       isActive: Boolean(isActive !== undefined ? isActive : true),
-      userId: req.user.id
+      userId: req.user.id // ✅ ESTA LINHA ESTAVA FALTANDO!
+    };
+
+    console.log('🔨 DEBUG: Dados para criar disciplina:', subjectData);
+
+    const subject = await Subject.create(subjectData);
+
+    console.log('✅ DEBUG: Disciplina criada com sucesso:', {
+      id: subject.id,
+      name: subject.name,
+      userId: subject.userId
     });
 
     res.status(201).json({

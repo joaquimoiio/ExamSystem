@@ -26,7 +26,11 @@ const QuestionsPage = () => {
   // Fetch subject details
   const { data: subjectData, isLoading: subjectLoading } = useApiQuery(
     ['subject', subjectId],
-    () => apiClient.get(`/subjects/${subjectId}`)
+    () => apiClient.get(`/subjects/${subjectId}`),
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 10 // 10 minutos
+    }
   )
 
   // Fetch questions
@@ -39,7 +43,11 @@ const QuestionsPage = () => {
         search: searchTerm,
         ...filters
       }
-    })
+    }),
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5 // 5 minutos
+    }
   )
 
   // Create question mutation
@@ -47,10 +55,12 @@ const QuestionsPage = () => {
     (questionData) => apiClient.post(`/subjects/${subjectId}/questions`, questionData),
     {
       successMessage: 'Questão criada com sucesso!',
-      invalidateQueries: [['questions', subjectId]],
+      invalidateQueries: [{ queryKey: ['questions', subjectId] }],
       onSuccess: () => {
         setShowForm(false)
-        refetch()
+        setTimeout(() => {
+          refetch()
+        }, 100)
       }
     }
   )
@@ -60,11 +70,13 @@ const QuestionsPage = () => {
     ({ id, ...data }) => apiClient.put(`/questions/${id}`, data),
     {
       successMessage: 'Questão atualizada com sucesso!',
-      invalidateQueries: [['questions', subjectId]],
+      invalidateQueries: [{ queryKey: ['questions', subjectId] }],
       onSuccess: () => {
         setShowForm(false)
         setSelectedQuestion(null)
-        refetch()
+        setTimeout(() => {
+          refetch()
+        }, 100)
       }
     }
   )
@@ -74,12 +86,14 @@ const QuestionsPage = () => {
     (id) => apiClient.delete(`/questions/${id}`),
     {
       successMessage: 'Questão excluída com sucesso!',
-      invalidateQueries: [['questions', subjectId]],
+      invalidateQueries: [{ queryKey: ['questions', subjectId] }],
       onSuccess: () => {
         setShowModal(false)
         setShowDeleteConfirm(false)
         setSelectedQuestion(null)
-        refetch()
+        setTimeout(() => {
+          refetch()
+        }, 100)
       }
     }
   )
@@ -89,8 +103,12 @@ const QuestionsPage = () => {
     (id) => apiClient.post(`/questions/${id}/duplicate`),
     {
       successMessage: 'Questão duplicada com sucesso!',
-      invalidateQueries: [['questions', subjectId]],
-      onSuccess: () => refetch()
+      invalidateQueries: [{ queryKey: ['questions', subjectId] }],
+      onSuccess: () => {
+        setTimeout(() => {
+          refetch()
+        }, 100)
+      }
     }
   )
 
@@ -100,8 +118,12 @@ const QuestionsPage = () => {
     {
       successMessage: (data, { active }) => 
         `Questão ${active ? 'ativada' : 'desativada'} com sucesso!`,
-      invalidateQueries: [['questions', subjectId]],
-      onSuccess: () => refetch()
+      invalidateQueries: [{ queryKey: ['questions', subjectId] }],
+      onSuccess: () => {
+        setTimeout(() => {
+          refetch()
+        }, 100)
+      }
     }
   )
 
@@ -149,7 +171,7 @@ const QuestionsPage = () => {
     setCurrentPage(1)
   }
 
-  const handleSearch = (term) => {
+  const handleSearchChange = (term) => {
     setSearchTerm(term)
     setCurrentPage(1)
   }
@@ -158,150 +180,114 @@ const QuestionsPage = () => {
     setCurrentPage(page)
   }
 
-  const handleImportQuestions = () => {
-    // TODO: Implementar importação de questões
-    showOperationToast.info('Funcionalidade em desenvolvimento')
+  // Show loading state
+  if ((subjectLoading || questionsLoading) && !subject) {
+    return <Loading message="Carregando questões..." />
   }
 
-  const handleExportQuestions = () => {
-    // TODO: Implementar exportação de questões
-    showOperationToast.info('Funcionalidade em desenvolvimento')
-  }
-
-  // Redirect if subject not found
-  useEffect(() => {
-    if (!subjectLoading && !subject) {
-      navigate('/subjects')
-      showOperationToast.error('Disciplina não encontrada')
-    }
-  }, [subject, subjectLoading, navigate])
-
-  if (subjectLoading) {
-    return <Loading message="Carregando disciplina..." />
-  }
-
-  if (!subject) {
-    return null
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* Back Button */}
-            <Link
-              to="/subjects"
-              className="inline-flex items-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
-            >
-              <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Voltar
-            </Link>
-
-            {/* Subject Info */}
-            <div className="flex items-center space-x-3">
-              <div 
-                className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-                style={{ backgroundColor: subject.color }}
-              >
-                {subject.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Questões - {subject.name}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {subject.code && `${subject.code} • `}
-                  {questions.length} questão{questions.length !== 1 ? 'ões' : ''} cadastrada{questions.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
+  // Show error if subject not found
+  if (!subjectLoading && !subject) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center space-x-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleImportQuestions}
-                icon={
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                  </svg>
-                }
-              >
-                Importar
-              </Button>
-
-              {questions.length > 0 && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleExportQuestions}
-                  icon={
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                  }
-                >
-                  Exportar
-                </Button>
-              )}
-            </div>
-
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Disciplina não encontrada</h3>
+          <p className="mt-1 text-sm text-gray-500">A disciplina que você está procurando não existe.</p>
+          <div className="mt-6">
             <Button
-              onClick={() => setShowForm(true)}
               variant="primary"
-              icon={
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              }
+              onClick={() => navigate('/subjects')}
             >
-              Nova Questão
+              Voltar para Disciplinas
             </Button>
           </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Search Bar */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            placeholder="Pesquisar questões por enunciado, tags ou dificuldade..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb */}
+      <nav className="flex" aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-4">
+          <li>
+            <div>
+              <Link to="/subjects" className="text-gray-400 hover:text-gray-500">
+                <svg className="flex-shrink-0 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0L3.636 10.05A1 1 0 014.95 8.636L8 11.686V2a1 1 0 112 0v9.686l3.05-3.05a1 1 0 111.414 1.414l-4.657 4.657z" clipRule="evenodd" />
+                </svg>
+                <span className="sr-only">Home</span>
+              </Link>
+            </div>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <Link to="/subjects" className="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">
+                Disciplinas
+              </Link>
+            </div>
+          </li>
+          <li>
+            <div className="flex items-center">
+              <svg className="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="ml-4 text-sm font-medium text-gray-500" aria-current="page">
+                {subject?.name || 'Questões'}
+              </span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+
+      {/* Header */}
+      <div className="md:flex md:items-center md:justify-between">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Questões - {subject?.name}
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Gerencie as questões desta disciplina
+          </p>
+        </div>
+        <div className="mt-4 flex md:mt-0 md:ml-4">
+          <Button
+            onClick={() => setShowForm(true)}
+            variant="primary"
+            icon={
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            }
+          >
+            Nova Questão
+          </Button>
         </div>
       </div>
 
-      {/* Questions List */}
+      {/* Question List */}
       <QuestionList
         questions={questions}
         pagination={pagination}
+        filters={filters}
+        searchTerm={searchTerm}
+        onFilterChange={handleFilterChange}
+        onSearchChange={handleSearchChange}
         onPageChange={handlePageChange}
+        onView={handleViewQuestion}
         onEdit={handleEditQuestion}
-        onDelete={(question) => {
-          setSelectedQuestion(question)
-          setShowDeleteConfirm(true)
-        }}
         onDuplicate={handleDuplicateQuestion}
         onToggleActive={handleToggleActiveQuestion}
         loading={questionsLoading}
         currentPage={currentPage}
-        filters={filters}
-        onFilterChange={handleFilterChange}
       />
 
       {/* Empty State */}
@@ -315,12 +301,10 @@ const QuestionsPage = () => {
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
-            Nenhuma questão encontrada
-          </h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma questão encontrada</h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm || Object.keys(filters).length > 0
-              ? 'Tente ajustar os filtros ou limpar a busca.'
+              ? 'Tente ajustar os filtros ou termos de busca.'
               : 'Comece criando uma nova questão para esta disciplina.'
             }
           </p>
@@ -329,8 +313,8 @@ const QuestionsPage = () => {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setSearchTerm('')
-                  setFilters({})
+                  handleSearchChange('')
+                  handleFilterChange({})
                 }}
               >
                 Limpar filtros
@@ -382,85 +366,22 @@ const QuestionsPage = () => {
             setShowModal(false)
             setShowDeleteConfirm(true)
           }}
-          onDuplicate={handleDuplicateQuestion}
-          onToggleActive={handleToggleActiveQuestion}
         />
       )}
 
       {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showDeleteConfirm}
-        onClose={() => {
-          setShowDeleteConfirm(false)
-          setSelectedQuestion(null)
-        }}
-        onConfirm={handleDeleteQuestion}
-        title="Excluir Questão"
-        message={
-          selectedQuestion
-            ? `Tem certeza que deseja excluir a questão "${selectedQuestion.statement.substring(0, 50)}..."? Esta ação não pode ser desfeita.`
-            : 'Tem certeza que deseja excluir esta questão?'
-        }
-        confirmText="Excluir"
-        loading={deleteQuestionMutation.isLoading}
-        confirmVariant="danger"
-      />
-
-      {/* Quick Stats */}
-      {questions.length > 0 && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Estatísticas Rápidas</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-gray-900">{questions.length}</div>
-              <div className="text-sm text-gray-500">Total de Questões</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-green-600">
-                {questions.filter(q => q.difficulty === 'easy').length}
-              </div>
-              <div className="text-sm text-gray-500">Fáceis</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-yellow-600">
-                {questions.filter(q => q.difficulty === 'medium').length}
-              </div>
-              <div className="text-sm text-gray-500">Médias</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-red-600">
-                {questions.filter(q => q.difficulty === 'hard').length}
-              </div>
-              <div className="text-sm text-gray-500">Difíceis</div>
-            </div>
-          </div>
-        </div>
+      {showDeleteConfirm && selectedQuestion && (
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDeleteQuestion}
+          title="Excluir Questão"
+          message={`Tem certeza que deseja excluir a questão "${selectedQuestion.title || selectedQuestion.text?.substring(0, 50)}..."?`}
+          confirmText="Excluir"
+          confirmVariant="danger"
+          loading={deleteQuestionMutation.isLoading}
+        />
       )}
-
-      {/* Help Text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
-              Dicas para criar questões
-            </h3>
-            <div className="mt-2 text-sm text-blue-700">
-              <ul className="list-disc list-inside space-y-1">
-                <li>Use enunciados claros e objetivos</li>
-                <li>Adicione tags para facilitar a organização</li>
-                <li>Distribua as questões entre diferentes níveis de dificuldade</li>
-                <li>Inclua explicações para ajudar no aprendizado</li>
-                <li>Revise as alternativas para evitar ambiguidades</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

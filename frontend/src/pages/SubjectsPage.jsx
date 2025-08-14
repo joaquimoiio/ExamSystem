@@ -30,6 +30,8 @@ const SubjectsPage = () => {
     {
       retry: 2,
       retryDelay: 1000,
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // 5 minutos
       onError: (error) => {
         console.error('Erro ao carregar disciplinas:', error)
       }
@@ -44,15 +46,18 @@ const SubjectsPage = () => {
     },
     {
       successMessage: 'Disciplina criada com sucesso!',
-      invalidateQueries: [['subjects']],
-      onSuccess: () => {
+      invalidateQueries: [{ queryKey: ['subjects'] }], // Invalidar todas as queries que começam com 'subjects'
+      onSuccess: (data) => {
+        console.log('Disciplina criada com sucesso:', data)
         setShowForm(false)
         setSelectedSubject(null)
-        refetch()
+        // Force refetch to ensure immediate update
+        setTimeout(() => {
+          refetch()
+        }, 100)
       },
       onError: (error) => {
         console.error('Erro ao criar disciplina:', error)
-        // A mensagem de erro será mostrada automaticamente pelo useApiMutation
       }
     }
   )
@@ -65,11 +70,13 @@ const SubjectsPage = () => {
     },
     {
       successMessage: 'Disciplina atualizada com sucesso!',
-      invalidateQueries: [['subjects']],
+      invalidateQueries: [{ queryKey: ['subjects'] }],
       onSuccess: () => {
         setShowForm(false)
         setSelectedSubject(null)
-        refetch()
+        setTimeout(() => {
+          refetch()
+        }, 100)
       },
       onError: (error) => {
         console.error('Erro ao atualizar disciplina:', error)
@@ -82,11 +89,13 @@ const SubjectsPage = () => {
     (id) => apiClient.delete(`/subjects/${id}`),
     {
       successMessage: 'Disciplina excluída com sucesso!',
-      invalidateQueries: [['subjects']],
+      invalidateQueries: [{ queryKey: ['subjects'] }],
       onSuccess: () => {
         setShowModal(false)
         setSelectedSubject(null)
-        refetch()
+        setTimeout(() => {
+          refetch()
+        }, 100)
       },
       onError: (error) => {
         console.error('Erro ao excluir disciplina:', error)
@@ -99,11 +108,13 @@ const SubjectsPage = () => {
     ({ id, name }) => apiClient.post(`/subjects/${id}/duplicate`, { name }),
     {
       successMessage: 'Disciplina duplicada com sucesso!',
-      invalidateQueries: [['subjects']],
+      invalidateQueries: [{ queryKey: ['subjects'] }],
       onSuccess: () => {
         setShowModal(false)
         setSelectedSubject(null)
-        refetch()
+        setTimeout(() => {
+          refetch()
+        }, 100)
       },
       onError: (error) => {
         console.error('Erro ao duplicar disciplina:', error)
@@ -125,6 +136,7 @@ const SubjectsPage = () => {
       isActive: data.isActive !== undefined ? data.isActive : true
     }
     
+    console.log('Dados enviados:', formattedData)
     console.log('Enviando dados para criação:', formattedData)
     createSubjectMutation.mutate(formattedData)
   }
