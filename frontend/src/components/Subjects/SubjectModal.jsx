@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import Modal from '../Common/Modal'
-import ConfirmationModal from '../Common/ConfirmationModal'
+import Modal, { ConfirmationModal } from "../Common/Modal";
 
 const SubjectModal = ({ isOpen, onClose, subject, onEdit, onDelete }) => {
   const navigate = useNavigate()

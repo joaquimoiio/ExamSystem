@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ExamList from '../components/Exams/ExamList'
 import ExamGenerator from '../components/Exams/ExamGenerator'
-import ConfirmationModal from '../components/Common/ConfirmationModal'
+import { ConfirmationModal } from "../components/Common/Modal";
 import { examService } from '../services/exam'
 import { subjectService } from '../services/subject'
 import { showOperationToast } from '../components/Common/Toast'
