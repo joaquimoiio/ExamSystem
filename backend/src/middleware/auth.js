@@ -1,204 +1,306 @@
+// backend/src/middleware/auth.js
+
 const jwt = require('jsonwebtoken');
+const { User } = require('../models');
+const { AppError } = require('../utils/appError');
 
-// Simple AppError class if not available
-class AppError extends Error {
-  constructor(message, statusCode) {
-    super(message);
-    this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-    this.isOperational = true;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-// Simple catchAsync if not available
-const catchAsync = (fn) => {
-  return (req, res, next) => {
-    fn(req, res, next).catch(next);
-  };
-};
-
-// Try to import User model safely
-let User;
-try {
-  User = require('../models').User;
-} catch (error) {
-  console.warn('User model not found');
-}
-
-// Try to import utility functions safely
-let verifyToken;
-try {
-  const jwtConfig = require('../config/jwt');
-  verifyToken = jwtConfig.verifyToken;
-} catch (error) {
-  // Fallback JWT verification
-  verifyToken = (token) => {
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-    return jwt.verify(token, JWT_SECRET);
-  };
-}
-
-// Authenticate token middleware
-const authenticateToken = catchAsync(async (req, res, next) => {
-  let token;
-
-  // Get token from header
+// Função para extrair token do header
+const extractToken = (req) => {
+  let token = null;
+  
+  // Verificar Authorization header
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
   }
-
-  if (!token) {
-    return next(new AppError('Access token is required', 401));
+  
+  // Verificar cookie como fallback
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
   }
+  
+  return token;
+};
 
+// Middleware de autenticação obrigatória
+const authenticateToken = async (req, res, next) => {
   try {
-    // Verify token
-    const decoded = verifyToken(token);
+    const token = extractToken(req);
     
-    if (User) {
-      // Get user from database if User model is available
-      const user = await User.findByPk(decoded.id, {
-        attributes: { exclude: ['password'] }
+    if (!token) {
+      console.log('❌ Token não fornecido');
+      return res.status(401).json({
+        success: false,
+        message: 'Access token is required',
+        error: 'MISSING_TOKEN'
       });
+    }
 
-      if (!user) {
-        return next(new AppError('User no longer exists', 401));
-      }
+    console.log('🔍 Token extraído:', token.substring(0, 20) + '...');
 
-      if (!user.isActive) {
-        return next(new AppError('User account is deactivated', 401));
-      }
+    // Verificar token JWT
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    console.log('✅ Token decodificado:', { id: decoded.id, email: decoded.email, role: decoded.role });
 
-      req.user = user;
-    } else {
-      // Fallback: use decoded token data
-      req.user = {
+    // Buscar usuário no banco de dados
+    let user;
+    try {
+      user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password', 'refreshToken'] }
+      });
+    } catch (dbError) {
+      console.error('❌ Erro ao buscar usuário no banco:', dbError.message);
+      // Se não conseguir acessar o banco, usar dados do token
+      user = {
         id: decoded.id,
         email: decoded.email,
-        role: decoded.role || 'teacher'
+        role: decoded.role || 'teacher',
+        name: decoded.name || 'Unknown User',
+        isActive: true
       };
+    }
+
+    if (!user) {
+      console.log('❌ Usuário não encontrado no banco de dados');
+      return res.status(401).json({
+        success: false,
+        message: 'User no longer exists',
+        error: 'USER_NOT_FOUND'
+      });
+    }
+
+    if (user.isActive === false) {
+      console.log('❌ Usuário desativado');
+      return res.status(401).json({
+        success: false,
+        message: 'User account is deactivated',
+        error: 'USER_DEACTIVATED'
+      });
+    }
+
+    // Anexar usuário à requisição
+    req.user = user;
+    console.log('✅ Usuário autenticado:', { id: user.id, email: user.email, role: user.role });
+    
+    next();
+  } catch (error) {
+    console.error('❌ Erro na autenticação:', error.message);
+    
+    // Diferentes tipos de erro JWT
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token',
+        error: 'INVALID_TOKEN'
+      });
+    } else if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired',
+        error: 'TOKEN_EXPIRED'
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: 'Authentication error',
+        error: 'AUTH_ERROR'
+      });
+    }
+  }
+};
+
+// Middleware de autenticação opcional
+const optionalAuth = async (req, res, next) => {
+  try {
+    const token = extractToken(req);
+    
+    if (!token) {
+      // Sem token, continuar sem usuário
+      req.user = null;
+      return next();
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Buscar usuário no banco de dados
+    let user;
+    try {
+      user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password', 'refreshToken'] }
+      });
+    } catch (dbError) {
+      console.warn('⚠️ Erro ao buscar usuário no banco (auth opcional):', dbError.message);
+      user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role || 'teacher',
+        name: decoded.name || 'Unknown User',
+        isActive: true
+      };
+    }
+
+    if (user && user.isActive !== false) {
+      req.user = user;
+    } else {
+      req.user = null;
     }
     
     next();
   } catch (error) {
-    return next(new AppError('Invalid token', 401));
+    // Em caso de erro na autenticação opcional, continuar sem usuário
+    console.warn('⚠️ Erro na autenticação opcional:', error.message);
+    req.user = null;
+    next();
   }
-});
+};
 
-// Optional authentication (for public routes that can benefit from user context)
-const optionalAuth = catchAsync(async (req, res, next) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  if (token) {
-    try {
-      const decoded = verifyToken(token);
-      
-      if (User) {
-        const user = await User.findByPk(decoded.id, {
-          attributes: { exclude: ['password'] }
-        });
-
-        if (user && user.isActive) {
-          req.user = user;
-        }
-      } else {
-        req.user = {
-          id: decoded.id,
-          email: decoded.email,
-          role: decoded.role || 'teacher'
-        };
-      }
-    } catch (error) {
-      // Silent fail for optional auth
-    }
-  }
-
-  next();
-});
-
-// Restrict to specific roles
+// Middleware para verificar roles específicas
 const restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError('You do not have permission to perform this action', 403));
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        error: 'AUTH_REQUIRED'
+      });
     }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to perform this action',
+        error: 'INSUFFICIENT_PERMISSIONS'
+      });
+    }
+    
     next();
   };
 };
 
-// Check if user is admin
+// Middleware para verificar se é admin
 const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      error: 'AUTH_REQUIRED'
+    });
+  }
+
   if (req.user.role !== 'admin') {
-    return next(new AppError('Admin access required', 403));
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required',
+      error: 'ADMIN_REQUIRED'
+    });
   }
+  
   next();
 };
 
-// Check if user is teacher or admin
+// Middleware para verificar se é teacher ou admin
 const requireTeacher = (req, res, next) => {
-  if (!['teacher', 'admin'].includes(req.user.role)) {
-    return next(new AppError('Teacher or admin access required', 403));
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      error: 'AUTH_REQUIRED'
+    });
   }
+
+  if (!['teacher', 'admin'].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Teacher or admin access required',
+      error: 'TEACHER_REQUIRED'
+    });
+  }
+  
   next();
 };
 
-// Simple ownership check (simplified version)
-const checkOwnership = (Model) => {
-  return catchAsync(async (req, res, next) => {
+// Middleware para verificar ownership de recursos
+const checkOwnership = (Model, options = {}) => {
+  return async (req, res, next) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          error: 'AUTH_REQUIRED'
+        });
+      }
+
       const { id } = req.params;
-      
-      if (!Model) {
-        // If model is not available, skip ownership check
+      const { userIdField = 'userId', allowAdmin = true } = options;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resource ID is required',
+          error: 'MISSING_ID'
+        });
+      }
+
+      // Admin pode acessar tudo (se permitido)
+      if (allowAdmin && req.user.role === 'admin') {
         return next();
       }
 
-      const resource = await Model.findByPk(id);
-      
-      if (!resource) {
-        return next(new AppError('Resource not found', 404));
-      }
+      try {
+        const resource = await Model.findByPk(id);
+        
+        if (!resource) {
+          return res.status(404).json({
+            success: false,
+            message: 'Resource not found',
+            error: 'RESOURCE_NOT_FOUND'
+          });
+        }
 
-      // Check ownership (admin can access everything)
-      if (req.user.role === 'admin' || resource.userId === req.user.id) {
+        // Verificar ownership
+        if (resource[userIdField] !== req.user.id) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to access this resource',
+            error: 'OWNERSHIP_REQUIRED'
+          });
+        }
+
+        // Anexar recurso à requisição para uso posterior
         req.resource = resource;
-        return next();
+        next();
+      } catch (dbError) {
+        console.error('❌ Erro ao verificar ownership:', dbError.message);
+        return res.status(500).json({
+          success: false,
+          message: 'Error checking resource ownership',
+          error: 'OWNERSHIP_CHECK_ERROR'
+        });
       }
-
-      return next(new AppError('You do not have permission to access this resource', 403));
     } catch (error) {
-      console.warn('Ownership check failed, allowing access:', error.message);
-      // In case of error, allow access (can be tightened later)
-      next();
+      console.error('❌ Erro no middleware de ownership:', error.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: 'INTERNAL_ERROR'
+      });
     }
-  });
+  };
 };
 
-// Check if user owns the resource or has admin access
-const checkResourceOwner = (resourceIdField = 'id', userIdField = 'userId') => {
-  return catchAsync(async (req, res, next) => {
-    try {
-      const resourceId = req.params[resourceIdField];
-      const userId = req.user.id;
-
-      // Admin can access everything
-      if (req.user.role === 'admin') {
-        return next();
-      }
-
-      // For regular users, we'll need to check in the route handler
-      // This is a placeholder that allows access
-      next();
-    } catch (error) {
-      console.warn('Resource owner check failed, allowing access:', error.message);
-      next();
-    }
+// Middleware para debug de autenticação
+const debugAuth = (req, res, next) => {
+  console.log('🔍 DEBUG AUTH:');
+  console.log('  URL:', req.method, req.originalUrl);
+  console.log('  Headers:', {
+    authorization: req.headers.authorization,
+    'content-type': req.headers['content-type']
   });
+  console.log('  User:', req.user ? { id: req.user.id, email: req.user.email, role: req.user.role } : 'Not authenticated');
+  next();
 };
 
 module.exports = {
@@ -208,5 +310,5 @@ module.exports = {
   requireAdmin,
   requireTeacher,
   checkOwnership,
-  checkResourceOwner
+  debugAuth
 };
