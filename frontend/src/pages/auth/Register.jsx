@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock, User, FileText, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, BookOpen } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-
-const roleOptions = [
-  { value: 'teacher', label: 'Professor' },
-  { value: 'admin', label: 'Administrador' },
-];
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register: registerUser, loading, error } = useAuth();
+  const { register: authRegister, loading } = useAuth();
   const { success, error: showError } = useToast();
   const navigate = useNavigate();
 
@@ -28,7 +23,6 @@ export default function Register() {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'teacher',
       acceptTerms: false,
     },
   });
@@ -36,78 +30,54 @@ export default function Register() {
   const password = watch('password');
 
   const onSubmit = async (data) => {
+    if (data.password !== data.confirmPassword) {
+      showError('Senhas não coincidem');
+      return;
+    }
+
+    if (!data.acceptTerms) {
+      showError('Você deve aceitar os termos para continuar');
+      return;
+    }
+
     try {
-      await registerUser({
+      await authRegister({
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role,
       });
-      
-      success('Conta criada com sucesso!');
+      success('Conta criada com sucesso! Bem-vindo!');
       navigate('/dashboard');
-    } catch (err) {
-      showError(err.message || 'Erro ao criar conta');
+    } catch (error) {
+      showError(error.message || 'Erro ao criar conta');
     }
   };
 
-  // Password strength checker
-  const getPasswordStrength = (password) => {
-    if (!password) return { score: 0, label: '', color: '' };
-    
-    let score = 0;
-    const checks = {
-      length: password.length >= 8,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    };
-
-    score = Object.values(checks).filter(Boolean).length;
-
-    const strengthLevels = {
-      0: { label: '', color: '' },
-      1: { label: 'Muito fraca', color: 'bg-red-500' },
-      2: { label: 'Fraca', color: 'bg-orange-500' },
-      3: { label: 'Média', color: 'bg-yellow-500' },
-      4: { label: 'Forte', color: 'bg-blue-500' },
-      5: { label: 'Muito forte', color: 'bg-green-500' },
-    };
-
-    return { score, ...strengthLevels[score], checks };
-  };
-
-  const passwordStrength = getPasswordStrength(password);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Logo and Title */}
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary-600 p-4 rounded-2xl shadow-lg">
-              <FileText className="w-12 h-12 text-white" />
+            <div className="bg-primary-600 p-3 rounded-xl">
+              <BookOpen className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Criar Conta</h1>
-          <p className="text-gray-600">Junte-se ao ExamSystem</p>
+          <h2 className="text-3xl font-bold text-gray-900">
+            Criar Conta
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Junte-se ao ExamSystem e comece a criar suas provas
+          </p>
         </div>
 
-        {/* Registration Form */}
+        {/* Register Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Global Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Full Name */}
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {/* Name Field */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Nome Completo
+                Nome completo
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -117,12 +87,12 @@ export default function Register() {
                   id="name"
                   type="text"
                   autoComplete="name"
-                  className={`
-                    block w-full pl-10 pr-3 py-3 border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                    ${errors.name ? 'border-red-300' : 'border-gray-300'}
-                  `}
-                  placeholder="Seu nome completo"
+                  className="
+                    block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
+                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500
+                    focus:border-primary-500 sm:text-sm transition-colors
+                  "
+                  placeholder="Digite seu nome completo"
                   {...register('name', {
                     required: 'Nome é obrigatório',
                     minLength: {
@@ -141,10 +111,10 @@ export default function Register() {
               )}
             </div>
 
-            {/* Email */}
+            {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                E-mail
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -154,17 +124,17 @@ export default function Register() {
                   id="email"
                   type="email"
                   autoComplete="email"
-                  className={`
-                    block w-full pl-10 pr-3 py-3 border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                    ${errors.email ? 'border-red-300' : 'border-gray-300'}
-                  `}
-                  placeholder="seu@email.com"
+                  className="
+                    block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
+                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500
+                    focus:border-primary-500 sm:text-sm transition-colors
+                  "
+                  placeholder="Digite seu email"
                   {...register('email', {
-                    required: 'E-mail é obrigatório',
+                    required: 'Email é obrigatório',
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'E-mail inválido',
+                      message: 'Email inválido',
                     },
                   })}
                 />
@@ -174,28 +144,7 @@ export default function Register() {
               )}
             </div>
 
-            {/* Role */}
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Conta
-              </label>
-              <select
-                id="role"
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                {...register('role', { required: 'Tipo de conta é obrigatório' })}
-              >
-                {roleOptions.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
-              {errors.role && (
-                <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
-              )}
-            </div>
-
-            {/* Password */}
+            {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Senha
@@ -208,17 +157,21 @@ export default function Register() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className={`
-                    block w-full pl-10 pr-10 py-3 border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                    ${errors.password ? 'border-red-300' : 'border-gray-300'}
-                  `}
-                  placeholder="••••••••"
+                  className="
+                    block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg
+                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500
+                    focus:border-primary-500 sm:text-sm transition-colors
+                  "
+                  placeholder="Crie uma senha segura"
                   {...register('password', {
                     required: 'Senha é obrigatória',
                     minLength: {
                       value: 8,
                       message: 'Senha deve ter pelo menos 8 caracteres',
+                    },
+                    pattern: {
+                      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                      message: 'Senha deve conter ao menos uma letra minúscula, uma maiúscula e um número',
                     },
                   })}
                 />
@@ -234,59 +187,15 @@ export default function Register() {
                   )}
                 </button>
               </div>
-              
-              {/* Password Strength Indicator */}
-              {password && (
-                <div className="mt-2">
-                  <div className="flex space-x-1 mb-2">
-                    {[1, 2, 3, 4, 5].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-1 flex-1 rounded ${
-                          level <= passwordStrength.score
-                            ? passwordStrength.color
-                            : 'bg-gray-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  {passwordStrength.label && (
-                    <p className="text-xs text-gray-600">
-                      Força da senha: <span className="font-medium">{passwordStrength.label}</span>
-                    </p>
-                  )}
-                  
-                  {/* Password Requirements */}
-                  <div className="mt-2 space-y-1">
-                    {Object.entries(passwordStrength.checks || {}).map(([check, passed]) => (
-                      <div key={check} className="flex items-center space-x-2 text-xs">
-                        {passed ? (
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                        ) : (
-                          <div className="w-3 h-3 rounded-full border border-gray-300" />
-                        )}
-                        <span className={passed ? 'text-green-600' : 'text-gray-500'}>
-                          {check === 'length' && 'Pelo menos 8 caracteres'}
-                          {check === 'lowercase' && 'Uma letra minúscula'}
-                          {check === 'uppercase' && 'Uma letra maiúscula'}
-                          {check === 'number' && 'Um número'}
-                          {check === 'special' && 'Um caractere especial'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
             </div>
 
-            {/* Confirm Password */}
+            {/* Confirm Password Field */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmar Senha
+                Confirmar senha
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -296,16 +205,16 @@ export default function Register() {
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className={`
-                    block w-full pl-10 pr-10 py-3 border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                    ${errors.confirmPassword ? 'border-red-300' : 'border-gray-300'}
-                  `}
-                  placeholder="••••••••"
+                  className="
+                    block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg
+                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500
+                    focus:border-primary-500 sm:text-sm transition-colors
+                  "
+                  placeholder="Confirme sua senha"
                   {...register('confirmPassword', {
                     required: 'Confirmação de senha é obrigatória',
                     validate: (value) =>
-                      value === password || 'As senhas não coincidem',
+                      value === password || 'Senhas não coincidem',
                   })}
                 />
                 <button
