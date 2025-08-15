@@ -103,8 +103,8 @@ module.exports = {
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-    require('@tailwindcss/aspect-ratio'),
+    // Plugins removidos pois não estão instalados no projeto
+    // Para usar novamente, instale os plugins com:
+    // npm install @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
   ],
 }
