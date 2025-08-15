@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ import Layout from './components/common/Layout';
 import { LoadingPage } from './components/common/Loading';
 
 // Pages
+import LandingPage from './pages/LandingPage'; // 👈 NOVA PÁGINA INICIAL
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -101,6 +103,9 @@ function StudentRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* 👈 PÁGINA INICIAL - LANDING PAGE */}
+      <Route path="/" element={<LandingPage />} />
+
       {/* Public Routes */}
       <Route path="/login" element={
         <PublicRoute>
@@ -242,9 +247,6 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* Root redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
