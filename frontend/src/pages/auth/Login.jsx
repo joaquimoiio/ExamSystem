@@ -1,47 +1,78 @@
+// frontend/src/pages/auth/Login.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Mail, Lock, BookOpen } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading } = useAuth();
-  const { error: showError } = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/dashboard';
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-      rememberMe: false,
-    },
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    rememberMe: false,
   });
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
-  const onSubmit = async (data) => {
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.email) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Senha é obrigatória';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    
     try {
-      await login(data.email, data.password, data.rememberMe);
-      navigate(from, { replace: true });
+      // Simular chamada de login
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Redirecionar para dashboard (ou mostrar mensagem de sucesso)
+      navigate('/dashboard');
     } catch (error) {
-      showError(error.message || 'Erro ao fazer login');
+      setErrors({ general: 'Erro ao fazer login. Tente novamente.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary-600 p-3 rounded-xl">
+            <div className="bg-blue-600 p-3 rounded-xl">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
           </div>
@@ -55,7 +86,14 @@ export default function Login() {
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* General Error */}
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {errors.general}
+              </div>
+            )}
+
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -67,25 +105,23 @@ export default function Login() {
                 </div>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   autoComplete="email"
-                  className="
-                    block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500
-                    focus:border-primary-500 sm:text-sm transition-colors
-                  "
-                  placeholder="Digite seu email"
-                  {...register('email', {
-                    required: 'Email é obrigatório',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Email inválido',
-                    },
-                  })}
+                  className={`
+                    appearance-none relative block w-full pl-10 pr-3 py-3 border 
+                    ${errors.email ? 'border-red-300' : 'border-gray-300'} 
+                    placeholder-gray-500 text-gray-900 rounded-lg 
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                    focus:z-10 sm:text-sm transition-colors
+                  `}
+                  placeholder="seu@email.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
 
@@ -100,21 +136,19 @@ export default function Login() {
                 </div>
                 <input
                   id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="
-                    block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg
-                    placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500
-                    focus:border-primary-500 sm:text-sm transition-colors
-                  "
-                  placeholder="Digite sua senha"
-                  {...register('password', {
-                    required: 'Senha é obrigatória',
-                    minLength: {
-                      value: 6,
-                      message: 'Senha deve ter pelo menos 6 caracteres',
-                    },
-                  })}
+                  className={`
+                    appearance-none relative block w-full pl-10 pr-10 py-3 border 
+                    ${errors.password ? 'border-red-300' : 'border-gray-300'} 
+                    placeholder-gray-500 text-gray-900 rounded-lg 
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                    focus:z-10 sm:text-sm transition-colors
+                  `}
+                  placeholder="Sua senha"
+                  value={formData.password}
+                  onChange={handleInputChange}
                 />
                 <button
                   type="button"
@@ -129,7 +163,7 @@ export default function Login() {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
               )}
             </div>
 
@@ -138,21 +172,20 @@ export default function Login() {
               <div className="flex items-center">
                 <input
                   id="rememberMe"
+                  name="rememberMe"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  {...register('rememberMe')}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  checked={formData.rememberMe}
+                  onChange={handleInputChange}
                 />
-                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
                   Lembrar de mim
                 </label>
               </div>
 
               <div className="text-sm">
-                <Link
-                  to="/forgot-password"
-                  className="font-medium text-primary-600 hover:text-primary-500"
-                >
-                  Esqueceu sua senha?
+                <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                  Esqueceu a senha?
                 </Link>
               </div>
             </div>
@@ -160,16 +193,16 @@ export default function Login() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || loading}
+              disabled={isSubmitting}
               className="
                 w-full flex justify-center items-center py-3 px-4 border border-transparent 
-                rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 
-                hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
-                focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed
+                rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 
+                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
+                focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors duration-200
               "
             >
-              {(isSubmitting || loading) ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Entrando...
@@ -186,16 +219,16 @@ export default function Login() {
               Não tem uma conta?{' '}
               <Link 
                 to="/register" 
-                className="font-medium text-primary-600 hover:text-primary-500"
+                className="font-medium text-blue-600 hover:text-blue-500"
               >
-                Criar conta gratuita
+                Registre-se aqui
               </Link>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center">
+        <div className="mt-8 text-center">
           <p className="text-xs text-gray-500">
             © 2024 ExamSystem. Todos os direitos reservados.
           </p>

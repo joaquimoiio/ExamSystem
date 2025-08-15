@@ -2,51 +2,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// Contexts (comentados os que dependem de React Query)
-// import { AuthProvider } from './contexts/AuthContext';
-// import { ToastProvider } from './contexts/ToastContext';
-// import { AppProvider } from './contexts/AppContext';
-
-// Components básicos
-// import ErrorBoundary from './components/common/ErrorBoundary';
-// import Layout from './components/common/Layout';
-
-// Páginas básicas para testar
-// import LandingPage from './pages/LandingPage';
-// import Login from './pages/auth/Login';
-// import Register from './pages/auth/Register';
-// import Dashboard from './pages/dashboard/Dashboard';
-// import NotFound from './pages/NotFound';
-
-// Componente temporário para teste
-function WelcomePage() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center">
-      <div className="max-w-md w-full bg-white shadow rounded-lg p-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">ExamSystem</h1>
-          <p className="text-gray-600 mb-6">Sistema de Provas Online</p>
-          <div className="space-y-4">
-            <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-              Fazer Login
-            </button>
-            <button className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors">
-              Registrar-se
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-500">
-          Para funcionalidade completa, instale as dependências:
-        </p>
-        <code className="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
-          npm install @tanstack/react-query @tanstack/react-query-devtools html5-qrcode
-        </code>
-      </div>
-    </div>
-  );
-}
+// Páginas principais
+import LandingPage from './pages/LandingPage';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import NotFound from './pages/NotFound';
 
 // Componente de rota protegida simplificado
 function ProtectedRoute({ children }) {
@@ -55,26 +15,51 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Componente temporário para dashboard (até instalar dependências)
+function TemporaryDashboard() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center">
+      <div className="max-w-md w-full bg-white shadow rounded-lg p-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Dashboard</h1>
+          <p className="text-gray-600 mb-6">Dashboard temporário - aguardando instalação das dependências</p>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Para funcionalidade completa, instale as dependências:
+            </p>
+            <code className="text-xs bg-gray-100 px-2 py-1 rounded block">
+              npm install @tanstack/react-query @tanstack/react-query-devtools html5-qrcode
+            </code>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Rotas da aplicação
 function AppRoutes() {
   return (
     <Routes>
-      {/* Página inicial temporária */}
-      <Route path="/" element={<WelcomePage />} />
+      {/* Página inicial - Landing Page completa */}
+      <Route path="/" element={<LandingPage />} />
       
-      {/* Rotas comentadas até instalar dependências */}
-      {/*
+      {/* Rotas de autenticação */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      
+      {/* Dashboard temporário */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <Dashboard />
+          <TemporaryDashboard />
         </ProtectedRoute>
       } />
-      */}
       
-      {/* Redireciona rotas não encontradas para home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Página 404 */}
+      <Route path="/404" element={<NotFound />} />
+      
+      {/* Redireciona rotas não encontradas para 404 */}
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 }
