@@ -15,28 +15,6 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-// Componente temporário para dashboard (até instalar dependências)
-function TemporaryDashboard() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center">
-      <div className="max-w-md w-full bg-white shadow rounded-lg p-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Dashboard</h1>
-          <p className="text-gray-600 mb-6">Dashboard temporário - aguardando instalação das dependências</p>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500">
-              Para funcionalidade completa, instale as dependências:
-            </p>
-            <code className="text-xs bg-gray-100 px-2 py-1 rounded block">
-              npm install @tanstack/react-query @tanstack/react-query-devtools html5-qrcode
-            </code>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Rotas da aplicação
 function AppRoutes() {
   return (
