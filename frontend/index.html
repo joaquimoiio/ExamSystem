@@ -52,7 +52,7 @@
 </head>
 <body class="min-h-screen bg-white">
     <!-- Navigation -->
-    <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300 bg-white/80 backdrop-blur-md">
+    <nav class="fixed top-0 w-full z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-white/20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
                 <div class="flex items-center space-x-2">
@@ -74,12 +74,13 @@
                     <a href="#testimonials" class="text-gray-700 hover:text-blue-600 transition-colors font-medium">
                         Cases
                     </a>
-                    <button onclick="showLogin()" class="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+                    <!-- NAVEGAÇÃO DIRETA - SEM MODAL -->
+                    <a href="/login" class="text-gray-700 hover:text-blue-600 transition-colors font-medium">
                         Entrar
-                    </button>
-                    <button onclick="showRegister()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg">
+                    </a>
+                    <a href="/register" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg">
                         Teste Grátis
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Mobile Menu Button -->
@@ -102,67 +103,56 @@
                     <a href="#testimonials" class="text-gray-700 hover:text-blue-600 transition-colors px-4 font-medium">
                         Cases
                     </a>
-                    <button onclick="showLogin()" class="text-gray-700 hover:text-blue-600 transition-colors px-4 text-left font-medium">
+                    <!-- NAVEGAÇÃO DIRETA - SEM MODAL -->
+                    <a href="/login" class="text-gray-700 hover:text-blue-600 transition-colors px-4 text-left font-medium">
                         Entrar
-                    </button>
-                    <button onclick="showRegister()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mx-4 text-center font-medium">
+                    </a>
+                    <a href="/register" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mx-4 text-center font-medium">
                         Teste Grátis
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="pt-24 pb-16 hero-bg relative overflow-hidden">
-        <!-- Background decoration -->
-        <div class="absolute inset-0 overflow-hidden">
-            <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-            <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        </div>
-
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+    <section class="pt-24 pb-12 lg:pt-32 lg:pb-20 hero-bg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
-                <div>
-                    <div class="inline-flex items-center bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-200">
-                        <i data-lucide="zap" class="w-4 h-4 mr-2"></i>
-                        Transformando a Educação Brasileira
+                <div class="text-center lg:text-left">
+                    <div class="inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                        <i data-lucide="sparkles" class="w-4 h-4 mr-2"></i>
+                        Novidade: Correção por IA disponível
                     </div>
                     
-                    <h1 class="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                        A Revolução que toda 
-                        <span class="gradient-text">professora esperava</span>
+                    <h1 class="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+                        Crie provas profissionais em
+                        <span class="gradient-text">minutos</span>
                     </h1>
                     
-                    <p class="text-xl text-gray-600 mb-8 leading-relaxed">
-                        Pare de perder <strong class="text-red-600">horas preciosas</strong> criando e corrigindo provas! 
-                        O ExamSystem automatiza todo o processo de avaliação, gerando 
-                        <strong class="text-green-600">versões únicas</strong> da mesma prova e 
-                        <strong class="text-blue-600">corrigindo automaticamente</strong>. 
-                        <span class="text-lg text-purple-600 font-semibold">Economize 90% do seu tempo!</span>
+                    <p class="text-xl text-gray-600 mb-8 max-w-2xl">
+                        Transforme a criação de provas de algo que demora horas em algo que leva minutos. 
+                        Sistema completo para professores modernos.
                     </p>
-
-                    <div class="flex flex-col sm:flex-row gap-4 mb-8">
-                        <button onclick="showRegister()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:shadow-xl transition-all duration-300 text-lg font-medium flex items-center justify-center group shadow-lg pulse-animation">
-                            <i data-lucide="play" class="mr-2 w-5 h-5"></i>
-                            Começar Teste Grátis
-                            <i data-lucide="arrow-right" class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
-                        </button>
-                        <button onclick="showDemo()" class="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl hover:border-blue-600 hover:text-blue-600 transition-all duration-300 text-lg font-medium flex items-center justify-center">
-                            <i data-lucide="video" class="mr-2 w-5 h-5"></i>
-                            Ver Demonstração
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <!-- NAVEGAÇÃO DIRETA - SEM MODAL -->
+                        <a href="/register" class="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+                            🚀 Começar Grátis
+                        </a>
+                        <button class="border border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-colors">
+                            📱 Ver Demo
                         </button>
                     </div>
 
-                    <!-- Trust indicators -->
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-gray-600">
+                    <div class="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-6">
                         <div class="flex items-center">
                             <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2"></i>
-                            14 dias grátis
+                            Grátis para começar
                         </div>
                         <div class="flex items-center">
                             <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2"></i>
-                            Sem cartão de crédito
+                            Sem cartão necessário
                         </div>
                         <div class="flex items-center">
                             <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2"></i>
@@ -198,179 +188,32 @@
                             <div class="grid grid-cols-2 gap-4 mb-6">
                                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
                                     <div class="text-2xl font-bold text-blue-600 stats-counter">5</div>
-                                    <div class="text-sm text-blue-600">Versões Geradas</div>
+                                    <div class="text-sm text-gray-600">Versões</div>
                                 </div>
                                 <div class="bg-green-50 p-4 rounded-lg border border-green-100">
-                                    <div class="text-2xl font-bold text-green-600 stats-counter">32</div>
-                                    <div class="text-sm text-green-600">Alunos Avaliados</div>
+                                    <div class="text-2xl font-bold text-green-600 stats-counter">85%</div>
+                                    <div class="text-sm text-gray-600">Taxa de Acerto</div>
                                 </div>
                             </div>
 
-                            <!-- QR Codes -->
+                            <!-- Action buttons -->
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                                            <i data-lucide="qr-code" class="w-4 h-4 text-white"></i>
-                                        </div>
-                                        <span class="text-sm font-medium text-blue-800">Versão A - Turma 9A</span>
-                                    </div>
-                                    <div class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
-                                        8.7/10
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
-                                            <i data-lucide="qr-code" class="w-4 h-4 text-white"></i>
-                                        </div>
-                                        <span class="text-sm font-medium text-green-800">Versão B - Turma 9B</span>
-                                    </div>
-                                    <div class="bg-green-600 text-white px-2 py-1 rounded text-xs font-medium">
-                                        7.9/10
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
-                                            <i data-lucide="qr-code" class="w-4 h-4 text-white"></i>
-                                        </div>
-                                        <span class="text-sm font-medium text-purple-800">Versão C - Turma 9C</span>
-                                    </div>
-                                    <div class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium">
-                                        8.2/10
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center">
-                                        <i data-lucide="clock" class="w-5 h-5 text-orange-600 mr-2"></i>
-                                        <span class="text-sm font-medium text-orange-800">
-                                            Tempo economizado: 4h 30min! ⚡
-                                        </span>
-                                    </div>
-                                </div>
+                                <button class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all flex items-center justify-center space-x-2">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    <span>Gerar PDF</span>
+                                </button>
+                                <button class="w-full border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+                                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                                    <span>QR Code</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Floating benefits -->
-                        <div class="absolute -top-6 -right-6 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transform rotate-12">
-                            90% Menos Trabalho! 🚀
-                        </div>
-                        <div class="absolute -bottom-6 -left-6 bg-gradient-to-r from-green-400 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transform -rotate-12">
-                            100% Automático! 🎯
+                        <!-- Floating elements -->
+                        <div class="absolute -top-4 -right-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold pulse-animation">
+                            Novo!
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Problem Section -->
-    <section class="py-20 bg-red-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-red-700 mb-4">
-                    Professora, você ainda passa HORAS fazendo isso? 😰
-                </h2>
-                <p class="text-xl text-red-600 max-w-3xl mx-auto">
-                    Enquanto você poderia estar descansando ou preparando aulas incríveis...
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-red-200">
-                    <div class="bg-red-100 text-red-600 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="clock" class="w-8 h-8"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-red-700 mb-3">3+ Horas Criando Versões</h3>
-                    <p class="text-gray-600">Variando manualmente questões para evitar cola, reescrevendo tudo do zero...</p>
-                </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-red-200">
-                    <div class="bg-red-100 text-red-600 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="eye" class="w-8 h-8"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-red-700 mb-3">2+ Horas Corrigindo</h3>
-                    <p class="text-gray-600">Verificando gabarito por gabarito, calculando notas, digitando resultados...</p>
-                </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-red-200">
-                    <div class="bg-red-100 text-red-600 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="file-text" class="w-8 h-8"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-red-700 mb-3">1+ Hora nos Relatórios</h3>
-                    <p class="text-gray-600">Compilando estatísticas, criando planilhas, organizando dados...</p>
-                </div>
-            </div>
-
-            <div class="text-center mt-12">
-                <div class="bg-red-100 inline-block px-8 py-4 rounded-xl border border-red-200">
-                    <p class="text-2xl font-bold text-red-700">
-                        Total: <span class="text-3xl">6+ HORAS</span> por avaliação! 😱
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Solution Section -->
-    <section class="py-20 bg-green-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-green-700 mb-4">
-                    Com o ExamSystem: 15 MINUTOS e PRONTO! ✨
-                </h2>
-                <p class="text-xl text-green-600 max-w-3xl mx-auto">
-                    Veja como nossa tecnologia transforma seu trabalho em segundos
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-green-200 card-hover">
-                    <div class="bg-green-100 text-green-600 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="upload" class="w-8 h-8"></i>
-                    </div>
-                    <div class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold mb-4 inline-block">
-                        5 minutos
-                    </div>
-                    <h3 class="text-xl font-bold text-green-700 mb-3">1. Importe suas Questões</h3>
-                    <p class="text-gray-600">Cole suas questões ou importe de arquivos. Nosso sistema organiza tudo automaticamente!</p>
-                </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-green-200 card-hover">
-                    <div class="bg-green-100 text-green-600 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="shuffle" class="w-8 h-8"></i>
-                    </div>
-                    <div class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold mb-4 inline-block">
-                        5 minutos
-                    </div>
-                    <h3 class="text-xl font-bold text-green-700 mb-3">2. Gere Versões Únicas</h3>
-                    <p class="text-gray-600">Com 1 clique, criamos até 10 versões diferentes com embaralhamento inteligente!</p>
-                </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-green-200 card-hover">
-                    <div class="bg-green-100 text-green-600 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="zap" class="w-8 h-8"></i>
-                    </div>
-                    <div class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold mb-4 inline-block">
-                        5 minutos
-                    </div>
-                    <h3 class="text-xl font-bold text-green-700 mb-3">3. Correção Automática</h3>
-                    <p class="text-gray-600">Alunos escaneiam QR Code, respondem pelo celular. Notas e relatórios prontos na hora!</p>
-                </div>
-            </div>
-
-            <div class="text-center mt-12">
-                <div class="bg-gradient-to-r from-green-100 to-blue-100 inline-block px-8 py-6 rounded-xl border border-green-200">
-                    <p class="text-2xl font-bold text-green-700 mb-2">
-                        Resultado: <span class="text-3xl text-blue-600">15 MINUTOS</span> total! 🎉
-                    </p>
-                    <p class="text-lg text-gray-600">
-                        <strong>Economia de 95%</strong> do seu tempo + <strong>Zero estresse</strong> + <strong>Relatórios automáticos</strong>
-                    </p>
                 </div>
             </div>
         </div>
@@ -381,60 +224,162 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">
-                    Recursos que vão mudar sua vida profissional
+                    Tudo que você precisa para criar <span class="gradient-text">provas perfeitas</span>
                 </h2>
                 <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                    Tecnologia de ponta desenvolvida especificamente para professores brasileiros
+                    Do banco de questões à correção automática, temos todas as ferramentas que você precisa
                 </p>
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl shadow-lg border border-blue-200 card-hover">
-                    <div class="bg-blue-600 text-white p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="shuffle" class="w-8 h-8"></i>
+                <!-- Feature 1 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 card-hover">
+                    <div class="bg-blue-100 p-3 rounded-xl inline-flex mb-6">
+                        <i data-lucide="database" class="w-8 h-8 text-blue-600"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-blue-700 mb-3">Embaralhamento Inteligente</h3>
-                    <p class="text-gray-700">Algoritmo exclusivo que gera versões diferentes mantendo o mesmo nível de dificuldade. Adeus cola!</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Banco de Questões Inteligente</h3>
+                    <p class="text-gray-600 mb-6">
+                        Organize suas questões por matéria, dificuldade e tema. Sistema de tags avançado para encontrar qualquer questão em segundos.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Questões ilimitadas
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Filtros avançados
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Importação em lote
+                        </li>
+                    </ul>
                 </div>
 
-                <div class="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-2xl shadow-lg border border-green-200 card-hover">
-                    <div class="bg-green-600 text-white p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="qr-code" class="w-8 h-8"></i>
+                <!-- Feature 2 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 card-hover">
+                    <div class="bg-purple-100 p-3 rounded-xl inline-flex mb-6">
+                        <i data-lucide="shuffle" class="w-8 h-8 text-purple-600"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-green-700 mb-3">QR Code Mágico</h3>
-                    <p class="text-gray-700">Cada prova recebe um QR Code único. Aluno escaneia e responde pelo celular. Correção instantânea!</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Múltiplas Versões Automáticas</h3>
+                    <p class="text-gray-600 mb-6">
+                        Gere até 50 versões diferentes da mesma prova automaticamente. Questões e alternativas embaralhadas para evitar cola.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Até 50 versões
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Embaralhamento inteligente
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Gabaritos automáticos
+                        </li>
+                    </ul>
                 </div>
 
-                <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl shadow-lg border border-purple-200 card-hover">
-                    <div class="bg-purple-600 text-white p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="bar-chart-3" class="w-8 h-8"></i>
+                <!-- Feature 3 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 card-hover">
+                    <div class="bg-green-100 p-3 rounded-xl inline-flex mb-6">
+                        <i data-lucide="qr-code" class="w-8 h-8 text-green-600"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-purple-700 mb-3">Relatórios Incríveis</h3>
-                    <p class="text-gray-700">Gráficos automáticos de desempenho, estatísticas por questão, comparação entre turmas e muito mais!</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Correção por QR Code</h3>
+                    <p class="text-gray-600 mb-6">
+                        Alunos escaneiam o QR Code na prova e inserem as respostas no celular. Correção e nota instantâneas!
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Correção instantânea
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Sem papel extra
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Feedback imediato
+                        </li>
+                    </ul>
                 </div>
 
-                <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-8 rounded-2xl shadow-lg border border-orange-200 card-hover">
-                    <div class="bg-orange-600 text-white p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="clock" class="w-8 h-8"></i>
+                <!-- Feature 4 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 card-hover">
+                    <div class="bg-orange-100 p-3 rounded-xl inline-flex mb-6">
+                        <i data-lucide="file-text" class="w-8 h-8 text-orange-600"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-orange-700 mb-3">Economia de Tempo</h3>
-                    <p class="text-gray-700">De 6 horas para 15 minutos por avaliação. Mais tempo para o que realmente importa: ENSINAR!</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">PDFs Profissionais</h3>
+                    <p class="text-gray-600 mb-6">
+                        Provas em PDF com formatação perfeita, logotipo da escola, cabeçalho personalizado e layout otimizado para impressão.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Layout personalizável
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Logo da escola
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Qualidade impressão
+                        </li>
+                    </ul>
                 </div>
 
-                <div class="bg-gradient-to-br from-teal-50 to-teal-100 p-8 rounded-2xl shadow-lg border border-teal-200 card-hover">
-                    <div class="bg-teal-600 text-white p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="shield" class="w-8 h-8"></i>
+                <!-- Feature 5 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 card-hover">
+                    <div class="bg-red-100 p-3 rounded-xl inline-flex mb-6">
+                        <i data-lucide="bar-chart-3" class="w-8 h-8 text-red-600"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-teal-700 mb-3">Dados Seguros</h3>
-                    <p class="text-gray-700">Backup automático na nuvem, criptografia de ponta, conformidade com LGPD. Seus dados sempre protegidos!</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Relatórios Detalhados</h3>
+                    <p class="text-gray-600 mb-6">
+                        Veja estatísticas completas: questões mais erradas, desempenho por aluno, comparação entre turmas e muito mais.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Análise por questão
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Ranking de turmas
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Exportar para Excel
+                        </li>
+                    </ul>
                 </div>
 
-                <div class="bg-gradient-to-br from-pink-50 to-pink-100 p-8 rounded-2xl shadow-lg border border-pink-200 card-hover">
-                    <div class="bg-pink-600 text-white p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="smartphone" class="w-8 h-8"></i>
+                <!-- Feature 6 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 card-hover">
+                    <div class="bg-teal-100 p-3 rounded-xl inline-flex mb-6">
+                        <i data-lucide="users" class="w-8 h-8 text-teal-600"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-pink-700 mb-3">Mobile First</h3>
-                    <p class="text-gray-700">Funciona perfeitamente no celular, tablet e computador. Acesse de qualquer lugar, a qualquer hora!</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Colaboração em Equipe</h3>
+                    <p class="text-gray-600 mb-6">
+                        Trabalhe com outros professores, compartilhe bancos de questões e crie provas em conjunto.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Equipes ilimitadas
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Compartilhamento fácil
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
+                            Controle de permissões
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -445,29 +390,33 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">
-                    Planos que cabem no seu orçamento
+                    Planos que <span class="gradient-text">cabem no seu bolso</span>
                 </h2>
-                <p class="text-xl text-gray-600">
-                    Comece grátis e cresça conforme sua necessidade
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Comece grátis e evolua conforme sua necessidade. Sem pegadinhas, sem surpresas.
                 </p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-8">
+            <div class="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
                 <!-- Free Plan -->
                 <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
                     <div class="text-center mb-8">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Gratuito</h3>
-                        <div class="text-4xl font-bold text-gray-900 mb-2">R$ 0</div>
+                        <h3 class="text-2xl font-bold mb-2">Gratuito</h3>
+                        <div class="text-4xl font-bold mb-2">R$ 0</div>
                         <p class="text-gray-600">Para sempre</p>
                     </div>
                     <ul class="space-y-4 mb-8">
                         <li class="flex items-center">
                             <i data-lucide="check" class="w-5 h-5 text-green-500 mr-3"></i>
-                            <span>Até 50 alunos por mês</span>
+                            <span>Até 30 alunos por mês</span>
                         </li>
                         <li class="flex items-center">
                             <i data-lucide="check" class="w-5 h-5 text-green-500 mr-3"></i>
                             <span>3 versões por prova</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-5 h-5 text-green-500 mr-3"></i>
+                            <span>Banco de 100 questões</span>
                         </li>
                         <li class="flex items-center">
                             <i data-lucide="check" class="w-5 h-5 text-green-500 mr-3"></i>
@@ -478,9 +427,10 @@
                             <span>Relatórios básicos</span>
                         </li>
                     </ul>
-                    <button onclick="showRegister()" class="w-full bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium">
+                    <!-- NAVEGAÇÃO DIRETA - SEM MODAL -->
+                    <a href="/register" class="w-full block text-center bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium">
                         Começar Agora
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Pro Plan -->
@@ -506,27 +456,32 @@
                         </li>
                         <li class="flex items-center">
                             <i data-lucide="check" class="w-5 h-5 text-green-400 mr-3"></i>
-                            <span>Relatórios avançados</span>
+                            <span>Questões ilimitadas</span>
                         </li>
                         <li class="flex items-center">
                             <i data-lucide="check" class="w-5 h-5 text-green-400 mr-3"></i>
-                            <span>Backup automático</span>
+                            <span>Equipes de até 5 professores</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i data-lucide="check" class="w-5 h-5 text-green-400 mr-3"></i>
+                            <span>Relatórios avançados</span>
                         </li>
                         <li class="flex items-center">
                             <i data-lucide="check" class="w-5 h-5 text-green-400 mr-3"></i>
                             <span>Suporte prioritário</span>
                         </li>
                     </ul>
-                    <button onclick="showRegister()" class="w-full bg-white text-blue-600 py-3 rounded-xl hover:bg-gray-100 transition-colors font-bold">
-                        Teste 14 Dias Grátis
-                    </button>
+                    <!-- NAVEGAÇÃO DIRETA - SEM MODAL -->
+                    <a href="/register" class="w-full block text-center bg-white text-blue-600 py-3 rounded-xl hover:bg-gray-50 transition-colors font-medium">
+                        Teste Grátis por 7 Dias
+                    </a>
                 </div>
 
                 <!-- Enterprise Plan -->
                 <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
                     <div class="text-center mb-8">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Escola</h3>
-                        <div class="text-4xl font-bold text-gray-900 mb-2">R$ 297</div>
+                        <h3 class="text-2xl font-bold mb-2">Escola</h3>
+                        <div class="text-4xl font-bold mb-2">R$ 197</div>
                         <p class="text-gray-600">por mês</p>
                     </div>
                     <ul class="space-y-4 mb-8">
@@ -572,12 +527,12 @@
                     <div class="text-gray-600">Provas geradas</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-4xl font-bold text-purple-600 mb-2 stats-counter">95%</div>
-                    <div class="text-gray-600">Economia de tempo</div>
+                    <div class="text-4xl font-bold text-purple-600 mb-2 stats-counter">850K+</div>
+                    <div class="text-gray-600">Alunos avaliados</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-4xl font-bold text-orange-600 mb-2 stats-counter">4.9/5</div>
-                    <div class="text-gray-600">Avaliação média</div>
+                    <div class="text-4xl font-bold text-orange-600 mb-2 stats-counter">98%</div>
+                    <div class="text-gray-600">Taxa de satisfação</div>
                 </div>
             </div>
         </div>
@@ -588,70 +543,79 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">
-                    O que as professoras estão falando
+                    O que dizem nossos <span class="gradient-text">professores</span>
                 </h2>
-                <p class="text-xl text-gray-600">
-                    Depoimentos reais de quem transformou sua rotina
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Mais de 15.000 professores já transformaram sua forma de avaliar
                 </p>
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-                    <div class="flex mb-4">
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                    </div>
-                    <p class="text-gray-700 mb-6 italic">"Minha vida mudou completamente! Antes eu passava o fim de semana inteiro corrigindo provas. Agora tenho tempo para a família e para me aperfeiçoar como professora."</p>
-                    <div class="flex items-center">
-                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                            <i data-lucide="user" class="w-6 h-6 text-blue-600"></i>
+                <!-- Testimonial 1 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400">
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
                         </div>
+                    </div>
+                    <p class="text-gray-600 mb-6">
+                        "Revolucionou minha forma de criar provas! O que levava 3 horas agora faço em 15 minutos. A correção por QR Code é fantástica!"
+                    </p>
+                    <div class="flex items-center">
+                        <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=50&h=50&fit=crop&crop=face&auto=format" alt="Maria" class="w-12 h-12 rounded-full mr-4">
                         <div>
-                            <h4 class="font-bold text-gray-900">Profª Maria Silva</h4>
-                            <p class="text-gray-600 text-sm">Matemática - SP</p>
+                            <div class="font-semibold text-gray-900">Maria Silva</div>
+                            <div class="text-sm text-gray-600">Professora de Matemática</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-                    <div class="flex mb-4">
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                    </div>
-                    <p class="text-gray-700 mb-6 italic">"Os relatórios automáticos são incríveis! Consigo identificar exatamente onde cada aluno tem dificuldade. Meu trabalho como educadora nunca foi tão eficiente."</p>
-                    <div class="flex items-center">
-                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                            <i data-lucide="user" class="w-6 h-6 text-green-600"></i>
+                <!-- Testimonial 2 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400">
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
                         </div>
+                    </div>
+                    <p class="text-gray-600 mb-6">
+                        "Os relatórios são incríveis! Consigo identificar exatamente onde meus alunos têm dificuldade e ajustar minha metodologia."
+                    </p>
+                    <div class="flex items-center">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face&auto=format" alt="João" class="w-12 h-12 rounded-full mr-4">
                         <div>
-                            <h4 class="font-bold text-gray-900">Profª Ana Costa</h4>
-                            <p class="text-gray-600 text-sm">Português - RJ</p>
+                            <div class="font-semibold text-gray-900">João Santos</div>
+                            <div class="text-sm text-gray-600">Professor de História</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-                    <div class="flex mb-4">
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-current"></i>
-                    </div>
-                    <p class="text-gray-700 mb-6 italic">"Desde que uso o ExamSystem, zero problema com cola! Cada turma recebe uma versão diferente e os resultados são muito mais justos. Recomendo para todas as colegas!"</p>
-                    <div class="flex items-center">
-                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                            <i data-lucide="user" class="w-6 h-6 text-purple-600"></i>
+                <!-- Testimonial 3 -->
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400">
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            <i data-lucide="star" class="w-5 h-5 fill-current"></i>
                         </div>
+                    </div>
+                    <p class="text-gray-600 mb-6">
+                        "Finalmente um sistema brasileiro que entende nossas necessidades! O suporte é excepcional e está sempre disponível."
+                    </p>
+                    <div class="flex items-center">
+                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face&auto=format" alt="Ana" class="w-12 h-12 rounded-full mr-4">
                         <div>
-                            <h4 class="font-bold text-gray-900">Profª Carla Santos</h4>
-                            <p class="text-gray-600 text-sm">História - MG</p>
+                            <div class="font-semibold text-gray-900">Ana Costa</div>
+                            <div class="text-sm text-gray-600">Coordenadora Pedagógica</div>
                         </div>
                     </div>
                 </div>
@@ -664,61 +628,76 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">
-                    Perguntas Frequentes
+                    Perguntas <span class="gradient-text">Frequentes</span>
                 </h2>
                 <p class="text-xl text-gray-600">
                     Tire suas dúvidas sobre o ExamSystem
                 </p>
             </div>
 
-            <div class="space-y-4">
-                <div class="bg-gray-50 rounded-2xl overflow-hidden">
-                    <button onclick="toggleFaq(0)" class="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="text-lg font-medium text-gray-900">É realmente grátis para começar?</span>
-                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transform transition-transform" id="faq-icon-0"></i>
+            <div class="space-y-6">
+                <!-- FAQ 1 -->
+                <div class="bg-gray-50 rounded-2xl p-6">
+                    <button onclick="toggleFaq(1)" class="w-full flex items-center justify-between text-left">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Como funciona a correção por QR Code?
+                        </h3>
+                        <i id="faq-icon-1" data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transition-transform"></i>
                     </button>
-                    <div id="faq-content-0" class="hidden px-8 pb-6">
-                        <p class="text-gray-600">Sim! O plano gratuito permite até 50 alunos por mês e 3 versões por prova. Não pedimos cartão de crédito e você pode usar para sempre sem custo.</p>
+                    <div id="faq-content-1" class="mt-4 text-gray-600 hidden">
+                        O aluno escaneia o QR Code na prova, insere as respostas no celular e recebe a nota na hora. Você recebe um relatório completo com todas as respostas e estatísticas.
                     </div>
                 </div>
 
-                <div class="bg-gray-50 rounded-2xl overflow-hidden">
-                    <button onclick="toggleFaq(1)" class="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="text-lg font-medium text-gray-900">Meus alunos precisam de celular para responder?</span>
-                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transform transition-transform" id="faq-icon-1"></i>
+                <!-- FAQ 2 -->
+                <div class="bg-gray-50 rounded-2xl p-6">
+                    <button onclick="toggleFaq(2)" class="w-full flex items-center justify-between text-left">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Posso usar questões que já tenho?
+                        </h3>
+                        <i id="faq-icon-2" data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transition-transform"></i>
                     </button>
-                    <div id="faq-content-1" class="hidden px-8 pb-6">
-                        <p class="text-gray-600">Sim, mas funciona em qualquer smartphone simples. Eles só escaneiam o QR Code e respondem pelo navegador. Também oferecemos a opção de correção manual para escolas sem acesso a tecnologia.</p>
+                    <div id="faq-content-2" class="mt-4 text-gray-600 hidden">
+                        Sim! Você pode importar suas questões do Word, Excel ou digitar diretamente na plataforma. Também temos um banco com milhares de questões prontas.
                     </div>
                 </div>
 
-                <div class="bg-gray-50 rounded-2xl overflow-hidden">
-                    <button onclick="toggleFaq(2)" class="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="text-lg font-medium text-gray-900">É difícil de usar? Não sou muito boa com tecnologia...</span>
-                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transform transition-transform" id="faq-icon-2"></i>
+                <!-- FAQ 3 -->
+                <div class="bg-gray-50 rounded-2xl p-6">
+                    <button onclick="toggleFaq(3)" class="w-full flex items-center justify-between text-left">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            É difícil de usar?
+                        </h3>
+                        <i id="faq-icon-3" data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transition-transform"></i>
                     </button>
-                    <div id="faq-content-2" class="hidden px-8 pb-6">
-                        <p class="text-gray-600">Absolutamente não! Foi criado pensando em professores, não em técnicos. Em 10 minutos você já está criando sua primeira prova. Temos tutoriais em vídeo e suporte em português.</p>
+                    <div id="faq-content-3" class="mt-4 text-gray-600 hidden">
+                        Em 10 minutos você já está criando sua primeira prova. Temos tutoriais em vídeo e suporte em português.
                     </div>
                 </div>
 
-                <div class="bg-gray-50 rounded-2xl overflow-hidden">
-                    <button onclick="toggleFaq(3)" class="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="text-lg font-medium text-gray-900">Posso cancelar a qualquer momento?</span>
-                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transform transition-transform" id="faq-icon-3"></i>
+                <!-- FAQ 4 -->
+                <div class="bg-gray-50 rounded-2xl p-6">
+                    <button onclick="toggleFaq(4)" class="w-full flex items-center justify-between text-left">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Posso cancelar a qualquer momento?
+                        </h3>
+                        <i id="faq-icon-4" data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transition-transform"></i>
                     </button>
-                    <div id="faq-content-3" class="hidden px-8 pb-6">
-                        <p class="text-gray-600">Sim! Não há fidelidade ou multa por cancelamento. Cancele quando quiser com 1 clique. Seus dados ficam salvos por 30 dias caso mude de ideia.</p>
+                    <div id="faq-content-4" class="mt-4 text-gray-600 hidden">
+                        Sim! Não há fidelidade ou multa por cancelamento. Cancele quando quiser com 1 clique. Seus dados ficam salvos por 30 dias caso mude de ideia.
                     </div>
                 </div>
 
-                <div class="bg-gray-50 rounded-2xl overflow-hidden">
-                    <button onclick="toggleFaq(4)" class="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-100 transition-colors">
-                        <span class="text-lg font-medium text-gray-900">Funciona para todas as matérias?</span>
-                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transform transition-transform" id="faq-icon-4"></i>
+                <!-- FAQ 5 -->
+                <div class="bg-gray-50 rounded-2xl p-6">
+                    <button onclick="toggleFaq(5)" class="w-full flex items-center justify-between text-left">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Funciona para todas as matérias?
+                        </h3>
+                        <i id="faq-icon-5" data-lucide="chevron-down" class="w-5 h-5 text-gray-500 transition-transform"></i>
                     </button>
-                    <div id="faq-content-4" class="hidden px-8 pb-6">
-                        <p class="text-gray-600">Sim! Matemática, Português, História, Geografia, Ciências, Inglês... Qualquer matéria que use questões de múltipla escolha ou verdadeiro/falso.</p>
+                    <div id="faq-content-5" class="mt-4 text-gray-600 hidden">
+                        Sim! Matemática, Português, História, Geografia, Ciências, Inglês... Qualquer matéria que use questões de múltipla escolha ou verdadeiro/falso.
                     </div>
                 </div>
             </div>
@@ -726,67 +705,45 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 relative overflow-hidden">
-        <div class="absolute inset-0">
-            <div class="absolute -top-40 -right-40 w-80 h-80 bg-white rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
-            <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-white rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
-        </div>
-        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative">
-            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
-                Pronta para revolucionar suas avaliações?
+    <section class="py-20 bg-gradient-to-br from-blue-600 to-purple-600">
+        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl lg:text-5xl font-bold text-white mb-6">
+                Pronto para revolucionar suas avaliações?
             </h2>
-            <p class="text-xl text-blue-100 mb-8 leading-relaxed">
-                Junte-se a <strong>15.000+ professoras</strong> que já economizam <strong>6+ horas por semana</strong> 
-                com o ExamSystem. <br>Comece gratuitamente agora mesmo - sem cartão de crédito!
+            <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+                Junte-se a mais de 15.000 professores que já economizam horas toda semana
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <button onclick="showRegister()" class="bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-gray-100 transition-all duration-300 text-lg font-bold flex items-center justify-center group shadow-xl">
-                    <i data-lucide="play" class="mr-2 w-5 h-5"></i>
-                    Começar Teste Grátis
-                    <i data-lucide="arrow-right" class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
-                </button>
-                <button onclick="showDemo()" class="border-2 border-white text-white px-8 py-4 rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-300 text-lg font-medium flex items-center justify-center">
-                    <i data-lucide="video" class="mr-2 w-5 h-5"></i>
-                    Ver Demonstração
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <!-- NAVEGAÇÃO DIRETA - SEM MODAL -->
+                <a href="/register" class="bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-all shadow-xl">
+                    🚀 Começar Grátis Agora
+                </a>
+                <button class="border-2 border-white text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all">
+                    📞 Falar com Consultor
                 </button>
             </div>
-            <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-8 text-blue-100 text-sm">
-                <div class="flex items-center">
-                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2"></i>
-                    14 dias grátis
-                </div>
-                <div class="flex items-center">
-                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2"></i>
-                    Sem cartão de crédito
-                </div>
-                <div class="flex items-center">
-                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2"></i>
-                    Cancele quando quiser
-                </div>
-                <div class="flex items-center">
-                    <i data-lucide="check-circle" class="w-5 h-5 text-green-400 mr-2"></i>
-                    Suporte em português
-                </div>
-            </div>
+
+            <p class="text-blue-200 text-sm mt-6">
+                ✅ Sem cartão de crédito • ✅ Configuração em 2 minutos • ✅ Suporte em português
+            </p>
         </div>
     </section>
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="md:col-span-2">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="col-span-1 lg:col-span-2">
                     <div class="flex items-center space-x-2 mb-6">
                         <div class="bg-blue-600 p-2 rounded-lg">
                             <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
                         </div>
                         <span class="text-xl font-bold">ExamSystem</span>
-                        <span class="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">BETA</span>
                     </div>
-                    <p class="text-gray-400 mb-6 max-w-md leading-relaxed">
-                        A primeira plataforma brasileira de criação e correção automática de provas, 
-                        desenvolvida especialmente para professores que querem economizar tempo e 
-                        melhorar a qualidade de suas avaliações.
+                    <p class="text-gray-400 mb-6 max-w-md">
+                        A plataforma mais completa para criação de provas no Brasil. 
+                        Transforme horas de trabalho em minutos de produtividade.
                     </p>
                     <div class="flex space-x-4">
                         <a href="#" class="text-gray-400 hover:text-white transition-colors">
@@ -823,7 +780,6 @@
                         <li><a href="#pricing" class="hover:text-white transition-colors">Preços</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Tutoriais</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Roadmap</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">API</a></li>
                     </ul>
                 </div>
                 
@@ -832,41 +788,26 @@
                     <ul class="space-y-3 text-gray-400">
                         <li><a href="#" class="hover:text-white transition-colors">Central de Ajuda</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Contato</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">WhatsApp</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Termos de Uso</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Privacidade</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Whatsapp</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Status</a></li>
                     </ul>
                 </div>
             </div>
-            
-            <div class="border-t border-gray-800 mt-12 pt-8">
-                <div class="flex flex-col md:flex-row justify-between items-center">
-                    <p class="text-gray-400 text-sm mb-4 md:mb-0">
-                        &copy; 2024 ExamSystem. Todos os direitos reservados. Feito com ❤️ para professoras brasileiras.
-                    </p>
-                    <div class="flex items-center space-x-4 text-sm text-gray-400">
-                        <span>🇧🇷 Brasil</span>
-                        <span>•</span>
-                        <span>CNPJ: XX.XXX.XXX/0001-XX</span>
-                    </div>
+
+            <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <div class="text-gray-400 text-sm">
+                    © 2024 ExamSystem. Todos os direitos reservados.
+                </div>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Privacidade</a>
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Termos</a>
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Cookies</a>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Modal for Login/Register -->
-    <div id="authModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-8 max-w-md w-full relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
-            
-            <div id="modalContent">
-                <!-- Content will be inserted by JavaScript -->
-            </div>
-        </div>
-    </div>
-
+    <!-- Scripts -->
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
@@ -886,229 +827,13 @@
             icon.classList.toggle('rotate-180');
         }
 
-        // Modal functions
-        function showLogin() {
-            const modal = document.getElementById('authModal');
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div class="text-center mb-8">
-                    <div class="bg-blue-100 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="log-in" class="w-8 h-8 text-blue-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Entrar na sua conta</h2>
-                    <p class="text-gray-600">Acesse seu painel e continue economizando tempo!</p>
-                </div>
-                
-                <form class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="seu@email.com">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
-                        <input type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Sua senha">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                        Entrar
-                    </button>
-                </form>
-                
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">
-                        Ainda não tem conta? 
-                        <button onclick="showRegister()" class="text-blue-600 hover:text-blue-500 font-medium">
-                            Cadastre-se grátis
-                        </button>
-                    </p>
-                    <p class="text-sm text-gray-600 mt-2">
-                        <a href="#" class="text-blue-600 hover:text-blue-500">Esqueci minha senha</a>
-                    </p>
-                </div>
-            `;
-            
-            modal.classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        function showRegister() {
-            const modal = document.getElementById('authModal');
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div class="text-center mb-8">
-                    <div class="bg-green-100 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="user-plus" class="w-8 h-8 text-green-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Comece seu teste grátis</h2>
-                    <p class="text-gray-600">14 dias grátis • Sem cartão de crédito • Cancele quando quiser</p>
-                </div>
-                
-                <form class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome completo</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Seu nome completo">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="seu@email.com">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
-                        <input type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Crie uma senha segura">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Escola/Instituição</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Nome da sua escola (opcional)">
-                    </div>
-                    <div class="flex items-start">
-                        <input type="checkbox" class="mt-1 mr-3" id="terms">
-                        <label for="terms" class="text-sm text-gray-600">
-                            Aceito os <a href="#" class="text-blue-600 hover:text-blue-500">Termos de Uso</a> e 
-                            <a href="#" class="text-blue-600 hover:text-blue-500">Política de Privacidade</a>
-                        </label>
-                    </div>
-                    <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg hover:shadow-lg transition-all font-medium">
-                        Começar Teste Grátis
-                    </button>
-                </form>
-                
-                <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">
-                        Já tem conta? 
-                        <button onclick="showLogin()" class="text-blue-600 hover:text-blue-500 font-medium">
-                            Faça login
-                        </button>
-                    </p>
-                </div>
-                
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                    <p class="text-xs text-gray-500 text-center">
-                        🔒 Seus dados estão seguros e protegidos pela LGPD
-                    </p>
-                </div>
-            `;
-            
-            modal.classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        function showDemo() {
-            const modal = document.getElementById('authModal');
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div class="text-center mb-8">
-                    <div class="bg-purple-100 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="play" class="w-8 h-8 text-purple-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Demonstração do ExamSystem</h2>
-                    <p class="text-gray-600">Veja como funciona em 5 minutos</p>
-                </div>
-                
-                <div class="space-y-4">
-                    <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-center h-48">
-                        <div class="text-center">
-                            <i data-lucide="play-circle" class="w-16 h-16 text-gray-400 mx-auto mb-2"></i>
-                            <p class="text-gray-600">Vídeo de demonstração</p>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-3">
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
-                            Como criar sua primeira prova em 2 minutos
-                        </div>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
-                            Geração automática de múltiplas versões
-                        </div>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i>
-                            Correção automática e relatórios
-                        </div>
-                    </div>
-                    
-                    <button onclick="showRegister()" class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                        Quero Testar Agora
-                    </button>
-                </div>
-            `;
-            
-            modal.classList.remove('hidden');
-            lucide.createIcons();
-        }
-
+        // Contact function (placeholder)
         function showContact() {
-            const modal = document.getElementById('authModal');
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div class="text-center mb-8">
-                    <div class="bg-blue-100 p-3 rounded-xl inline-flex mb-4">
-                        <i data-lucide="phone" class="w-8 h-8 text-blue-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Fale com nossa equipe</h2>
-                    <p class="text-gray-600">Vamos ajudar você a escolher o melhor plano</p>
-                </div>
-                
-                <form class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome completo</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Seu nome completo">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="seu@email.com">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
-                        <input type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="(11) 99999-9999">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Escola/Instituição</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nome da sua escola">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Quantidade de alunos</label>
-                        <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option>Selecione...</option>
-                            <option>Até 100 alunos</option>
-                            <option>100-500 alunos</option>
-                            <option>500-1000 alunos</option>
-                            <option>Mais de 1000 alunos</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                        Solicitar Contato
-                    </button>
-                </form>
-                
-                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p class="text-sm text-blue-800 text-center">
-                        📞 Ou ligue direto: <strong>(11) 9999-9999</strong><br>
-                        💬 WhatsApp: <strong>(11) 9999-9999</strong>
-                    </p>
-                </div>
-            `;
-            
-            modal.classList.remove('hidden');
-            lucide.createIcons();
+            alert('Redirecionando para contato...');
+            // Aqui você pode redirecionar para página de contato ou abrir modal
         }
 
-        function closeModal() {
-            const modal = document.getElementById('authModal');
-            modal.classList.add('hidden');
-        }
-
-        // Close modal on backdrop click
-        document.getElementById('authModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-
-        // Smooth scrolling for anchor links
+        // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1125,98 +850,14 @@
         // Navbar background on scroll
         window.addEventListener('scroll', function() {
             const navbar = document.getElementById('navbar');
-            if (window.scrollY > 100) {
-                navbar.classList.add('shadow-lg');
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-white/95');
+                navbar.classList.remove('bg-white/80');
             } else {
-                navbar.classList.remove('shadow-lg');
-                navbar.style.background = 'rgba(255, 255, 255, 0.8)';
+                navbar.classList.add('bg-white/80');
+                navbar.classList.remove('bg-white/95');
             }
         });
-
-        // Animation on scroll (simple version)
-        function animateOnScroll() {
-            const elements = document.querySelectorAll('.card-hover');
-            elements.forEach(element => {
-                const elementTop = element.getBoundingClientRect().top;
-                const elementVisible = 150;
-                
-                if (elementTop < window.innerHeight - elementVisible) {
-                    element.style.opacity = '1';
-                    element.style.transform = 'translateY(0)';
-                } else {
-                    element.style.opacity = '0';
-                    element.style.transform = 'translateY(20px)';
-                }
-            });
-        }
-
-        // Initialize animation
-        document.addEventListener('DOMContentLoaded', function() {
-            const elements = document.querySelectorAll('.card-hover');
-            elements.forEach(element => {
-                element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                element.style.opacity = '0';
-                element.style.transform = 'translateY(20px)';
-            });
-            
-            animateOnScroll();
-            window.addEventListener('scroll', animateOnScroll);
-        });
-
-        // Stats counter animation
-        function animateValue(element, start, end, duration) {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const value = Math.floor(progress * (end - start) + start);
-                
-                if (element.textContent.includes('k+')) {
-                    element.textContent = (value / 1000).toFixed(0) + 'k+';
-                } else if (element.textContent.includes('M+')) {
-                    element.textContent = (value / 1000000).toFixed(1) + 'M+';
-                } else if (element.textContent.includes('%')) {
-                    element.textContent = value + '%';
-                } else if (element.textContent.includes('/5')) {
-                    element.textContent = (value / 10).toFixed(1) + '/5';
-                } else {
-                    element.textContent = value.toLocaleString();
-                }
-                
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
-            };
-            window.requestAnimationFrame(step);
-        }
-
-        // Trigger stats animation when section is visible
-        function checkStatsAnimation() {
-            const statsSection = document.querySelector('.stats-counter').closest('section');
-            const rect = statsSection.getBoundingClientRect();
-            
-            if (rect.top < window.innerHeight && rect.bottom > 0) {
-                const counters = document.querySelectorAll('.stats-counter');
-                counters.forEach(counter => {
-                    const text = counter.textContent;
-                    if (text.includes('15.000+')) {
-                        animateValue(counter, 0, 15000, 2000);
-                    } else if (text.includes('2.8M+')) {
-                        animateValue(counter, 0, 2800000, 2000);
-                    } else if (text.includes('95%')) {
-                        animateValue(counter, 0, 95, 2000);
-                    } else if (text.includes('4.9/5')) {
-                        animateValue(counter, 0, 49, 2000);
-                    }
-                });
-                window.removeEventListener('scroll', checkStatsAnimation);
-            }
-        }
-
-        window.addEventListener('scroll', checkStatsAnimation);
-
-        console.log('ExamSystem SaaS Landing Page carregada com sucesso! 🚀');
     </script>
 </body>
 </html>
