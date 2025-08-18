@@ -57,8 +57,8 @@ export default function Login() {
       // Simular chamada de login
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Redirecionar para dashboard (ou mostrar mensagem de sucesso)
-      navigate('/dashboard');
+      // 🔥 ALTERAÇÃO: Redirecionar para landing page em vez do dashboard
+      navigate('/');
     } catch (error) {
       setErrors({ general: 'Erro ao fazer login. Tente novamente.' });
     } finally {
@@ -67,30 +67,29 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-xl">
-              <BookOpen className="w-8 h-8 text-white" />
-            </div>
+        <div className="text-center mb-8">
+          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
-            ExamSystem
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Entre na sua conta para continuar
+          <h1 className="text-2xl font-bold text-gray-900">
+            Bem-vindo de volta!
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Entre em sua conta para continuar
           </p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* General Error */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* General Error Message */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {errors.general}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700 text-sm">{errors.general}</p>
               </div>
             )}
 
@@ -104,20 +103,17 @@ export default function Login() {
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  type="email"
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
-                  className={`
-                    appearance-none relative block w-full pl-10 pr-3 py-3 border 
-                    ${errors.email ? 'border-red-300' : 'border-gray-300'} 
-                    placeholder-gray-500 text-gray-900 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                    focus:z-10 sm:text-sm transition-colors
-                  `}
-                  placeholder="seu@email.com"
                   value={formData.email}
                   onChange={handleInputChange}
+                  className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.email 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  placeholder="seu@email.com"
                 />
               </div>
               {errors.email && (
@@ -135,20 +131,17 @@ export default function Login() {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  className={`
-                    appearance-none relative block w-full pl-10 pr-10 py-3 border 
-                    ${errors.password ? 'border-red-300' : 'border-gray-300'} 
-                    placeholder-gray-500 text-gray-900 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                    focus:z-10 sm:text-sm transition-colors
-                  `}
-                  placeholder="Sua senha"
                   value={formData.password}
                   onChange={handleInputChange}
+                  className={`block w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.password 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  placeholder="Digite sua senha"
                 />
                 <button
                   type="button"
@@ -174,39 +167,33 @@ export default function Login() {
                   id="rememberMe"
                   name="rememberMe"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   checked={formData.rememberMe}
                   onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
                   Lembrar de mim
                 </label>
               </div>
-
-              <div className="text-sm">
-                <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                  Esqueceu a senha?
-                </Link>
-              </div>
+              <Link 
+                to="/forgot-password" 
+                className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Esqueceu a senha?
+              </Link>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="
-                w-full flex justify-center items-center py-3 px-4 border border-transparent 
-                rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 
-                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
-                focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed
-                transition-colors duration-200
-              "
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-lg"
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   Entrando...
-                </>
+                </div>
               ) : (
                 'Entrar'
               )}
@@ -214,23 +201,30 @@ export default function Login() {
           </form>
 
           {/* Register Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+          <div className="mt-6 text-center border-t pt-6">
+            <p className="text-gray-600">
               Não tem uma conta?{' '}
               <Link 
                 to="/register" 
-                className="font-medium text-blue-600 hover:text-blue-500"
+                className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
               >
-                Registre-se aqui
+                Criar conta grátis
               </Link>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="text-center mt-8">
           <p className="text-xs text-gray-500">
-            © 2024 ExamSystem. Todos os direitos reservados.
+            Ao fazer login, você concorda com nossos{' '}
+            <Link to="/terms" className="text-blue-600 hover:underline">
+              Termos de Uso
+            </Link>{' '}
+            e{' '}
+            <Link to="/privacy" className="text-blue-600 hover:underline">
+              Política de Privacidade
+            </Link>
           </p>
         </div>
       </div>

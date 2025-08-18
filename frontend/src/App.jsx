@@ -39,14 +39,14 @@ function ProtectedRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      {/* 🔥 ALTERAÇÃO: Rota padrão "/" agora redireciona para "/login" */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* 🔥 ALTERAÇÃO: Rota padrão "/" agora vai para Landing Page */}
+      <Route path="/" element={<LandingPage />} />
       
       {/* Páginas de autenticação */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
-      {/* Landing page agora tem rota específica */}
+      {/* Landing page também disponível em /home (opcional) */}
       <Route path="/home" element={<LandingPage />} />
       
       {/* Dashboard protegido */}

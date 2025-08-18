@@ -76,8 +76,8 @@ export default function Register() {
       // Simular chamada de registro
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Redirecionar para dashboard (ou mostrar mensagem de sucesso)
-      navigate('/dashboard');
+      // 🔥 ALTERAÇÃO: Redirecionar para landing page em vez do dashboard
+      navigate('/');
     } catch (error) {
       setErrors({ general: 'Erro ao criar conta. Tente novamente.' });
     } finally {
@@ -86,57 +86,53 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
         {/* Header */}
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-xl">
-              <BookOpen className="w-8 h-8 text-white" />
-            </div>
+        <div className="text-center mb-8">
+          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
-            Criar Conta
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Junte-se ao ExamSystem e comece a criar suas provas
+          <h1 className="text-2xl font-bold text-gray-900">
+            Criar sua conta
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Junte-se a milhares de professores
           </p>
         </div>
 
         {/* Register Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* General Error */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* General Error Message */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {errors.general}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700 text-sm">{errors.general}</p>
               </div>
             )}
 
             {/* Name Field */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Nome completo
+                Nome Completo
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  type="text"
                   id="name"
                   name="name"
-                  type="text"
-                  autoComplete="name"
-                  className={`
-                    appearance-none relative block w-full pl-10 pr-3 py-3 border 
-                    ${errors.name ? 'border-red-300' : 'border-gray-300'} 
-                    placeholder-gray-500 text-gray-900 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                    focus:z-10 sm:text-sm transition-colors
-                  `}
-                  placeholder="Seu nome completo"
                   value={formData.name}
                   onChange={handleInputChange}
+                  className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.name 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  placeholder="Seu nome completo"
                 />
               </div>
               {errors.name && (
@@ -154,20 +150,17 @@ export default function Register() {
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  type="email"
                   id="email"
                   name="email"
-                  type="email"
-                  autoComplete="email"
-                  className={`
-                    appearance-none relative block w-full pl-10 pr-3 py-3 border 
-                    ${errors.email ? 'border-red-300' : 'border-gray-300'} 
-                    placeholder-gray-500 text-gray-900 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                    focus:z-10 sm:text-sm transition-colors
-                  `}
-                  placeholder="seu@email.com"
                   value={formData.email}
                   onChange={handleInputChange}
+                  className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.email 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  placeholder="seu@email.com"
                 />
               </div>
               {errors.email && (
@@ -185,20 +178,17 @@ export default function Register() {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className={`
-                    appearance-none relative block w-full pl-10 pr-10 py-3 border 
-                    ${errors.password ? 'border-red-300' : 'border-gray-300'} 
-                    placeholder-gray-500 text-gray-900 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                    focus:z-10 sm:text-sm transition-colors
-                  `}
-                  placeholder="Mínimo 6 caracteres"
                   value={formData.password}
                   onChange={handleInputChange}
+                  className={`block w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.password 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  placeholder="Mínimo 6 caracteres"
                 />
                 <button
                   type="button"
@@ -227,20 +217,17 @@ export default function Register() {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  type={showConfirmPassword ? 'text' : 'password'}
                   id="confirmPassword"
                   name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className={`
-                    appearance-none relative block w-full pl-10 pr-10 py-3 border 
-                    ${errors.confirmPassword ? 'border-red-300' : 'border-gray-300'} 
-                    placeholder-gray-500 text-gray-900 rounded-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                    focus:z-10 sm:text-sm transition-colors
-                  `}
-                  placeholder="Repita a senha"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
+                  className={`block w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.confirmPassword 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                  placeholder="Confirme sua senha"
                 />
                 <button
                   type="button"
@@ -259,72 +246,72 @@ export default function Register() {
               )}
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="flex items-start">
-              <input
-                id="acceptTerms"
-                name="acceptTerms"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
-                checked={formData.acceptTerms}
-                onChange={handleInputChange}
-              />
-              <label htmlFor="acceptTerms" className="ml-2 text-sm text-gray-600">
-                Eu aceito os{' '}
-                <Link to="/terms" className="text-blue-600 hover:text-blue-500">
-                  Termos de Uso
-                </Link>{' '}
-                e{' '}
-                <Link to="/privacy" className="text-blue-600 hover:text-blue-500">
-                  Política de Privacidade
-                </Link>
-              </label>
+            {/* Terms & Conditions */}
+            <div>
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="acceptTerms"
+                    name="acceptTerms"
+                    type="checkbox"
+                    checked={formData.acceptTerms}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+                <div className="ml-3">
+                  <label htmlFor="acceptTerms" className="text-sm text-gray-700">
+                    Eu concordo com os{' '}
+                    <Link to="/terms" className="text-blue-600 hover:text-blue-700 hover:underline">
+                      Termos de Uso
+                    </Link>{' '}
+                    e{' '}
+                    <Link to="/privacy" className="text-blue-600 hover:text-blue-700 hover:underline">
+                      Política de Privacidade
+                    </Link>
+                  </label>
+                </div>
+              </div>
+              {errors.acceptTerms && (
+                <p className="mt-1 text-sm text-red-600">{errors.acceptTerms}</p>
+              )}
             </div>
-            {errors.acceptTerms && (
-              <p className="text-sm text-red-600">{errors.acceptTerms}</p>
-            )}
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="
-                w-full flex justify-center items-center py-3 px-4 border border-transparent 
-                rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 
-                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
-                focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed
-                transition-colors duration-200
-              "
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-lg"
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   Criando conta...
-                </>
+                </div>
               ) : (
-                'Criar Conta'
+                'Criar Conta Grátis'
               )}
             </button>
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+          <div className="mt-6 text-center border-t pt-6">
+            <p className="text-gray-600">
               Já tem uma conta?{' '}
               <Link 
                 to="/login" 
-                className="font-medium text-blue-600 hover:text-blue-500"
+                className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
               >
-                Faça login aqui
+                Fazer login
               </Link>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="text-center mt-8">
           <p className="text-xs text-gray-500">
-            © 2024 ExamSystem. Todos os direitos reservados.
+            Teste grátis por 14 dias • Sem cartão de crédito
           </p>
         </div>
       </div>
