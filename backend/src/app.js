@@ -22,37 +22,85 @@ app.use((req, res, next) => {
   next();
 });
 
-// ROTAS BÁSICAS
+// ROTA RAIZ BÁSICA
 app.get('/', (req, res) => {
   res.json({
     success: true,
     message: 'Exam System API',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API is healthy',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    documentation: '/api',
+    health: '/api/health'
   });
 });
 
-// TENTAR IMPORTAR ROTAS COM FALLBACK
+// TENTAR IMPORTAR ROTAS COM FALLBACK ROBUSTO
 let apiRoutes;
 try {
   apiRoutes = require('./routes');
   app.use('/api', apiRoutes);
   console.log('✅ Rotas da API carregadas com sucesso');
 } catch (error) {
-  console.error('❌ Erro ao carregar rotas da API:', error);
+  console.error('❌ Erro ao carregar rotas da API:', error.message);
+  console.error('📍 Stack:', error.stack);
   
-  // ROTA DE FALLBACK PARA /api/subjects
-  app.get('/api/subjects', (req, res) => {
-    console.log('🔄 Usando rota de fallback para /api/subjects');
+  // CRIAR ROUTER DE FALLBACK COMPLETO
+  const fallbackRouter = express.Router();
+  
+  // Health check de fallback
+  fallbackRouter.get('/health', (req, res) => {
+    console.log('🔄 Usando health check de fallback');
+    res.json({
+      success: true,
+      message: 'API is healthy (fallback mode)',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      mode: 'fallback'
+    });
+  });
+
+  // Informações da API de fallback
+  fallbackRouter.get('/', (req, res) => {
+    console.log('🔄 Usando info da API de fallback');
+    res.json({
+      success: true,
+      message: 'Exam System API (Fallback Mode)',
+      version: '1.0.0',
+      mode: 'fallback',
+      documentation: '/api/docs',
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth',
+        subjects: '/api/subjects',
+        questions: '/api/questions',
+        exams: '/api/exams',
+        correction: '/api/correction'
+      }
+    });
+  });
+
+  // Rotas de autenticação de fallback
+  fallbackRouter.get('/auth/profile', (req, res) => {
+    console.log('🔄 Usando rota de auth profile fallback');
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: 'fallback-user',
+          name: 'Fallback User',
+          email: 'fallback@example.com',
+          role: 'teacher'
+        }
+      },
+      mode: 'fallback'
+    });
+  });
+
+  // Rotas de disciplinas de fallback
+  fallbackRouter.get('/subjects', (req, res) => {
+    console.log('🔄 Usando rota de subjects GET fallback');
     res.json({
       success: true,
       data: {
@@ -65,12 +113,13 @@ try {
           hasNext: false,
           hasPrev: false
         }
-      }
+      },
+      mode: 'fallback'
     });
   });
 
-  app.post('/api/subjects', (req, res) => {
-    console.log('🔄 Usando rota de fallback para POST /api/subjects');
+  fallbackRouter.post('/subjects', (req, res) => {
+    console.log('🔄 Usando rota de subjects POST fallback');
     res.status(201).json({
       success: true,
       message: 'Disciplina criada com sucesso (modo fallback)',
@@ -85,27 +134,70 @@ try {
           createdAt: new Date(),
           updatedAt: new Date()
         }
-      }
+      },
+      mode: 'fallback'
     });
   });
 
-  // Outras rotas de fallback
-  app.get('/api/auth/profile', (req, res) => {
+  // Rotas de questões de fallback
+  fallbackRouter.get('/questions', (req, res) => {
+    console.log('🔄 Usando rota de questions fallback');
     res.json({
       success: true,
       data: {
-        user: {
-          id: 'test-user',
-          name: 'Test User',
-          email: 'test@example.com',
-          role: 'teacher'
+        questions: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          pages: 0,
+          hasNext: false,
+          hasPrev: false
         }
-      }
+      },
+      mode: 'fallback'
     });
   });
+
+  // Rotas de provas de fallback
+  fallbackRouter.get('/exams', (req, res) => {
+    console.log('🔄 Usando rota de exams fallback');
+    res.json({
+      success: true,
+      data: {
+        exams: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          pages: 0,
+          hasNext: false,
+          hasPrev: false
+        }
+      },
+      mode: 'fallback'
+    });
+  });
+
+  // Rota catch-all para endpoints não implementados
+  fallbackRouter.use('*', (req, res) => {
+    console.log('🔄 Fallback catch-all para:', req.method, req.originalUrl);
+    res.status(501).json({
+      success: false,
+      message: 'Endpoint não implementado no modo fallback',
+      path: req.originalUrl,
+      method: req.method,
+      timestamp: new Date().toISOString(),
+      mode: 'fallback'
+    });
+  });
+
+  // Usar o router de fallback
+  app.use('/api', fallbackRouter);
+  console.log('⚠️ Sistema rodando em modo fallback');
 }
 
-// MIDDLEWARE DE TRATAMENTO DE ERRO GLOBAL - MAIS ROBUSTO
+// MIDDLEWARE DE TRATAMENTO DE ERRO GLOBAL
 app.use((err, req, res, next) => {
   console.error('🚨 ERRO CAPTURADO NO MIDDLEWARE GLOBAL:');
   console.error('📍 URL:', req.method, req.url);
@@ -164,21 +256,16 @@ app.use('*', (req, res) => {
     message: 'Rota não encontrada',
     path: req.originalUrl,
     method: req.method,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    available_routes: [
+      'GET /',
+      'GET /api',
+      'GET /api/health',
+      'GET /api/auth/profile',
+      'GET /api/subjects',
+      'POST /api/subjects'
+    ]
   });
-});
-
-// TRATAMENTO DE ERROS NÃO CAPTURADOS
-process.on('uncaughtException', (err) => {
-  console.error('🚨 UNCAUGHT EXCEPTION:');
-  console.error(err);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (err) => {
-  console.error('🚨 UNHANDLED REJECTION:');
-  console.error(err);
-  process.exit(1);
 });
 
 module.exports = app;

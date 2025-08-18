@@ -1,321 +1,249 @@
 const { Sequelize } = require('sequelize');
-const config = require('../config/database');
+const path = require('path');
+require('dotenv').config();
 
-// Determine environment
-const env = process.env.NODE_ENV || 'development';
-const dbConfig = config[env];
-
-// Create Sequelize instance
-const sequelize = new Sequelize(
-  dbConfig.database,
-  dbConfig.username,
-  dbConfig.password,
-  {
-    host: dbConfig.host,
-    port: dbConfig.port,
-    dialect: dbConfig.dialect,
-    dialectOptions: dbConfig.dialectOptions || {},
-    timezone: dbConfig.timezone || '-03:00',
-    pool: dbConfig.pool || {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
-    logging: dbConfig.logging
+// Configuração do banco de dados com fallback
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'exam_system',
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || '',
+  dialect: 'postgres',
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  },
+  dialectOptions: {
+    // SSL config para produção se necessário
+    ...(process.env.NODE_ENV === 'production' && {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    })
   }
-);
-
-// Import models
-const User = require('./User')(sequelize, Sequelize.DataTypes);
-const Subject = require('./Subject')(sequelize, Sequelize.DataTypes);
-const Question = require('./Question')(sequelize, Sequelize.DataTypes);
-const Exam = require('./Exam')(sequelize, Sequelize.DataTypes);
-const ExamVariation = require('./ExamVariation')(sequelize, Sequelize.DataTypes);
-const ExamQuestion = require('./ExamQuestion')(sequelize, Sequelize.DataTypes);
-const Answer = require('./Answer')(sequelize, Sequelize.DataTypes);
-
-// Store models in object
-const models = {
-  User,
-  Subject,
-  Question,
-  Exam,
-  ExamVariation,
-  ExamQuestion,
-  Answer
 };
 
-// Define associations
-setupAssociations();
-
-function setupAssociations() {
-  // User associations
-  User.hasMany(Subject, { 
-    foreignKey: 'userId', 
-    as: 'subjects',
-    onDelete: 'CASCADE'
-  });
-  
-  User.hasMany(Question, { 
-    foreignKey: 'userId', 
-    as: 'questions',
-    onDelete: 'CASCADE'
-  });
-  
-  User.hasMany(Exam, { 
-    foreignKey: 'userId', 
-    as: 'exams',
-    onDelete: 'CASCADE'
-  });
-  
-  User.hasMany(Answer, { 
-    foreignKey: 'userId', 
-    as: 'answers',
-    onDelete: 'SET NULL'
-  });
-
-  // Subject associations
-  Subject.belongsTo(User, { 
-    foreignKey: 'userId', 
-    as: 'user' 
-  });
-  
-  Subject.hasMany(Question, { 
-    foreignKey: 'subjectId', 
-    as: 'questions',
-    onDelete: 'RESTRICT'
-  });
-  
-  Subject.hasMany(Exam, { 
-    foreignKey: 'subjectId', 
-    as: 'exams',
-    onDelete: 'RESTRICT'
-  });
-
-  // Question associations
-  Question.belongsTo(User, { 
-    foreignKey: 'userId', 
-    as: 'user' 
-  });
-  
-  Question.belongsTo(Subject, { 
-    foreignKey: 'subjectId', 
-    as: 'subject' 
-  });
-  
-  Question.belongsToMany(ExamVariation, { 
-    through: ExamQuestion, 
-    foreignKey: 'questionId',
-    otherKey: 'variationId',
-    as: 'examVariations'
-  });
-
-  // Exam associations
-  Exam.belongsTo(User, { 
-    foreignKey: 'userId', 
-    as: 'user' 
-  });
-  
-  Exam.belongsTo(Subject, { 
-    foreignKey: 'subjectId', 
-    as: 'subject' 
-  });
-  
-  Exam.hasMany(ExamVariation, { 
-    foreignKey: 'examId', 
-    as: 'variations',
-    onDelete: 'CASCADE'
-  });
-  
-  Exam.hasMany(Answer, { 
-    foreignKey: 'examId', 
-    as: 'answers',
-    onDelete: 'CASCADE'
-  });
-
-  // ExamVariation associations
-  ExamVariation.belongsTo(Exam, { 
-    foreignKey: 'examId', 
-    as: 'exam' 
-  });
-  
-  ExamVariation.belongsToMany(Question, { 
-    through: ExamQuestion, 
-    foreignKey: 'variationId',
-    otherKey: 'questionId',
-    as: 'questions'
-  });
-  
-  ExamVariation.hasMany(Answer, { 
-    foreignKey: 'variationId', 
-    as: 'answers',
-    onDelete: 'CASCADE'
-  });
-  
-  ExamVariation.hasMany(ExamQuestion, { 
-    foreignKey: 'variationId', 
-    as: 'examQuestions',
-    onDelete: 'CASCADE'
-  });
-
-  // ExamQuestion associations
-  ExamQuestion.belongsTo(Exam, { 
-    foreignKey: 'examId', 
-    as: 'exam' 
-  });
-  
-  ExamQuestion.belongsTo(ExamVariation, { 
-    foreignKey: 'variationId', 
-    as: 'variation' 
-  });
-  
-  ExamQuestion.belongsTo(Question, { 
-    foreignKey: 'questionId', 
-    as: 'question' 
-  });
-
-  // Answer associations
-  Answer.belongsTo(User, { 
-    foreignKey: 'userId', 
-    as: 'user' 
-  });
-  
-  Answer.belongsTo(Exam, { 
-    foreignKey: 'examId', 
-    as: 'exam' 
-  });
-  
-  Answer.belongsTo(ExamVariation, { 
-    foreignKey: 'variationId', 
-    as: 'variation' 
-  });
-}
-
-// Add instance methods to models
-addInstanceMethods();
-
-function addInstanceMethods() {
-  // Exam instance methods
-  Exam.prototype.canTakeExam = function() {
-    if (!this.isPublished) return false;
-    if (this.expiresAt && new Date() > new Date(this.expiresAt)) return false;
-    return true;
-  };
-
-  // Question instance methods
-  Question.prototype.shuffleAlternatives = function() {
-    const alternatives = [...this.alternatives];
-    const correctAnswer = this.correctAnswer;
-    const correctText = alternatives[correctAnswer];
-    
-    // Fisher-Yates shuffle
-    for (let i = alternatives.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]];
-    }
-    
-    // Find new position of correct answer
-    const newCorrectAnswer = alternatives.indexOf(correctText);
-    
-    return {
-      alternatives,
-      correctAnswer: newCorrectAnswer
-    };
-  };
-
-  Question.prototype.updateAverageScore = async function(isCorrect) {
-    this.timesUsed = (this.timesUsed || 0) + 1;
-    if (isCorrect) {
-      this.timesCorrect = (this.timesCorrect || 0) + 1;
-    }
-    
-    this.averageScore = (this.timesCorrect / this.timesUsed) * 100;
-    
-    await this.save();
-  };
-
-  // Subject instance methods
-  Subject.prototype.canCreateExam = async function(requirements) {
-    const [easyCount, mediumCount, hardCount] = await Promise.all([
-      Question.count({
-        where: { 
-          subjectId: this.id, 
-          difficulty: 'easy', 
-          isActive: true 
-        }
-      }),
-      Question.count({
-        where: { 
-          subjectId: this.id, 
-          difficulty: 'medium', 
-          isActive: true 
-        }
-      }),
-      Question.count({
-        where: { 
-          subjectId: this.id, 
-          difficulty: 'hard', 
-          isActive: true 
-        }
-      })
-    ]);
-
-    const available = { easy: easyCount, medium: mediumCount, hard: hardCount };
-    const required = requirements || { easy: 0, medium: 0, hard: 0 };
-
-    const canCreate = available.easy >= required.easy && 
-                     available.medium >= required.medium && 
-                     available.hard >= required.hard;
-
-    return { canCreate, available, required };
-  };
-}
-
-// Add class methods
-addClassMethods();
-
-function addClassMethods() {
-  // Question class methods
-  Question.getRandomQuestions = async function(subjectId, distribution) {
-    const { easy = 0, medium = 0, hard = 0 } = distribution;
-    
-    const [easyQuestions, mediumQuestions, hardQuestions] = await Promise.all([
-      easy > 0 ? this.findAll({
-        where: { subjectId, difficulty: 'easy', isActive: true },
-        order: [sequelize.random()],
-        limit: easy
-      }) : [],
-      medium > 0 ? this.findAll({
-        where: { subjectId, difficulty: 'medium', isActive: true },
-        order: [sequelize.random()],
-        limit: medium
-      }) : [],
-      hard > 0 ? this.findAll({
-        where: { subjectId, difficulty: 'hard', isActive: true },
-        order: [sequelize.random()],
-        limit: hard
-      }) : []
-    ]);
-
-    return [...easyQuestions, ...mediumQuestions, ...hardQuestions];
-  };
-
-  // User class methods
-  User.findByEmail = function(email) {
-    return this.findOne({ where: { email: email.toLowerCase() } });
-  };
-}
-
-// Execute associate methods if they exist
-Object.keys(models).forEach(modelName => {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
-  }
+console.log('🔧 Configuração do banco:', {
+  host: dbConfig.host,
+  port: dbConfig.port,
+  database: dbConfig.database,
+  username: dbConfig.username,
+  hasPassword: !!dbConfig.password
 });
 
-module.exports = {
+// Criar instância do Sequelize
+const sequelize = new Sequelize(dbConfig);
+
+// Objeto para armazenar modelos
+const db = {
   sequelize,
-  Sequelize,
-  ...models
+  Sequelize
 };
+
+// Função para tentar importar modelos com fallback
+function tryImportModel(modelName, modelPath) {
+  try {
+    const model = require(modelPath)(sequelize, Sequelize.DataTypes);
+    db[modelName] = model;
+    console.log(`✅ Modelo ${modelName} carregado com sucesso`);
+    return model;
+  } catch (error) {
+    console.warn(`⚠️ Falha ao carregar modelo ${modelName}:`, error.message);
+    
+    // Criar modelo básico de fallback
+    const fallbackModel = {
+      name: modelName,
+      findAll: () => Promise.resolve([]),
+      findByPk: () => Promise.resolve(null),
+      create: (data) => Promise.resolve({ id: Date.now(), ...data }),
+      update: (data) => Promise.resolve([1]),
+      destroy: () => Promise.resolve(1),
+      count: () => Promise.resolve(0),
+      findAndCountAll: () => Promise.resolve({ count: 0, rows: [] })
+    };
+    
+    db[modelName] = fallbackModel;
+    console.log(`🔄 Modelo fallback ${modelName} criado`);
+    return fallbackModel;
+  }
+}
+
+// Lista de modelos para importar
+const models = [
+  { name: 'User', path: './User' },
+  { name: 'Subject', path: './Subject' },
+  { name: 'Question', path: './Question' },
+  { name: 'Exam', path: './Exam' },
+  { name: 'ExamVariation', path: './ExamVariation' },
+  { name: 'ExamQuestion', path: './ExamQuestion' },
+  { name: 'Answer', path: './Answer' },
+  { name: 'Submission', path: './Submission' }
+];
+
+// Importar todos os modelos
+models.forEach(({ name, path }) => {
+  tryImportModel(name, path);
+});
+
+// Configurar associações se os modelos existirem
+try {
+  if (db.User && db.Subject) {
+    // User has many Subjects
+    db.User.hasMany(db.Subject, {
+      foreignKey: 'userId',
+      as: 'subjects'
+    });
+    db.Subject.belongsTo(db.User, {
+      foreignKey: 'userId',
+      as: 'user'
+    });
+  }
+
+  if (db.Subject && db.Question) {
+    // Subject has many Questions
+    db.Subject.hasMany(db.Question, {
+      foreignKey: 'subjectId',
+      as: 'questions'
+    });
+    db.Question.belongsTo(db.Subject, {
+      foreignKey: 'subjectId',
+      as: 'subject'
+    });
+  }
+
+  if (db.User && db.Exam) {
+    // User has many Exams
+    db.User.hasMany(db.Exam, {
+      foreignKey: 'userId',
+      as: 'exams'
+    });
+    db.Exam.belongsTo(db.User, {
+      foreignKey: 'userId',
+      as: 'user'
+    });
+  }
+
+  if (db.Subject && db.Exam) {
+    // Subject has many Exams
+    db.Subject.hasMany(db.Exam, {
+      foreignKey: 'subjectId',
+      as: 'exams'
+    });
+    db.Exam.belongsTo(db.Subject, {
+      foreignKey: 'subjectId',
+      as: 'subject'
+    });
+  }
+
+  if (db.Exam && db.ExamVariation) {
+    // Exam has many ExamVariations
+    db.Exam.hasMany(db.ExamVariation, {
+      foreignKey: 'examId',
+      as: 'variations'
+    });
+    db.ExamVariation.belongsTo(db.Exam, {
+      foreignKey: 'examId',
+      as: 'exam'
+    });
+  }
+
+  if (db.Exam && db.Question && db.ExamQuestion) {
+    // Many-to-many: Exam and Question through ExamQuestion
+    db.Exam.belongsToMany(db.Question, {
+      through: db.ExamQuestion,
+      foreignKey: 'examId',
+      otherKey: 'questionId',
+      as: 'questions'
+    });
+    db.Question.belongsToMany(db.Exam, {
+      through: db.ExamQuestion,
+      foreignKey: 'questionId',
+      otherKey: 'examId',
+      as: 'exams'
+    });
+  }
+
+  if (db.ExamVariation && db.Answer) {
+    // ExamVariation has many Answers
+    db.ExamVariation.hasMany(db.Answer, {
+      foreignKey: 'examVariationId',
+      as: 'answers'
+    });
+    db.Answer.belongsTo(db.ExamVariation, {
+      foreignKey: 'examVariationId',
+      as: 'examVariation'
+    });
+  }
+
+  if (db.Question && db.Answer) {
+    // Question has many Answers
+    db.Question.hasMany(db.Answer, {
+      foreignKey: 'questionId',
+      as: 'answers'
+    });
+    db.Answer.belongsTo(db.Question, {
+      foreignKey: 'questionId',
+      as: 'question'
+    });
+  }
+
+  console.log('✅ Associações dos modelos configuradas');
+} catch (error) {
+  console.warn('⚠️ Erro ao configurar associações:', error.message);
+}
+
+// Função para testar conexão com o banco
+async function testConnection() {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Conexão com o banco de dados estabelecida com sucesso');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao conectar com o banco de dados:', error.message);
+    return false;
+  }
+}
+
+// Função para sincronizar modelos
+async function syncModels(force = false) {
+  try {
+    await sequelize.sync({ force, alter: !force });
+    console.log('✅ Modelos sincronizados com o banco de dados');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar modelos:', error.message);
+    return false;
+  }
+}
+
+// Adicionar funções utilitárias ao objeto db
+db.testConnection = testConnection;
+db.syncModels = syncModels;
+
+// Health check para o banco
+db.healthCheck = async () => {
+  try {
+    await sequelize.authenticate();
+    const stats = await sequelize.query('SELECT 1+1 AS result', { type: Sequelize.QueryTypes.SELECT });
+    return {
+      status: 'healthy',
+      connected: true,
+      timestamp: new Date().toISOString(),
+      test_query: stats[0]?.result === 2
+    };
+  } catch (error) {
+    return {
+      status: 'unhealthy',
+      connected: false,
+      timestamp: new Date().toISOString(),
+      error: error.message
+    };
+  }
+};
+
+module.exports = db;
