@@ -1,78 +1,83 @@
+// frontend/src/components/common/Loading.jsx - VERSÃO ATUALIZADA COMPLETA
 import React from 'react';
-import { Loader2, BookOpen, FileText, Users, Settings } from 'lucide-react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
-// Main Loading Component
-export function Loading({ 
+// ================================
+// LOADING COMPONENTS
+// ================================
+
+export default function Loading({ 
   size = 'medium', 
   text = 'Carregando...', 
-  fullScreen = false,
-  variant = 'default',
-  className = '' 
+  className = '',
+  showText = true 
 }) {
   const sizeClasses = {
     small: 'w-4 h-4',
     medium: 'w-8 h-8',
     large: 'w-12 h-12',
-    xlarge: 'w-16 h-16'
   };
 
-  const textSizeClasses = {
-    small: 'text-sm',
-    medium: 'text-base',
-    large: 'text-lg',
-    xlarge: 'text-xl'
-  };
-
-  const variants = {
-    default: 'text-primary-600',
-    light: 'text-white',
-    dark: 'text-gray-900',
-    muted: 'text-gray-500'
-  };
-
-  const content = (
-    <div className={`flex flex-col items-center justify-center space-y-3 ${className}`}>
-      <Loader2 className={`${sizeClasses[size]} ${variants[variant]} animate-spin`} />
-      {text && (
-        <p className={`${textSizeClasses[size]} ${variants[variant]} font-medium animate-pulse`}>
-          {text}
-        </p>
-      )}
+  return (
+    <div className={`flex items-center justify-center ${className}`}>
+      <div className="text-center">
+        <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600 mx-auto`} />
+        {showText && (
+          <p className="mt-2 text-sm text-gray-600">{text}</p>
+        )}
+      </div>
     </div>
   );
-
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50">
-        {content}
-      </div>
-    );
-  }
-
-  return content;
 }
 
-// Skeleton Loading Components
+// Full page loading
+export function LoadingPage({ text = 'Carregando página...' }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Loading size="large" text={text} />
+    </div>
+  );
+}
+
+// Skeleton Components
 export function SkeletonLine({ width = 'full', height = '4', className = '' }) {
+  const widthClasses = {
+    '1/4': 'w-1/4',
+    '1/2': 'w-1/2',
+    '3/4': 'w-3/4',
+    'full': 'w-full',
+  };
+
+  const heightClasses = {
+    '3': 'h-3',
+    '4': 'h-4',
+    '5': 'h-5',
+    '6': 'h-6',
+  };
+
   return (
     <div 
-      className={`bg-gray-200 rounded animate-pulse h-${height} w-${width} ${className}`}
+      className={`
+        bg-gray-200 rounded animate-pulse
+        ${widthClasses[width]} ${heightClasses[height]} ${className}
+      `} 
     />
   );
 }
 
-export function SkeletonCard({ lines = 3, showImage = false, className = '' }) {
+export function SkeletonCard({ lines = 3, showImage = true, className = '' }) {
   return (
-    <div className={`bg-white rounded-lg border p-4 space-y-3 ${className}`}>
+    <div className={`bg-white p-6 rounded-lg border ${className}`}>
       {showImage && (
-        <div className="bg-gray-200 rounded h-32 w-full animate-pulse" />
+        <div className="w-full h-48 bg-gray-200 rounded-lg animate-pulse mb-4" />
       )}
-      <div className="space-y-2">
-        <SkeletonLine width="3/4" height="6" />
-        {Array.from({ length: lines }).map((_, index) => (
+      <div className="space-y-3">
+        {[...Array(lines)].map((_, i) => (
           <SkeletonLine 
-            key={index} 
-            width={index === lines - 1 ? '1/2' : 'full'} 
+            key={i} 
+            width={i === lines - 1 ? '3/4' : 'full'} 
           />
         ))}
       </div>
@@ -80,250 +85,70 @@ export function SkeletonCard({ lines = 3, showImage = false, className = '' }) {
   );
 }
 
-export function SkeletonTable({ rows = 5, columns = 4, className = '' }) {
+export function SkeletonTable({ rows = 5, columns = 4 }) {
   return (
-    <div className={`bg-white rounded-lg border overflow-hidden ${className}`}>
+    <div className="bg-white rounded-lg border overflow-hidden">
       {/* Header */}
-      <div className="bg-gray-50 p-4 border-b">
+      <div className="border-b p-4">
         <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
-          {Array.from({ length: columns }).map((_, index) => (
-            <SkeletonLine key={index} width="3/4" height="5" />
+          {[...Array(columns)].map((_, i) => (
+            <SkeletonLine key={i} width="3/4" />
           ))}
         </div>
       </div>
       
       {/* Rows */}
-      <div className="divide-y">
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <div key={rowIndex} className="p-4">
-            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
-              {Array.from({ length: columns }).map((_, colIndex) => (
-                <SkeletonLine 
-                  key={colIndex} 
-                  width={colIndex === 0 ? 'full' : '2/3'} 
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Specialized Loading Components
-export function LoadingButton({ 
-  children, 
-  loading = false, 
-  disabled = false,
-  size = 'medium',
-  variant = 'primary',
-  className = '',
-  ...props
-}) {
-  const sizeClasses = {
-    small: 'px-3 py-1.5 text-sm',
-    medium: 'px-4 py-2 text-base',
-    large: 'px-6 py-3 text-lg'
-  };
-
-  const variantClasses = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white',
-    secondary: 'bg-gray-600 hover:bg-gray-700 text-white',
-    outline: 'border border-primary-600 text-primary-600 hover:bg-primary-50',
-    ghost: 'text-primary-600 hover:bg-primary-50'
-  };
-
-  const iconSize = {
-    small: 'w-4 h-4',
-    medium: 'w-5 h-5',
-    large: 'w-6 h-6'
-  };
-
-  return (
-    <button
-      disabled={loading || disabled}
-      className={`
-        relative inline-flex items-center justify-center font-medium rounded-lg
-        transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-        ${sizeClasses[size]} ${variantClasses[variant]} ${className}
-      `}
-      {...props}
-    >
-      {loading && (
-        <Loader2 className={`${iconSize[size]} mr-2 animate-spin`} />
-      )}
-      {children}
-    </button>
-  );
-}
-
-export function LoadingPage({ 
-  title = 'Carregando', 
-  subtitle = 'Aguarde enquanto carregamos o conteúdo...',
-  icon: Icon = BookOpen,
-  variant = 'default'
-}) {
-  const variants = {
-    default: 'bg-white',
-    dark: 'bg-gray-900 text-white',
-    transparent: 'bg-transparent'
-  };
-
-  return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${variants[variant]}`}>
-      <div className="text-center max-w-md">
-        <div className="flex justify-center mb-6">
-          <div className="bg-primary-100 p-4 rounded-full">
-            <Icon className="w-12 h-12 text-primary-600" />
+      {[...Array(rows)].map((_, rowIndex) => (
+        <div key={rowIndex} className="border-b last:border-b-0 p-4">
+          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+            {[...Array(columns)].map((_, colIndex) => (
+              <SkeletonLine 
+                key={colIndex} 
+                width={colIndex === 0 ? 'full' : '3/4'} 
+              />
+            ))}
           </div>
         </div>
-        
-        <h2 className="text-2xl font-bold mb-4">{title}</h2>
-        <p className="text-gray-600 mb-8">{subtitle}</p>
-        
-        <Loading size="large" text="" />
-        
-        {/* Progress Dots */}
-        <div className="flex justify-center space-x-2 mt-8">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="w-2 h-2 bg-primary-600 rounded-full animate-pulse"
-              style={{ animationDelay: `${i * 0.2}s` }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function LoadingCard({ 
-  title = 'Carregando...', 
-  className = '',
-  size = 'medium' 
-}) {
-  const sizeClasses = {
-    small: 'p-4',
-    medium: 'p-6',
-    large: 'p-8'
-  };
-
-  return (
-    <div className={`bg-white rounded-lg border ${sizeClasses[size]} ${className}`}>
-      <div className="text-center">
-        <Loading size={size} text={title} />
-      </div>
-    </div>
-  );
-}
-
-export function LoadingOverlay({ 
-  loading = false, 
-  text = 'Carregando...', 
-  children,
-  blur = true 
-}) {
-  return (
-    <div className="relative">
-      {children}
-      {loading && (
-        <div className={`
-          absolute inset-0 flex items-center justify-center
-          bg-white bg-opacity-80 z-10 rounded-lg
-          ${blur ? 'backdrop-blur-sm' : ''}
-        `}>
-          <Loading text={text} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function ProgressBar({ 
-  progress = 0, 
-  label = '', 
-  showPercentage = true,
-  variant = 'primary',
-  size = 'medium',
-  className = '' 
-}) {
-  const sizeClasses = {
-    small: 'h-2',
-    medium: 'h-3',
-    large: 'h-4'
-  };
-
-  const variantClasses = {
-    primary: 'bg-primary-600',
-    success: 'bg-green-600',
-    warning: 'bg-yellow-600',
-    error: 'bg-red-600'
-  };
-
-  return (
-    <div className={`w-full ${className}`}>
-      {(label || showPercentage) && (
-        <div className="flex justify-between text-sm font-medium mb-2">
-          <span>{label}</span>
-          {showPercentage && <span>{Math.round(progress)}%</span>}
-        </div>
-      )}
-      <div className={`bg-gray-200 rounded-full overflow-hidden ${sizeClasses[size]}`}>
-        <div
-          className={`${variantClasses[variant]} ${sizeClasses[size]} transition-all duration-300 ease-out`}
-          style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-export function SpinnerDots({ size = 'medium', variant = 'primary' }) {
-  const sizeClasses = {
-    small: 'w-2 h-2',
-    medium: 'w-3 h-3',
-    large: 'w-4 h-4'
-  };
-
-  const variantClasses = {
-    primary: 'bg-primary-600',
-    light: 'bg-white',
-    dark: 'bg-gray-900'
-  };
-
-  return (
-    <div className="flex space-x-1">
-      {[...Array(3)].map((_, i) => (
-        <div
-          key={i}
-          className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-full animate-bounce`}
-          style={{ animationDelay: `${i * 0.1}s` }}
-        />
       ))}
     </div>
   );
 }
 
-export function PulseLoader({ size = 'medium', variant = 'primary' }) {
-  const sizeClasses = {
-    small: 'w-8 h-8',
-    medium: 'w-12 h-12',
-    large: 'w-16 h-16'
+// Loading Button
+export function LoadingButton({ 
+  children, 
+  isLoading = false, 
+  variant = 'primary',
+  size = 'medium',
+  className = '',
+  ...props 
+}) {
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  
+  const variantClasses = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
+    outline: 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-blue-500',
+    ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-blue-500',
   };
 
-  const variantClasses = {
-    primary: 'bg-primary-600',
-    light: 'bg-white',
-    dark: 'bg-gray-900'
+  const sizeClasses = {
+    small: 'px-3 py-1.5 text-sm',
+    medium: 'px-4 py-2 text-sm',
+    large: 'px-6 py-3 text-base',
   };
 
   return (
-    <div className="relative flex justify-center items-center">
-      <div className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-full animate-ping absolute`} />
-      <div className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-full animate-pulse`} />
-    </div>
+    <button
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      disabled={isLoading}
+      {...props}
+    >
+      {isLoading && (
+        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+      )}
+      {children}
+    </button>
   );
 }
 
@@ -378,6 +203,7 @@ export function LoadingError({
       <p className="text-gray-600 mb-6">{message}</p>
       {showRetry && onRetry && (
         <LoadingButton onClick={onRetry} variant="outline">
+          <RefreshCw className="w-4 h-4 mr-2" />
           Tentar Novamente
         </LoadingButton>
       )}
@@ -385,4 +211,75 @@ export function LoadingError({
   );
 }
 
-export default Loading;
+// ================================
+// ROUTE PROTECTION COMPONENTS
+// ================================
+
+// Componente de rota protegida
+export function ProtectedRoute({ children, requiredRole = null }) {
+  const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
+
+  // Mostrar loading enquanto verifica autenticação
+  if (loading) {
+    return <LoadingPage text="Verificando autenticação..." />;
+  }
+
+  // Se não autenticado, redirecionar para login com a localização atual
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Verificar role se especificado
+  if (requiredRole && user?.role !== requiredRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="bg-red-100 p-4 rounded-full inline-block mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 mb-6">
+            Você não tem permissão para acessar esta página.
+          </p>
+          <LoadingButton 
+            onClick={() => window.history.back()}
+            variant="outline"
+          >
+            Voltar
+          </LoadingButton>
+        </div>
+      </div>
+    );
+  }
+
+  // Se autenticado e com permissão, mostrar conteúdo
+  return children;
+}
+
+// Componente para redirecionar usuários logados das páginas públicas
+export function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingPage text="Verificando autenticação..." />;
+  }
+
+  // Se já autenticado, redirecionar para dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
+// Componente para redirecionamento da rota raiz
+export function RootRedirect() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingPage text="Inicializando aplicação..." />;
+  }
+
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+}

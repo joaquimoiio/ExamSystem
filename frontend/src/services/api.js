@@ -1,3 +1,4 @@
+// frontend/src/services/api.js - VERSÃO ATUALIZADA
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -33,17 +34,38 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      // Se a resposta não for JSON, tratar como erro
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error(`Resposta inválida do servidor (Status: ${response.status})`);
+      }
 
+      // Se não foi bem-sucedido, lançar erro com a mensagem do servidor
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+        // Se token expirou, limpar dados de auth
+        if (response.status === 401) {
+          this.setToken(null);
+          localStorage.removeItem('userData');
+        }
+        
+        throw new Error(data.message || `Erro ${response.status}: ${response.statusText}`);
       }
 
       return data;
     } catch (error) {
-      if (error.message === 'Failed to fetch') {
-        throw new Error('Sem conexão com o servidor. Verifique sua internet.');
+      // Tratar diferentes tipos de erro
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
       }
+      
+      if (error.name === 'AbortError') {
+        throw new Error('Requisição cancelada por timeout.');
+      }
+      
+      // Re-lançar o erro original se já for uma mensagem customizada
       throw error;
     }
   }
@@ -54,7 +76,11 @@ class ApiService {
       method: 'POST',
       body: credentials,
     });
-    this.setToken(response.data.token);
+    
+    if (response.data?.token) {
+      this.setToken(response.data.token);
+    }
+    
     return response;
   }
 
@@ -81,8 +107,9 @@ class ApiService {
       await this.request('/auth/logout', { method: 'POST' });
     } catch (error) {
       console.warn('Logout request failed:', error);
+    } finally {
+      this.setToken(null);
     }
-    this.setToken(null);
   }
 
   // Subject methods
@@ -145,13 +172,6 @@ class ApiService {
     });
   }
 
-  async bulkCreateQuestions(questionsData) {
-    return this.request('/questions/bulk', {
-      method: 'POST',
-      body: questionsData,
-    });
-  }
-
   // Exam methods
   async getExams(params = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -192,60 +212,6 @@ class ApiService {
     return this.request(`/exams/${id}/generate-pdfs`, {
       method: 'POST',
     });
-  }
-
-  async getExamStatistics(id) {
-    return this.request(`/exams/${id}/statistics`);
-  }
-
-  // Correction methods
-  async getSubmissions(examId, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/corrections/exams/${examId}/submissions${queryString ? `?${queryString}` : ''}`);
-  }
-
-  async getExamCorrections(examId) {
-    return this.request(`/corrections/exams/${examId}/statistics`);
-  }
-
-  // Public methods (for students)
-  async validateQR(qrData) {
-    return this.request('/public/validate-qr', {
-      method: 'POST',
-      body: { qrData },
-    });
-  }
-
-  async scanQR(examId, variationId) {
-    return this.request(`/public/scan/${examId}/${variationId}`);
-  }
-
-  async submitAnswers(examId, variationId, answers) {
-    return this.request(`/public/submit/${examId}/${variationId}`, {
-      method: 'POST',
-      body: { answers },
-    });
-  }
-
-  // File upload methods
-  async uploadFile(file, type = 'image') {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
-
-    return this.request('/upload', {
-      method: 'POST',
-      headers: {
-        // Remove Content-Type to let browser set boundary for FormData
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
-      },
-      body: formData,
-    });
-  }
-
-  // Health check
-  async healthCheck() {
-    return this.request('/health');
   }
 }
 
