@@ -1,63 +1,112 @@
 // frontend/src/services/api.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
 class ApiService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    this.token = null;
+    this.timeout = 30000; // 30 segundos
+    
+    // Carregar token do localStorage na inicialização
     this.token = localStorage.getItem('authToken');
+    
+    console.log('🔧 ApiService inicializado:', {
+      baseURL: this.baseURL,
+      hasToken: !!this.token
+    });
   }
 
   setToken(token) {
     this.token = token;
     if (token) {
       localStorage.setItem('authToken', token);
+      console.log('✅ Token definido no ApiService');
     } else {
       localStorage.removeItem('authToken');
+      console.log('🗑️ Token removido do ApiService');
     }
+  }
+
+  getToken() {
+    return this.token || localStorage.getItem('authToken');
   }
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const currentToken = this.getToken();
+    
+    console.log('📡 Fazendo requisição:', {
+      method: options.method || 'GET',
+      url,
+      hasToken: !!currentToken,
+      hasBody: !!options.body
+    });
+
     const config = {
+      method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.token && { Authorization: `Bearer ${this.token}` }),
         ...options.headers,
       },
-      ...options,
+      signal: AbortSignal.timeout(this.timeout),
     };
 
-    if (config.body && typeof config.body === 'object') {
-      config.body = JSON.stringify(config.body);
+    // Adicionar token de autorização se disponível
+    if (currentToken) {
+      config.headers.Authorization = `Bearer ${currentToken}`;
+    }
+
+    // Adicionar body se fornecido
+    if (options.body) {
+      config.body = JSON.stringify(options.body);
     }
 
     try {
       const response = await fetch(url, config);
       
-      // Se a resposta não for JSON, tratar como erro
+      console.log('📥 Resposta recebida:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       let data;
-      try {
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
         data = await response.json();
-      } catch (jsonError) {
-        throw new Error(`Resposta inválida do servidor (Status: ${response.status})`);
+      } else {
+        const text = await response.text();
+        console.warn('⚠️ Resposta não é JSON:', text);
+        data = { message: text };
       }
 
-      // Se não foi bem-sucedido, lançar erro com a mensagem do servidor
+      // Log da resposta para debug
+      console.log('📋 Dados da resposta:', data);
+
       if (!response.ok) {
-        // Se token expirou, limpar dados de auth
+        // Tratamento específico para diferentes códigos de erro
+        const errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`;
+        
         if (response.status === 401) {
+          // Token inválido ou expirado
+          console.warn('🔒 Token inválido, removendo...');
           this.setToken(null);
-          localStorage.removeItem('userData');
+          
+          // Se não for uma tentativa de login, rejeitar com erro de autenticação
+          if (!endpoint.includes('/auth/login')) {
+            throw new Error('Sessão expirada. Faça login novamente.');
+          }
         }
         
-        throw new Error(data.message || `Erro ${response.status}: ${response.statusText}`);
+        throw new Error(errorMessage);
       }
 
       return data;
     } catch (error) {
-      // Tratar diferentes tipos de erro
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        throw new Error('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+      console.error('❌ Erro na requisição:', error);
+      
+      // Tratamento de diferentes tipos de erro
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
       }
       
       if (error.name === 'AbortError') {
@@ -71,19 +120,22 @@ class ApiService {
 
   // Auth methods
   async login(credentials) {
+    console.log('🔑 Tentando login via API...');
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: credentials,
     });
     
-    if (response.data?.token) {
+    if (response.success && response.data?.token) {
       this.setToken(response.data.token);
+      console.log('✅ Token salvo após login bem-sucedido');
     }
     
     return response;
   }
 
   async register(userData) {
+    console.log('📝 Registrando novo usuário via API...');
     return this.request('/auth/register', {
       method: 'POST',
       body: userData,
@@ -91,10 +143,12 @@ class ApiService {
   }
 
   async getProfile() {
+    console.log('👤 Buscando perfil do usuário...');
     return this.request('/auth/profile');
   }
 
   async updateProfile(userData) {
+    console.log('✏️ Atualizando perfil do usuário...');
     return this.request('/auth/profile', {
       method: 'PUT',
       body: userData,
@@ -102,13 +156,23 @@ class ApiService {
   }
 
   async logout() {
+    console.log('👋 Fazendo logout...');
     try {
       await this.request('/auth/logout', { method: 'POST' });
     } catch (error) {
-      console.warn('Logout request failed:', error);
+      console.warn('⚠️ Erro no logout (backend):', error.message);
     } finally {
       this.setToken(null);
+      console.log('✅ Logout local concluído');
     }
+  }
+
+  async changePassword(passwordData) {
+    console.log('🔑 Alterando senha...');
+    return this.request('/auth/change-password', {
+      method: 'POST',
+      body: passwordData,
+    });
   }
 
   // Subject methods
@@ -207,11 +271,40 @@ class ApiService {
     });
   }
 
-  async generatePDFs(id) {
-    return this.request(`/exams/${id}/generate-pdfs`, {
+  async unpublishExam(id) {
+    return this.request(`/exams/${id}/unpublish`, {
       method: 'POST',
     });
   }
+
+  // Health check
+  async healthCheck() {
+    try {
+      return await this.request('/health');
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Serviço indisponível',
+        error: error.message
+      };
+    }
+  }
+
+  // Test connection
+  async testConnection() {
+    console.log('🔍 Testando conexão com a API...');
+    try {
+      const response = await this.healthCheck();
+      console.log('✅ Conexão com a API OK:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Falha na conexão com a API:', error);
+      throw error;
+    }
+  }
 }
 
-export default new ApiService();
+// Criar instância única
+const apiService = new ApiService();
+
+export default apiService;

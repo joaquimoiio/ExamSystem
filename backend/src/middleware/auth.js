@@ -1,39 +1,55 @@
-// middleware/auth.js
+// backend/src/middleware/auth.js
 const jwt = require('jsonwebtoken');
 
 // Configuração JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_very_long_and_secure';
+const JWT_SECRET = process.env.JWT_SECRET || 'exam_system_super_secret_key_2024_muito_segura';
+
+// Usuários hardcoded (mesmo que no authController)
+const hardcodedUsers = [
+  {
+    id: '1',
+    name: 'Administrador',
+    email: 'admin@example.com',
+    role: 'admin',
+    isActive: true
+  },
+  {
+    id: '2',
+    name: 'Professor Teste',
+    email: 'teacher@example.com',
+    role: 'teacher',
+    isActive: true
+  },
+  {
+    id: '3',
+    name: 'Joaquim Paes',
+    email: 'joaquimpaes03@gmail.com',
+    role: 'teacher',
+    isActive: true
+  }
+];
 
 // Tentar importar User model
 let User;
+let useDatabase = false;
+
 try {
   const { User: UserModel } = require('../models');
-  User = UserModel;
-  console.log('✅ User model carregado no middleware auth');
+  if (UserModel && typeof UserModel.findByPk === 'function') {
+    User = UserModel;
+    useDatabase = true;
+    console.log('✅ User model carregado no middleware');
+  } else {
+    throw new Error('User model não disponível');
+  }
 } catch (error) {
-  console.warn('⚠️ User model não encontrado no middleware auth, usando fallback');
+  console.warn('⚠️ Middleware auth usando fallback hardcoded');
+  
   // Mock User model
   User = {
-    findByPk: (id) => {
-      if (id == 1) {
-        return Promise.resolve({
-          id: 1,
-          name: 'Admin User',
-          email: 'admin@example.com',
-          role: 'admin',
-          isActive: true
-        });
-      }
-      if (id == 2) {
-        return Promise.resolve({
-          id: 2,
-          name: 'Teacher User',
-          email: 'teacher@example.com',
-          role: 'teacher',
-          isActive: true
-        });
-      }
-      return Promise.resolve(null);
+    findByPk: async (id) => {
+      const user = hardcodedUsers.find(u => u.id.toString() === id.toString());
+      return user || null;
     }
   };
 }
@@ -41,7 +57,7 @@ try {
 // Middleware para autenticar token JWT
 const authenticateToken = async (req, res, next) => {
   try {
-    console.log('🔐 Verificando autenticação para:', req.method, req.url);
+    console.log('🔐 Verificando autenticação para:', req.method, req.originalUrl);
     
     // Extrair token do header Authorization
     const authHeader = req.headers['authorization'];
@@ -59,7 +75,7 @@ const authenticateToken = async (req, res, next) => {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
-      console.log('✅ Token válido para usuário:', decoded.userId);
+      console.log('✅ Token válido para usuário:', decoded.userId, '(', decoded.email, ')');
     } catch (jwtError) {
       console.log('❌ Token inválido:', jwtError.message);
       return res.status(401).json({
@@ -68,12 +84,13 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Buscar usuário no banco
+    // Buscar usuário
+    let user;
     try {
-      const user = await User.findByPk(decoded.userId);
+      user = await User.findByPk(decoded.userId);
       
       if (!user) {
-        console.log('❌ Usuário não encontrado:', decoded.userId);
+        console.log('❌ Usuário não encontrado no sistema:', decoded.userId);
         return res.status(401).json({
           success: false,
           message: 'Usuário não encontrado'
@@ -91,27 +108,28 @@ const authenticateToken = async (req, res, next) => {
       // Adicionar informações do usuário ao request
       req.user = {
         userId: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        name: user.name || decoded.name,
+        email: user.email || decoded.email,
+        role: user.role || decoded.role,
         isActive: user.isActive
       };
 
-      console.log('✅ Usuário autenticado:', user.email, '(' + user.role + ')');
+      console.log('✅ Usuário autenticado:', req.user.email, '(' + req.user.role + ')');
       next();
+
     } catch (dbError) {
-      console.error('❌ Erro ao buscar usuário no banco:', dbError.message);
+      console.error('❌ Erro ao buscar usuário:', dbError.message);
       
-      // Em caso de erro no banco, usar dados do token (modo fallback)
+      // Fallback: usar dados do token se o banco falhar
       req.user = {
         userId: decoded.userId,
-        name: decoded.name || 'Unknown User',
+        name: decoded.name || 'User',
         email: decoded.email,
         role: decoded.role || 'teacher',
         isActive: true
       };
       
-      console.log('⚠️ Usando dados do token (fallback mode)');
+      console.log('⚠️ Usando dados do token (fallback):', req.user.email);
       next();
     }
   } catch (error) {
@@ -120,6 +138,45 @@ const authenticateToken = async (req, res, next) => {
       success: false,
       message: 'Erro interno do servidor na autenticação'
     });
+  }
+};
+
+// Middleware para autenticação opcional
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      // Sem token, continuar sem autenticação
+      req.user = null;
+      return next();
+    }
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = await User.findByPk(decoded.userId);
+      
+      if (user && user.isActive) {
+        req.user = {
+          userId: user.id,
+          name: user.name || decoded.name,
+          email: user.email || decoded.email,
+          role: user.role || decoded.role,
+          isActive: user.isActive
+        };
+      } else {
+        req.user = null;
+      }
+    } catch (error) {
+      req.user = null;
+    }
+
+    next();
+  } catch (error) {
+    console.error('❌ Erro no middleware optionalAuth:', error);
+    req.user = null;
+    next();
   }
 };
 
@@ -187,76 +244,16 @@ const requireTeacher = (req, res, next) => {
   }
 };
 
-// Middleware opcional para autenticação (não bloqueia se não autenticado)
-const optionalAuth = async (req, res, next) => {
-  try {
-    console.log('🔓 Autenticação opcional para:', req.method, req.url);
-    
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      console.log('ℹ️ Nenhum token fornecido (opcional)');
-      req.user = null;
-      return next();
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      
-      try {
-        const user = await User.findByPk(decoded.userId);
-        
-        if (user && user.isActive) {
-          req.user = {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            isActive: user.isActive
-          };
-          console.log('✅ Usuário autenticado opcionalmente:', user.email);
-        } else {
-          req.user = null;
-          console.log('⚠️ Usuário não encontrado ou inativo (auth opcional)');
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Erro ao buscar usuário (auth opcional):', dbError.message);
-        req.user = null;
-      }
-    } catch (jwtError) {
-      console.log('⚠️ Token inválido (auth opcional):', jwtError.message);
-      req.user = null;
-    }
-
-    next();
-  } catch (error) {
-    console.error('❌ Erro no middleware de autenticação opcional:', error);
-    req.user = null;
-    next(); // Continuar mesmo com erro
-  }
-};
-
-// Middleware para verificar propriedade de recurso
-const requireResourceOwner = (resourceModel, resourceIdParam = 'id', userIdField = 'userId') => {
+// Middleware para verificar ownership de recursos
+const checkOwnership = (Model) => {
   return async (req, res, next) => {
     try {
-      console.log('🔒 Verificando propriedade do recurso');
-      
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Autenticação necessária'
-        });
-      }
-
-      // Admin tem acesso a tudo
       if (req.user.role === 'admin') {
-        console.log('✅ Admin tem acesso total');
+        // Admins podem acessar qualquer recurso
         return next();
       }
 
-      const resourceId = req.params[resourceIdParam];
+      const resourceId = req.params.id;
       if (!resourceId) {
         return res.status(400).json({
           success: false,
@@ -264,8 +261,14 @@ const requireResourceOwner = (resourceModel, resourceIdParam = 'id', userIdField
         });
       }
 
+      // Para o sistema de fallback, permitir acesso
+      if (!useDatabase) {
+        console.log('⚠️ Verificação de ownership pulada (fallback mode)');
+        return next();
+      }
+
       try {
-        const resource = await resourceModel.findByPk(resourceId);
+        const resource = await Model.findByPk(resourceId);
         
         if (!resource) {
           return res.status(404).json({
@@ -274,51 +277,33 @@ const requireResourceOwner = (resourceModel, resourceIdParam = 'id', userIdField
           });
         }
 
-        if (resource[userIdField] !== req.user.userId) {
-          console.log('❌ Usuário não é proprietário do recurso');
+        if (resource.userId && resource.userId !== req.user.userId) {
           return res.status(403).json({
             success: false,
-            message: 'Acesso negado. Você não tem permissão para acessar este recurso.'
+            message: 'Acesso negado. Você não é o proprietário deste recurso.'
           });
         }
 
-        console.log('✅ Usuário é proprietário do recurso');
-        req.resource = resource;
         next();
-      } catch (dbError) {
-        console.error('❌ Erro ao verificar propriedade do recurso:', dbError.message);
-        // Em caso de erro no banco, permitir acesso (modo fallback)
-        console.log('⚠️ Permitindo acesso devido a erro no banco (fallback)');
+      } catch (error) {
+        console.error('❌ Erro verificando ownership:', error);
+        // Em caso de erro, permitir acesso (fallback)
         next();
       }
     } catch (error) {
-      console.error('❌ Erro no middleware requireResourceOwner:', error);
+      console.error('❌ Erro no middleware checkOwnership:', error);
       res.status(500).json({
         success: false,
-        message: 'Erro interno do servidor na verificação de propriedade'
+        message: 'Erro interno do servidor'
       });
     }
   };
 };
 
-// Função utilitária para gerar token
-const generateToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { 
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d' 
-  });
-};
-
-// Função utilitária para verificar token
-const verifyToken = (token) => {
-  return jwt.verify(token, JWT_SECRET);
-};
-
 module.exports = {
   authenticateToken,
+  optionalAuth,
   requireAdmin,
   requireTeacher,
-  optionalAuth,
-  requireResourceOwner,
-  generateToken,
-  verifyToken
+  checkOwnership
 };

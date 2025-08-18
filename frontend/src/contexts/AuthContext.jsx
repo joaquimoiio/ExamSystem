@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - VERSÃO COM DEBUG
+// frontend/src/contexts/AuthContext.jsx - VERSÃO CORRIGIDA
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import apiService from '../services/api';
 
@@ -62,18 +62,17 @@ export function AuthProvider({ children }) {
         const token = localStorage.getItem('authToken');
         const userData = localStorage.getItem('userData');
         
-        console.log('🔍 Inicializando auth...', { hasToken: !!token, hasUserData: !!userData });
-        
         if (token && userData) {
+          // Verificar se o token ainda é válido fazendo uma chamada para o backend
           try {
-            apiService.setToken(token);
             const response = await apiService.getProfile();
             if (response.success) {
               dispatch({ type: 'LOGIN_SUCCESS', payload: response.data.user });
               return;
             }
           } catch (error) {
-            console.warn('❌ Token inválido, fazendo logout:', error.message);
+            // Token inválido, limpar storage
+            console.warn('Token inválido, fazendo logout:', error.message);
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             apiService.setToken(null);
@@ -82,7 +81,7 @@ export function AuthProvider({ children }) {
         
         dispatch({ type: 'SET_LOADING', payload: false });
       } catch (error) {
-        console.error('❌ Erro ao inicializar auth:', error);
+        console.error('Failed to initialize auth:', error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
         apiService.setToken(null);
@@ -94,9 +93,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (credentials) => {
-    console.log('🔐 AuthContext.login chamado com:', { 
+    console.log('🔐 AuthContext.login chamado com:', {
       email: credentials.email,
-      passwordLength: credentials.password?.length 
+      passwordLength: credentials.password?.length
     });
     
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -106,15 +105,23 @@ export function AuthProvider({ children }) {
       console.log('🔄 Chamando apiService.login...');
       const response = await apiService.login(credentials);
       
-      console.log('📋 Resposta do apiService.login:', {
+      console.log('📥 Resposta do login:', {
         success: response.success,
-        hasData: !!response.data,
         hasUser: !!response.data?.user,
-        hasToken: !!response.data?.token
+        hasToken: !!response.data?.token,
+        message: response.message
       });
       
       if (response.success && response.data) {
         const { user, token } = response.data;
+        
+        if (!token) {
+          throw new Error('Token não fornecido pela API');
+        }
+        
+        if (!user) {
+          throw new Error('Dados do usuário não fornecidos pela API');
+        }
         
         // Salvar dados no localStorage
         localStorage.setItem('authToken', token);
@@ -123,27 +130,23 @@ export function AuthProvider({ children }) {
         // Atualizar token no serviço da API
         apiService.setToken(token);
         
+        console.log('✅ Login bem-sucedido para:', user.email, '- Role:', user.role);
         dispatch({ type: 'LOGIN_SUCCESS', payload: user });
         
-        console.log('✅ Login bem-sucedido!');
         return { success: true, data: response.data };
       } else {
-        throw new Error(response.message || 'Credenciais inválidas');
+        const errorMessage = response.message || 'Credenciais inválidas';
+        console.log('❌ Login falhou:', errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('❌ Erro no AuthContext.login:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
-      
+      console.error('❌ Erro no AuthContext.login:', error);
       const errorMessage = error.message || 'Erro ao fazer login. Tente novamente.';
       dispatch({ type: 'LOGIN_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
   };
 
-  // Resto das funções permanecem iguais...
   const register = async (userData) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
@@ -170,10 +173,12 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
+      // Tentar notificar o backend sobre o logout
       await apiService.logout();
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.warn('Erro ao fazer logout no backend:', error);
     } finally {
+      // Sempre limpar dados locais
       localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
       apiService.setToken(null);
@@ -181,93 +186,30 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const updateUser = async (userData) => {
-    try {
-      const response = await apiService.updateProfile(userData);
-      
-      if (response.success) {
-        const updatedUser = response.data.user;
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
-        dispatch({ type: 'UPDATE_USER', payload: updatedUser });
-        
-        return { success: true, data: updatedUser };
-      } else {
-        throw new Error(response.message || 'Erro ao atualizar perfil');
-      }
-    } catch (error) {
-      throw new Error(error.message || 'Erro ao atualizar perfil');
-    }
-  };
-
-  const changePassword = async (passwordData) => {
-    try {
-      const response = await apiService.request('/auth/change-password', {
-        method: 'POST',
-        body: passwordData
-      });
-      
-      if (response.success) {
-        return { success: true, message: response.message || 'Senha alterada com sucesso' };
-      } else {
-        throw new Error(response.message || 'Erro ao alterar senha');
-      }
-    } catch (error) {
-      throw new Error(error.message || 'Erro ao alterar senha');
-    }
-  };
-
-  const forgotPassword = async (email) => {
-    try {
-      const response = await apiService.request('/auth/forgot-password', {
-        method: 'POST',
-        body: { email }
-      });
-      
-      if (response.success) {
-        return { success: true, message: response.message || 'Email de recuperação enviado' };
-      } else {
-        throw new Error(response.message || 'Erro ao enviar email de recuperação');
-      }
-    } catch (error) {
-      throw new Error(error.message || 'Erro ao enviar email de recuperação');
-    }
-  };
-
-  const resetPassword = async (token, password) => {
-    try {
-      const response = await apiService.request('/auth/reset-password', {
-        method: 'POST',
-        body: { token, password }
-      });
-      
-      if (response.success) {
-        return { success: true, message: response.message || 'Senha redefinida com sucesso' };
-      } else {
-        throw new Error(response.message || 'Erro ao redefinir senha');
-      }
-    } catch (error) {
-      throw new Error(error.message || 'Erro ao redefinir senha');
-    }
+  const updateUser = (userData) => {
+    dispatch({ type: 'UPDATE_USER', payload: userData });
+    
+    // Atualizar dados no localStorage
+    const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+    const updatedUser = { ...currentUser, ...userData };
+    localStorage.setItem('userData', JSON.stringify(updatedUser));
   };
 
   const clearError = () => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
-  const contextValue = {
+  const value = {
     ...state,
     login,
     register,
     logout,
     updateUser,
-    changePassword,
-    forgotPassword,
-    resetPassword,
-    clearError,
+    clearError
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -275,10 +217,8 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
-
-export default AuthContext;
