@@ -39,7 +39,7 @@ export default function LandingPage() {
                 Cases
               </a>
               
-              {/* ✅ CORRETO: Link direto para página */}
+              {/* ✅ Link para login permanece o mesmo */}
               <Link 
                 to="/login" 
                 className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
@@ -47,7 +47,7 @@ export default function LandingPage() {
                 Entrar
               </Link>
               
-              {/* ✅ CORRETO: Link direto para página */}
+              {/* ✅ Link para registro permanece o mesmo */}
               <Link 
                 to="/register" 
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg"
@@ -81,7 +81,6 @@ export default function LandingPage() {
                   Cases
                 </a>
                 
-                {/* ✅ CORRETO: Link direto para página */}
                 <Link 
                   to="/login" 
                   className="text-gray-700 hover:text-blue-600 transition-colors px-4 font-medium"
@@ -90,7 +89,6 @@ export default function LandingPage() {
                   Entrar
                 </Link>
                 
-                {/* ✅ CORRETO: Link direto para página */}
                 <Link 
                   to="/register" 
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mx-4 text-center font-medium"
