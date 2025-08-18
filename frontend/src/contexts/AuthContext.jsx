@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - VERSÃO REAL COM API
+// frontend/src/contexts/AuthContext.jsx - VERSÃO COM DEBUG
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import apiService from '../services/api';
 
@@ -62,17 +62,18 @@ export function AuthProvider({ children }) {
         const token = localStorage.getItem('authToken');
         const userData = localStorage.getItem('userData');
         
+        console.log('🔍 Inicializando auth...', { hasToken: !!token, hasUserData: !!userData });
+        
         if (token && userData) {
-          // Verificar se o token ainda é válido fazendo uma chamada para o backend
           try {
+            apiService.setToken(token);
             const response = await apiService.getProfile();
             if (response.success) {
               dispatch({ type: 'LOGIN_SUCCESS', payload: response.data.user });
               return;
             }
           } catch (error) {
-            // Token inválido, limpar storage
-            console.warn('Token inválido, fazendo logout:', error.message);
+            console.warn('❌ Token inválido, fazendo logout:', error.message);
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             apiService.setToken(null);
@@ -81,7 +82,7 @@ export function AuthProvider({ children }) {
         
         dispatch({ type: 'SET_LOADING', payload: false });
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        console.error('❌ Erro ao inicializar auth:', error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
         apiService.setToken(null);
@@ -93,13 +94,26 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (credentials) => {
+    console.log('🔐 AuthContext.login chamado com:', { 
+      email: credentials.email,
+      passwordLength: credentials.password?.length 
+    });
+    
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
     
     try {
+      console.log('🔄 Chamando apiService.login...');
       const response = await apiService.login(credentials);
       
-      if (response.success) {
+      console.log('📋 Resposta do apiService.login:', {
+        success: response.success,
+        hasData: !!response.data,
+        hasUser: !!response.data?.user,
+        hasToken: !!response.data?.token
+      });
+      
+      if (response.success && response.data) {
         const { user, token } = response.data;
         
         // Salvar dados no localStorage
@@ -111,17 +125,25 @@ export function AuthProvider({ children }) {
         
         dispatch({ type: 'LOGIN_SUCCESS', payload: user });
         
+        console.log('✅ Login bem-sucedido!');
         return { success: true, data: response.data };
       } else {
-        throw new Error(response.message || 'Erro no login');
+        throw new Error(response.message || 'Credenciais inválidas');
       }
     } catch (error) {
+      console.error('❌ Erro no AuthContext.login:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+      
       const errorMessage = error.message || 'Erro ao fazer login. Tente novamente.';
       dispatch({ type: 'LOGIN_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
   };
 
+  // Resto das funções permanecem iguais...
   const register = async (userData) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
@@ -147,15 +169,11 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    
     try {
-      // Tentar fazer logout no backend
       await apiService.logout();
     } catch (error) {
-      console.warn('Logout request failed:', error);
+      console.error('Error during logout:', error);
     } finally {
-      // Sempre limpar dados locais
       localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
       apiService.setToken(null);
@@ -169,31 +187,23 @@ export function AuthProvider({ children }) {
       
       if (response.success) {
         const updatedUser = response.data.user;
-        
-        // Atualizar localStorage
         localStorage.setItem('userData', JSON.stringify(updatedUser));
-        
         dispatch({ type: 'UPDATE_USER', payload: updatedUser });
         
-        return { success: true, data: { user: updatedUser } };
+        return { success: true, data: updatedUser };
       } else {
         throw new Error(response.message || 'Erro ao atualizar perfil');
       }
     } catch (error) {
-      const errorMessage = error.message || 'Erro ao atualizar perfil';
-      dispatch({ type: 'LOGIN_ERROR', payload: errorMessage });
-      throw new Error(errorMessage);
+      throw new Error(error.message || 'Erro ao atualizar perfil');
     }
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = async (passwordData) => {
     try {
       const response = await apiService.request('/auth/change-password', {
         method: 'POST',
-        body: {
-          currentPassword,
-          newPassword
-        }
+        body: passwordData
       });
       
       if (response.success) {
@@ -214,9 +224,9 @@ export function AuthProvider({ children }) {
       });
       
       if (response.success) {
-        return { success: true, message: response.message || 'Email enviado com sucesso' };
+        return { success: true, message: response.message || 'Email de recuperação enviado' };
       } else {
-        throw new Error(response.message || 'Erro ao enviar email');
+        throw new Error(response.message || 'Erro ao enviar email de recuperação');
       }
     } catch (error) {
       throw new Error(error.message || 'Erro ao enviar email de recuperação');
