@@ -1,305 +1,276 @@
-// frontend/src/services/api.js
+// frontend/src/services/api.js - CORREÇÃO COMPLETA
+
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    this.timeout = 10000; // 10 segundos
     this.token = null;
-    this.timeout = 30000; // 30 segundos
     
-    // Carregar token do localStorage na inicialização
+    // Recuperar token do localStorage na inicialização
     this.token = localStorage.getItem('authToken');
     
-    console.log('🔧 ApiService inicializado:', {
-      baseURL: this.baseURL,
-      hasToken: !!this.token
-    });
+    console.log('🚀 ApiService inicializado');
+    console.log('📍 Base URL:', this.baseURL);
+    console.log('🔑 Token inicial:', this.token ? 'Presente' : 'Ausente');
   }
 
   setToken(token) {
     this.token = token;
-    if (token) {
-      localStorage.setItem('authToken', token);
-      console.log('✅ Token definido no ApiService');
-    } else {
-      localStorage.removeItem('authToken');
-      console.log('🗑️ Token removido do ApiService');
-    }
+    console.log('🔑 Token atualizado:', token ? '✅ Definido' : '❌ Removido');
   }
 
-  getToken() {
-    return this.token || localStorage.getItem('authToken');
+  removeToken() {
+    this.token = null;
+    localStorage.removeItem('authToken');
+    console.log('🗑️ Token removido do ApiService');
   }
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const currentToken = this.getToken();
     
-    console.log('📡 Fazendo requisição:', {
-      method: options.method || 'GET',
-      url,
-      hasToken: !!currentToken,
-      hasBody: !!options.body
-    });
-
+    console.log(`🌐 ${options.method || 'GET'} ${url}`);
+    
     const config = {
       method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      signal: AbortSignal.timeout(this.timeout),
+      ...options,
     };
 
-    // Adicionar token de autorização se disponível
-    if (currentToken) {
-      config.headers.Authorization = `Bearer ${currentToken}`;
+    // Adicionar token de autenticação se disponível
+    if (this.token) {
+      config.headers.Authorization = `Bearer ${this.token}`;
+      console.log('🔐 Token adicionado à requisição');
     }
 
     // Adicionar body se fornecido
-    if (options.body) {
-      config.body = JSON.stringify(options.body);
+    if (options.data) {
+      config.body = JSON.stringify(options.data);
+      console.log('📤 Dados enviados:', options.data);
     }
 
     try {
-      const response = await fetch(url, config);
+      console.log('⏳ Fazendo requisição...');
       
-      console.log('📥 Resposta recebida:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
+      // Controller para timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      config.signal = controller.signal;
 
+      const response = await fetch(url, config);
+      clearTimeout(timeoutId);
+
+      console.log(`📊 Status da resposta: ${response.status} ${response.statusText}`);
+      console.log(`📍 Resposta recebida: {status: ${response.status}, statusText: '${response.statusText}', ok: ${response.ok}}`);
+      
       let data;
       const contentType = response.headers.get('content-type');
       
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
+        console.log('📋 Dados da resposta:', data);
       } else {
         const text = await response.text();
-        console.warn('⚠️ Resposta não é JSON:', text);
+        console.log('📄 Resposta em texto:', text);
         data = { message: text };
       }
 
-      // Log da resposta para debug
-      console.log('📋 Dados da resposta:', data);
-
-      if (!response.ok) {
-        // Tratamento específico para diferentes códigos de erro
-        const errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`;
+      // Se não autenticado, limpar token
+      if (response.status === 401) {
+        console.log('🔒 Token inválido, removendo...');
+        this.removeToken();
         
-        if (response.status === 401) {
-          // Token inválido ou expirado
-          console.warn('🔒 Token inválido, removendo...');
-          this.setToken(null);
-          
-          // Se não for uma tentativa de login, rejeitar com erro de autenticação
-          if (!endpoint.includes('/auth/login')) {
-            throw new Error('Sessão expirada. Faça login novamente.');
-          }
+        // Se a resposta não tem dados estruturados, criar estrutura padrão
+        if (!data || typeof data !== 'object') {
+          data = {
+            success: false,
+            message: 'Credenciais inválidas'
+          };
         }
-        
-        throw new Error(errorMessage);
+      }
+
+      // Se a resposta não é ok, mas temos dados estruturados, retornar os dados
+      if (!response.ok) {
+        if (data && typeof data === 'object' && data.message) {
+          console.log('❌ Erro na requisição:', data.message);
+          throw new Error(data.message);
+        } else {
+          const errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+          console.log('❌ Erro na requisição:', errorMessage);
+          throw new Error(errorMessage);
+        }
       }
 
       return data;
+
     } catch (error) {
-      console.error('❌ Erro na requisição:', error);
-      
-      // Tratamento de diferentes tipos de erro
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
-      }
+      console.log('❌ Erro na requisição:', error);
       
       if (error.name === 'AbortError') {
-        throw new Error('Requisição cancelada por timeout.');
+        throw new Error('Requisição expirou. Tente novamente.');
       }
       
-      // Re-lançar o erro original se já for uma mensagem customizada
+      if (error.message) {
+        throw error;
+      }
+      
+      throw new Error('Erro de conexão. Verifique sua internet.');
+    }
+  }
+
+  // Métodos HTTP
+  async get(endpoint, options = {}) {
+    return this.request(endpoint, { ...options, method: 'GET' });
+  }
+
+  async post(endpoint, data, options = {}) {
+    return this.request(endpoint, { 
+      ...options, 
+      method: 'POST', 
+      data 
+    });
+  }
+
+  async put(endpoint, data, options = {}) {
+    return this.request(endpoint, { 
+      ...options, 
+      method: 'PUT', 
+      data 
+    });
+  }
+
+  async delete(endpoint, options = {}) {
+    return this.request(endpoint, { ...options, method: 'DELETE' });
+  }
+
+  // Métodos de autenticação específicos
+  async login(credentials) {
+    console.log('🔐 Tentativa de login via ApiService');
+    console.log('📧 Email:', credentials.email);
+    console.log('🔑 Senha length:', credentials.password?.length);
+    
+    try {
+      const response = await this.post('/auth/login', {
+        email: credentials.email.trim(),
+        password: credentials.password
+      });
+      
+      console.log('📥 Resposta do login recebida:', {
+        success: response?.success,
+        hasData: !!response?.data,
+        hasUser: !!response?.data?.user,
+        hasToken: !!response?.data?.token,
+        message: response?.message
+      });
+      
+      // Validar estrutura da resposta
+      if (response && response.success && response.data) {
+        const { token, user } = response.data;
+        
+        if (token) {
+          this.setToken(token);
+          localStorage.setItem('authToken', token);
+          console.log('✅ Token salvo com sucesso');
+        } else {
+          console.warn('⚠️ Token não fornecido na resposta');
+        }
+        
+        if (user) {
+          localStorage.setItem('userData', JSON.stringify(user));
+          console.log('✅ Dados do usuário salvos');
+        } else {
+          console.warn('⚠️ Dados do usuário não fornecidos');
+        }
+      }
+      
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Erro no login (ApiService):', error.message);
       throw error;
     }
   }
 
-  // Auth methods
-  async login(credentials) {
-    console.log('🔑 Tentando login via API...');
-    const response = await this.request('/auth/login', {
-      method: 'POST',
-      body: credentials,
-    });
-    
-    if (response.success && response.data?.token) {
-      this.setToken(response.data.token);
-      console.log('✅ Token salvo após login bem-sucedido');
-    }
-    
-    return response;
-  }
-
   async register(userData) {
-    console.log('📝 Registrando novo usuário via API...');
-    return this.request('/auth/register', {
-      method: 'POST',
-      body: userData,
-    });
-  }
-
-  async getProfile() {
-    console.log('👤 Buscando perfil do usuário...');
-    return this.request('/auth/profile');
-  }
-
-  async updateProfile(userData) {
-    console.log('✏️ Atualizando perfil do usuário...');
-    return this.request('/auth/profile', {
-      method: 'PUT',
-      body: userData,
-    });
+    console.log('📝 Tentativa de registro via ApiService');
+    console.log('📧 Email:', userData.email);
+    
+    try {
+      const response = await this.post('/auth/register', {
+        name: userData.name.trim(),
+        email: userData.email.trim(),
+        password: userData.password,
+        confirmPassword: userData.confirmPassword
+      });
+      
+      console.log('📥 Resposta do registro:', {
+        success: response?.success,
+        message: response?.message
+      });
+      
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Erro no registro (ApiService):', error.message);
+      throw error;
+    }
   }
 
   async logout() {
-    console.log('👋 Fazendo logout...');
+    console.log('🚪 Fazendo logout...');
+    
     try {
-      await this.request('/auth/logout', { method: 'POST' });
+      if (this.token) {
+        await this.post('/auth/logout');
+      }
     } catch (error) {
-      console.warn('⚠️ Erro no logout (backend):', error.message);
+      console.warn('⚠️ Erro ao fazer logout no servidor:', error.message);
     } finally {
-      this.setToken(null);
+      this.removeToken();
+      localStorage.removeItem('userData');
       console.log('✅ Logout local concluído');
     }
   }
 
-  async changePassword(passwordData) {
-    console.log('🔑 Alterando senha...');
-    return this.request('/auth/change-password', {
-      method: 'POST',
-      body: passwordData,
-    });
-  }
-
-  // Subject methods
-  async getSubjects(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/subjects${queryString ? `?${queryString}` : ''}`);
-  }
-
-  async getSubjectById(id) {
-    return this.request(`/subjects/${id}`);
-  }
-
-  async createSubject(subjectData) {
-    return this.request('/subjects', {
-      method: 'POST',
-      body: subjectData,
-    });
-  }
-
-  async updateSubject(id, subjectData) {
-    return this.request(`/subjects/${id}`, {
-      method: 'PUT',
-      body: subjectData,
-    });
-  }
-
-  async deleteSubject(id) {
-    return this.request(`/subjects/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Question methods
-  async getQuestions(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/questions${queryString ? `?${queryString}` : ''}`);
-  }
-
-  async getQuestionById(id) {
-    return this.request(`/questions/${id}`);
-  }
-
-  async createQuestion(questionData) {
-    return this.request('/questions', {
-      method: 'POST',
-      body: questionData,
-    });
-  }
-
-  async updateQuestion(id, questionData) {
-    return this.request(`/questions/${id}`, {
-      method: 'PUT',
-      body: questionData,
-    });
-  }
-
-  async deleteQuestion(id) {
-    return this.request(`/questions/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Exam methods
-  async getExams(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/exams${queryString ? `?${queryString}` : ''}`);
-  }
-
-  async getExamById(id) {
-    return this.request(`/exams/${id}`);
-  }
-
-  async createExam(examData) {
-    return this.request('/exams', {
-      method: 'POST',
-      body: examData,
-    });
-  }
-
-  async updateExam(id, examData) {
-    return this.request(`/exams/${id}`, {
-      method: 'PUT',
-      body: examData,
-    });
-  }
-
-  async deleteExam(id) {
-    return this.request(`/exams/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async publishExam(id) {
-    return this.request(`/exams/${id}/publish`, {
-      method: 'POST',
-    });
-  }
-
-  async unpublishExam(id) {
-    return this.request(`/exams/${id}/unpublish`, {
-      method: 'POST',
-    });
-  }
-
-  // Health check
-  async healthCheck() {
+  async refreshToken() {
+    console.log('🔄 Tentando renovar token...');
+    
     try {
-      return await this.request('/health');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        throw new Error('Refresh token não disponível');
+      }
+      
+      const response = await this.post('/auth/refresh', { refreshToken });
+      
+      if (response.success && response.data?.token) {
+        this.setToken(response.data.token);
+        localStorage.setItem('authToken', response.data.token);
+        console.log('✅ Token renovado com sucesso');
+        return response.data.token;
+      }
+      
+      throw new Error('Falha ao renovar token');
+      
     } catch (error) {
-      return {
-        success: false,
-        message: 'Serviço indisponível',
-        error: error.message
-      };
+      console.error('❌ Erro ao renovar token:', error.message);
+      this.removeToken();
+      throw error;
     }
   }
 
-  // Test connection
-  async testConnection() {
-    console.log('🔍 Testando conexão com a API...');
+  // Método para verificar saúde da API
+  async healthCheck() {
     try {
-      const response = await this.healthCheck();
-      console.log('✅ Conexão com a API OK:', response);
-      return response;
+      const response = await this.get('/health');
+      console.log('💚 API está funcionando:', response);
+      return true;
     } catch (error) {
-      console.error('❌ Falha na conexão com a API:', error);
-      throw error;
+      console.error('❤️‍🩹 API não está respondendo:', error.message);
+      return false;
     }
   }
 }
