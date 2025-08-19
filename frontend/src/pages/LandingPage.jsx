@@ -133,21 +133,17 @@ export default function LandingPage() {
                   to="/register" 
                   className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
                 >
-                  🚀 Começar Grátis
+                  🚀 Assine Agora
                 </Link>
                 <button className="border border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-colors">
-                  📱 Ver Demo
+                  📱 Ver Funções
                 </button>
               </div>
 
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-6">
                 <div className="flex items-center">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Grátis para começar
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Sem cartão necessário
+                  Prático e fácil
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
@@ -262,7 +258,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Múltiplas Versões Automáticas</h3>
               <p className="text-gray-600 mb-6">
-                Gere até 50 versões diferentes da mesma prova automaticamente. Questões e alternativas embaralhadas para evitar cola.
+                Gere até 50 versões diferentes da mesma prova automaticamente, embaralhando questões e alternativas.
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-center">
@@ -287,7 +283,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Correção por QR Code</h3>
               <p className="text-gray-600 mb-6">
-                Alunos escaneiam o QR Code na prova e inserem as respostas no celular. Correção e nota instantâneas!
+                Facilitar a correções das diversas provas. Correção e nota instantâneas!
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-center">
@@ -451,19 +447,15 @@ export default function LandingPage() {
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Até 500 alunos por mês</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-400 mr-3" />
                   <span>10 versões por prova</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Questões ilimitadas</span>
+                  <span>Disciplinas ilimitadas</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Equipes de até 5 professores</span>
+                  <span>Questões ilimitadas</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-400 mr-3" />
@@ -514,30 +506,6 @@ export default function LandingPage() {
               <button className="w-full bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium">
                 Falar com Vendas
               </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">15.000+</div>
-              <div className="text-gray-600">Professores ativos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-600 mb-2">2.8M+</div>
-              <div className="text-gray-600">Provas geradas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600 mb-2">850K+</div>
-              <div className="text-gray-600">Alunos avaliados</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-orange-600 mb-2">98%</div>
-              <div className="text-gray-600">Taxa de satisfação</div>
             </div>
           </div>
         </div>
@@ -670,7 +638,7 @@ export default function LandingPage() {
               </button>
               {faqOpen[1] && (
                 <div className="mt-4 text-gray-600">
-                  O aluno escaneia o QR Code na prova, insere as respostas no celular e recebe a nota na hora. Você recebe um relatório completo com todas as respostas e estatísticas.
+                  O professor escaneia o QR Code na prova, ira analizar os quadrados preenchidos e recebera a nota.
                 </div>
               )}
             </div>
@@ -815,24 +783,22 @@ export default function LandingPage() {
                 <li><a href="#features" className="hover:text-white transition-colors">Recursos</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Preços</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Tutoriais</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Roadmap</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-bold mb-6 text-lg">Suporte</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Central de Ajuda</a></li>
+                <li><a href="https://docs.google.com/forms/d/e/1FAIpQLScOg6vtPAy0kf_CE9JJRhQ-YsXVpDYoeQ7clA6PrSi1oqJ6qw/viewform?usp=sharing&ouid=113425038951165086167" className="hover:text-white transition-colors">Central de Ajuda</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Whatsapp</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Status</a></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-400 text-sm">
-              © 2024 ExamSystem. Todos os direitos reservados.
+              © 2025 ExamSystem. Todos os direitos reservados.
             </div>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacidade</a>

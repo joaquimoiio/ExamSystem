@@ -1,8 +1,9 @@
 // frontend/src/pages/auth/Register.jsx - VERSÃO FINAL ATUALIZADA
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Mail, Lock, User, BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useFormValidation, validationRules } from '../../hooks';
 
 // Regras de validação para registro
@@ -39,10 +40,10 @@ export default function Register() {
     acceptTerms: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { success: showSuccess, error: showError } = useToast();
   
   // Hook de validação
   const {
@@ -81,8 +82,23 @@ export default function Register() {
         confirmPassword: formData.confirmPassword
       });
       
-      // Registro bem-sucedido
-      setSuccess(true);
+      // Registro bem-sucedido - mostrar toast e redirecionar
+      showSuccess(
+        'Conta criada com sucesso! Redirecionando para o login...', 
+        { 
+          title: '🎉 Registro Concluído',
+          duration: 3000
+        }
+      );
+      
+      // Limpar formulário
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        acceptTerms: false,
+      });
       
       // Redirecionar para login após 3 segundos
       setTimeout(() => {
@@ -91,34 +107,31 @@ export default function Register() {
       
     } catch (error) {
       console.error('Erro no registro:', error);
-      setGeneralError(error.message || 'Erro ao criar conta. Tente novamente.');
+      
+      // Verificar tipos específicos de erro para mostrar mensagens mais claras
+      let errorMessage = 'Erro ao criar conta. Tente novamente.';
+      
+      if (error.message.includes('já está em uso') || error.message.includes('already exists')) {
+        errorMessage = 'Este email já está cadastrado. Tente fazer login ou use outro email.';
+      } else if (error.message.includes('senha') || error.message.includes('password')) {
+        errorMessage = 'Erro na senha. Verifique se ela atende aos requisitos.';
+      } else if (error.message.includes('email') || error.message.includes('@')) {
+        errorMessage = 'Email inválido. Verifique o formato do email.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showError(errorMessage, { 
+        title: '❌ Erro no Registro',
+        duration: 6000 
+      });
+      
+      setGeneralError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Se registro foi bem-sucedido, mostrar mensagem de sucesso
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
-          <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Conta criada com sucesso!
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Você será redirecionado para a página de login em alguns segundos.
-          </p>
-          <Link
-            to="/login"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
-          >
-            Ir para Login
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

@@ -6,7 +6,11 @@ const app = express();
 
 // MIDDLEWARE BÁSICO
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002'
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -60,14 +64,8 @@ try {
 }
 
 // MIDDLEWARE DE ERRO GLOBAL
-app.use((err, req, res, next) => {
-  console.error('🚨 Global error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Erro interno do servidor',
-    timestamp: new Date().toISOString()
-  });
-});
+const { errorHandler } = require('./middleware/errorHandler');
+app.use(errorHandler);
 
 // CATCH-ALL PARA ROTAS NÃO ENCONTRADAS
 app.use('*', (req, res) => {

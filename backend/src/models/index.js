@@ -81,8 +81,7 @@ const models = [
   { name: 'Exam', path: './Exam' },
   { name: 'ExamVariation', path: './ExamVariation' },
   { name: 'ExamQuestion', path: './ExamQuestion' },
-  { name: 'Answer', path: './Answer' },
-  { name: 'Submission', path: './Submission' }
+  { name: 'Answer', path: './Answer' }
 ];
 
 // Importar todos os modelos

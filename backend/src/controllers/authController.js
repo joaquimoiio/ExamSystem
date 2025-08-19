@@ -1,200 +1,158 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
-// Simulação de banco de dados - substitua pela implementação real
-const users = [
-  {
-    id: 1,
-    name: 'Professor Demo',
-    email: 'professor@teste.com',
-    password: '$2a$12$LQv3c1yqBwEHxv/4HrTwQOsB5K8Q9Dxd.VjZyYgD1tZJnQ2K3lM7u', // senha: 123456
-    role: 'teacher'
-  },
-  {
-    id: 2,
-    name: 'Admin Demo',
-    email: 'admin@teste.com',
-    password: '$2a$12$LQv3c1yqBwEHxv/4HrTwQOsB5K8Q9Dxd.VjZyYgD1tZJnQ2K3lM7u', // senha: 123456
-    role: 'admin'
-  }
-];
+const { User } = require('../models');
+const { AppError, catchAsync } = require('../utils/appError');
 
 const authController = {
-  async login(req, res) {
+  login: catchAsync(async (req, res, next) => {
     console.log('🔐 AuthController.login iniciado');
     console.log('📧 Email recebido:', req.body.email);
     
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email e senha são obrigatórios'
-        });
-      }
-      
-      // Buscar usuário no "banco de dados"
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (!user) {
-        console.log('❌ Usuário não encontrado:', email);
-        return res.status(401).json({
-          success: false,
-          message: 'Credenciais inválidas'
-        });
-      }
-      
-      // Verificar senha
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      
-      if (!isValidPassword) {
-        console.log('❌ Senha inválida para:', email);
-        return res.status(401).json({
-          success: false,
-          message: 'Credenciais inválidas'
-        });
-      }
-      
-      // Gerar token JWT
-      const token = jwt.sign(
-        { 
-          userId: user.id, 
-          email: user.email, 
-          role: user.role 
-        },
-        process.env.JWT_SECRET || 'fallback-secret',
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-      );
-      
-      console.log('✅ Login bem-sucedido:', {
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      });
-      
-      res.json({
-        success: true,
-        message: 'Login realizado com sucesso',
-        data: {
-          token,
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-          }
-        }
-      });
-      
-    } catch (error) {
-      console.error('❌ Erro no login:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro interno do servidor'
-      });
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return next(new AppError('Email e senha são obrigatórios', 400));
     }
-  },
+    
+    // Buscar usuário no banco de dados (primeiro sem filtro de isActive)
+    const user = await User.findOne({ 
+      where: { 
+        email: email.toLowerCase()
+      }
+    });
+    
+    if (!user) {
+      console.log('❌ Usuário não encontrado:', email);
+      return next(new AppError('Email não encontrado. Verifique se está correto ou crie uma nova conta.', 401));
+    }
+    
+    // Verificar se a conta está ativa
+    if (!user.isActive) {
+      console.log('❌ Conta desativada:', email);
+      return next(new AppError('Conta desativada. Entre em contato com o suporte.', 403));
+    }
+    
+    // Verificar senha
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      console.log('❌ Senha inválida para:', email);
+      return next(new AppError('Senha incorreta. Tente novamente ou clique em "Esqueceu sua senha?".', 401));
+    }
+    
+    // Gerar token JWT
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email, 
+        role: user.role,
+        name: user.name
+      },
+      process.env.JWT_SECRET || 'exam_system_super_secret_key_2024_muito_segura',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+    
+    console.log('✅ Login bem-sucedido:', {
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    });
+    
+    res.json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      }
+    });
+  }),
 
-  async register(req, res) {
+  register: catchAsync(async (req, res, next) => {
     console.log('📝 AuthController.register iniciado');
     
-    try {
-      const { name, email, password, role } = req.body;
-      
-      if (!name || !email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Nome, email e senha são obrigatórios'
-        });
-      }
-      
-      // Verificar se usuário já existe
-      const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (existingUser) {
-        return res.status(409).json({
-          success: false,
-          message: 'Email já está em uso'
-        });
-      }
-      
-      // Hash da senha
-      const hashedPassword = await bcrypt.hash(password, 12);
-      
-      // Criar novo usuário
-      const newUser = {
-        id: users.length + 1,
-        name,
-        email,
-        password: hashedPassword,
-        role: role || 'teacher'
-      };
-      
-      users.push(newUser);
-      
-      console.log('✅ Usuário criado:', {
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role
-      });
-      
-      res.status(201).json({
-        success: true,
-        message: 'Conta criada com sucesso! Faça login para continuar.',
-        data: {
-          user: {
-            id: newUser.id,
-            name: newUser.name,
-            email: newUser.email,
-            role: newUser.role
-          }
-        }
-      });
-      
-    } catch (error) {
-      console.error('❌ Erro no registro:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro interno do servidor'
-      });
+    const { name, email, password, role } = req.body;
+    
+    if (!name || !email || !password) {
+      return next(new AppError('Nome, email e senha são obrigatórios', 400));
     }
-  },
+    
+    // Verificar se usuário já existe
+    const existingUser = await User.findOne({ 
+      where: { email: email.toLowerCase() } 
+    });
+    
+    if (existingUser) {
+      return next(new AppError('Email já está em uso', 409));
+    }
+    
+    // Criar novo usuário no banco de dados (a senha será hasheada automaticamente pelo hook do modelo)
+    const newUser = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase(),
+      password: password,
+      role: role || 'teacher',
+      isActive: true
+    });
+    
+    console.log('✅ Usuário criado:', {
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Conta criada com sucesso! Faça login para continuar.',
+      data: {
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role
+        }
+      }
+    });
+  }),
 
-  async getProfile(req, res) {
+  getProfile: catchAsync(async (req, res, next) => {
     console.log('👤 AuthController.getProfile iniciado');
     
-    try {
-      // Em um cenário real, pegar dados do token/middleware de autenticação
-      const user = users.find(u => u.id === 1); // Demo user
-      
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'Usuário não encontrado'
-        });
-      }
-      
-      res.json({
-        success: true,
-        data: {
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-          }
-        }
-      });
-      
-    } catch (error) {
-      console.error('❌ Erro ao buscar perfil:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro interno do servidor'
-      });
+    // req.user é preenchido pelo middleware de autenticação
+    if (!req.user) {
+      return next(new AppError('Usuário não autenticado', 401));
     }
-  }
+    
+    // Buscar dados atualizados do usuário no banco
+    const user = await User.findByPk(req.user.userId);
+    
+    if (!user) {
+      return next(new AppError('Usuário não encontrado', 404));
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          avatar: user.avatar,
+          phone: user.phone,
+          bio: user.bio,
+          createdAt: user.createdAt,
+          lastLogin: user.lastLogin
+        }
+      }
+    });
+  })
 };
 
 module.exports = authController;

@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const subjectController = require('../controllers/subjectController');
+const { authenticateToken } = require('../middleware/auth');
 
 // Validation rules for subject creation/update
 const subjectValidation = [
@@ -28,11 +29,11 @@ const subjectValidation = [
 ];
 
 // Routes
-router.get('/', subjectController.getSubjects);
-router.get('/stats', subjectController.getSubjectsStats);
-router.get('/:id', subjectController.getSubjectById);
-router.post('/', subjectValidation, subjectController.createSubject);
-router.put('/:id', subjectValidation, subjectController.updateSubject);
-router.delete('/:id', subjectController.deleteSubject);
+router.get('/', authenticateToken, subjectController.getSubjects);
+router.get('/stats', authenticateToken, subjectController.getSubjectsStats);
+router.get('/:id', authenticateToken, subjectController.getSubjectById);
+router.post('/', authenticateToken, subjectValidation, subjectController.createSubject);
+router.put('/:id', authenticateToken, subjectValidation, subjectController.updateSubject);
+router.delete('/:id', authenticateToken, subjectController.deleteSubject);
 
 module.exports = router;

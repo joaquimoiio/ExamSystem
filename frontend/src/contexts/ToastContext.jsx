@@ -24,15 +24,15 @@ const toastIcons = {
 };
 
 const toastStyles = {
-  success: 'bg-success-500 text-white border-success-600',
-  error: 'bg-error-500 text-white border-error-600',
-  warning: 'bg-warning-500 text-white border-warning-600',
-  info: 'bg-primary-500 text-white border-primary-600',
+  success: 'toast-success',
+  error: 'toast-error',
+  warning: 'toast-warning', 
+  info: 'toast-info',
 };
 
 function ToastContainer({ toasts, dispatch }) {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+    <div className="toast-container">
       {toasts.map(toast => {
         const Icon = toastIcons[toast.type];
         
@@ -40,9 +40,11 @@ function ToastContainer({ toasts, dispatch }) {
           <div
             key={toast.id}
             className={`
-              p-4 rounded-lg shadow-lg border flex items-start space-x-3 
+              p-4 rounded-xl flex items-start space-x-3 
               transform transition-all duration-300 animate-slide-in
               ${toastStyles[toast.type]}
+              ${toast.type === 'error' ? 'animate-shake' : ''}
+              backdrop-blur-sm
             `}
           >
             <Icon size={20} className="flex-shrink-0 mt-0.5" />
@@ -50,11 +52,11 @@ function ToastContainer({ toasts, dispatch }) {
               {toast.title && (
                 <div className="font-semibold text-sm mb-1">{toast.title}</div>
               )}
-              <div className="text-sm opacity-90">{toast.message}</div>
+              <div className="text-sm opacity-95">{toast.message}</div>
             </div>
             <button 
               onClick={() => dispatch({ type: 'REMOVE_TOAST', payload: toast.id })}
-              className="flex-shrink-0 text-white hover:text-gray-200 transition-colors ml-2"
+              className="flex-shrink-0 text-white hover:text-gray-200 transition-all duration-200 ml-2 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
             >
               <X size={16} />
             </button>

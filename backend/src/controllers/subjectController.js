@@ -1,12 +1,11 @@
 // backend/src/controllers/subjectController.js
 const { Subject, Question, Exam } = require('../models');
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+const { AppError, catchAsync } = require('../utils/appError');
 const { Op } = require('sequelize');
 
 // Função auxiliar para verificar autenticação
 const checkAuthentication = (req, next) => {
-  if (!req.user || !req.user.id) {
+  if (!req.user || !req.user.userId) {
     next(new AppError('Usuário não autenticado', 401));
     return false;
   }
@@ -50,7 +49,7 @@ const getSubjects = catchAsync(async (req, res, next) => {
   
   if (!checkAuthentication(req, next)) return;
 
-  const userId = req.user.id;
+  const userId = req.user.userId;
   console.log('👤 Usuário ID:', userId);
 
   // Parâmetros de paginação e filtros
@@ -93,8 +92,8 @@ const getSubjects = catchAsync(async (req, res, next) => {
             Subject.sequelize.literal(`(
               SELECT COUNT(*)
               FROM questions
-              WHERE questions.subject_id = "Subject"."id"
-              AND questions.is_active = true
+              WHERE questions."subjectId" = "Subject"."id"
+              AND questions."isActive" = true
             )`),
             'questionsCount'
           ],
@@ -103,7 +102,7 @@ const getSubjects = catchAsync(async (req, res, next) => {
             Subject.sequelize.literal(`(
               SELECT COUNT(*)
               FROM exams
-              WHERE exams.subject_id = "Subject"."id"
+              WHERE exams."subjectId" = "Subject"."id"
             )`),
             'examsCount'
           ]
@@ -170,7 +169,7 @@ const getSubjectsStats = catchAsync(async (req, res, next) => {
   
   if (!checkAuthentication(req, next)) return;
 
-  const userId = req.user.id;
+  const userId = req.user.userId;
 
   try {
     console.log('📊 Calculando estatísticas para usuário:', userId);
@@ -221,7 +220,7 @@ const createSubject = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { name, description, color, code, credits, isActive } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.userId;
   
   console.log('🆕 Dados recebidos:', { name, description, color, code, credits, isActive, userId });
   
@@ -319,7 +318,7 @@ const getSubjectById = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
-  const userId = req.user.id;
+  const userId = req.user.userId;
   
   console.log('🔍 Buscando disciplina ID:', id, 'para usuário:', userId);
   
@@ -384,7 +383,7 @@ const updateSubject = catchAsync(async (req, res, next) => {
 
   const { id } = req.params;
   const { name, description, color, code, credits, isActive } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.userId;
   
   console.log('✏️ Atualizando disciplina:', { id, userId });
   
@@ -496,7 +495,7 @@ const deleteSubject = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
-  const userId = req.user.id;
+  const userId = req.user.userId;
   
   console.log('🗑️ Excluindo disciplina ID:', id, 'para usuário:', userId);
   

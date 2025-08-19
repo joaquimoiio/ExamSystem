@@ -4,55 +4,8 @@ const jwt = require('jsonwebtoken');
 // Configuração JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'exam_system_super_secret_key_2024_muito_segura';
 
-// Usuários hardcoded (mesmo que no authController)
-const hardcodedUsers = [
-  {
-    id: '1',
-    name: 'Administrador',
-    email: 'admin@example.com',
-    role: 'admin',
-    isActive: true
-  },
-  {
-    id: '2',
-    name: 'Professor Teste',
-    email: 'teacher@example.com',
-    role: 'teacher',
-    isActive: true
-  },
-  {
-    id: '3',
-    name: 'Joaquim Paes',
-    email: 'joaquimpaes03@gmail.com',
-    role: 'teacher',
-    isActive: true
-  }
-];
-
-// Tentar importar User model
-let User;
-let useDatabase = false;
-
-try {
-  const { User: UserModel } = require('../models');
-  if (UserModel && typeof UserModel.findByPk === 'function') {
-    User = UserModel;
-    useDatabase = true;
-    console.log('✅ User model carregado no middleware');
-  } else {
-    throw new Error('User model não disponível');
-  }
-} catch (error) {
-  console.warn('⚠️ Middleware auth usando fallback hardcoded');
-  
-  // Mock User model
-  User = {
-    findByPk: async (id) => {
-      const user = hardcodedUsers.find(u => u.id.toString() === id.toString());
-      return user || null;
-    }
-  };
-}
+// Importar User model
+const { User } = require('../models');
 
 // Middleware para autenticar token JWT
 const authenticateToken = async (req, res, next) => {
@@ -84,54 +37,36 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Buscar usuário
-    let user;
-    try {
-      user = await User.findByPk(decoded.userId);
-      
-      if (!user) {
-        console.log('❌ Usuário não encontrado no sistema:', decoded.userId);
-        return res.status(401).json({
-          success: false,
-          message: 'Usuário não encontrado'
-        });
-      }
-
-      if (!user.isActive) {
-        console.log('❌ Usuário inativo:', decoded.userId);
-        return res.status(401).json({
-          success: false,
-          message: 'Conta de usuário desativada'
-        });
-      }
-
-      // Adicionar informações do usuário ao request
-      req.user = {
-        userId: user.id,
-        name: user.name || decoded.name,
-        email: user.email || decoded.email,
-        role: user.role || decoded.role,
-        isActive: user.isActive
-      };
-
-      console.log('✅ Usuário autenticado:', req.user.email, '(' + req.user.role + ')');
-      next();
-
-    } catch (dbError) {
-      console.error('❌ Erro ao buscar usuário:', dbError.message);
-      
-      // Fallback: usar dados do token se o banco falhar
-      req.user = {
-        userId: decoded.userId,
-        name: decoded.name || 'User',
-        email: decoded.email,
-        role: decoded.role || 'teacher',
-        isActive: true
-      };
-      
-      console.log('⚠️ Usando dados do token (fallback):', req.user.email);
-      next();
+    // Buscar usuário no banco de dados
+    const user = await User.findByPk(decoded.userId);
+    
+    if (!user) {
+      console.log('❌ Usuário não encontrado no sistema:', decoded.userId);
+      return res.status(401).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
     }
+
+    if (!user.isActive) {
+      console.log('❌ Usuário inativo:', decoded.userId);
+      return res.status(401).json({
+        success: false,
+        message: 'Conta de usuário desativada'
+      });
+    }
+
+    // Adicionar informações do usuário ao request
+    req.user = {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive
+    };
+
+    console.log('✅ Usuário autenticado:', req.user.email, '(' + req.user.role + ')');
+    next();
   } catch (error) {
     console.error('❌ Erro no middleware de autenticação:', error);
     res.status(500).json({
@@ -261,35 +196,23 @@ const checkOwnership = (Model) => {
         });
       }
 
-      // Para o sistema de fallback, permitir acesso
-      if (!useDatabase) {
-        console.log('⚠️ Verificação de ownership pulada (fallback mode)');
-        return next();
+      const resource = await Model.findByPk(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({
+          success: false,
+          message: 'Recurso não encontrado'
+        });
       }
 
-      try {
-        const resource = await Model.findByPk(resourceId);
-        
-        if (!resource) {
-          return res.status(404).json({
-            success: false,
-            message: 'Recurso não encontrado'
-          });
-        }
-
-        if (resource.userId && resource.userId !== req.user.userId) {
-          return res.status(403).json({
-            success: false,
-            message: 'Acesso negado. Você não é o proprietário deste recurso.'
-          });
-        }
-
-        next();
-      } catch (error) {
-        console.error('❌ Erro verificando ownership:', error);
-        // Em caso de erro, permitir acesso (fallback)
-        next();
+      if (resource.userId && resource.userId !== req.user.userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Acesso negado. Você não é o proprietário deste recurso.'
+        });
       }
+
+      next();
     } catch (error) {
       console.error('❌ Erro no middleware checkOwnership:', error);
       res.status(500).json({

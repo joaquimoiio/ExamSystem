@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Mail, Lock, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useFormValidation, validationRules } from '../../hooks';
 
 // Regras de validação para login
@@ -28,6 +29,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { success: showSuccess, error: showError } = useToast();
   
   // Hook de validação
   const {
@@ -67,12 +69,57 @@ export default function Login() {
         password: formData.password
       });
       
-      // Login bem-sucedido - navegar para destino
-      navigate(from, { replace: true });
+      // Login bem-sucedido - mostrar toast e navegar
+      showSuccess(
+        `Bem-vindo de volta! Redirecionando...`,
+        { 
+          title: '🎉 Login Realizado',
+          duration: 2000
+        }
+      );
+      
+      // Navegar para destino após pequeno delay
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 1000);
       
     } catch (error) {
       console.error('Erro no login:', error);
-      setGeneralError(error.message || 'Erro ao fazer login. Tente novamente.');
+      
+      // Verificar tipos específicos de erro para mostrar mensagens mais claras
+      let errorMessage = 'Erro ao fazer login. Tente novamente.';
+      let toastTitle = '❌ Erro no Login';
+      
+      if (error.message.includes('Credenciais inválidas') || 
+          error.message.includes('Invalid credentials') ||
+          error.message.includes('Usuário não encontrado') ||
+          error.message.includes('User not found')) {
+        
+        errorMessage = 'Email não cadastrado ou senha incorreta. Verifique seus dados e tente novamente.';
+        toastTitle = '🚫 Credenciais Inválidas';
+        
+      } else if (error.message.includes('senha') || error.message.includes('password')) {
+        errorMessage = 'Senha incorreta. Tente novamente ou clique em "Esqueceu sua senha?".';
+        toastTitle = '🔒 Senha Incorreta';
+        
+      } else if (error.message.includes('email') || error.message.includes('Email')) {
+        errorMessage = 'Email não encontrado. Verifique se está correto ou crie uma nova conta.';
+        toastTitle = '📧 Email Não Encontrado';
+        
+      } else if (error.message.includes('inativo') || error.message.includes('desativada')) {
+        errorMessage = 'Conta desativada. Entre em contato com o suporte.';
+        toastTitle = '⚠️ Conta Desativada';
+        
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showError(errorMessage, { 
+        title: toastTitle,
+        duration: 6000 
+      });
+      
+      setGeneralError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
