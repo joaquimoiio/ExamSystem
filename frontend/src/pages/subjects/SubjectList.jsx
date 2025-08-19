@@ -6,19 +6,7 @@ import {
 } from 'lucide-react';
 import { useSubjects, useDeleteSubject } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
-import { LoadingCard, SkeletonCard } from '../../components/common/Loading';
-import { ConfirmationModal } from '../../components/ui/Modal';
-import { SearchInput } from '../../components/ui/Input';
-
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Plus, Search, Filter, Eye, Edit, Trash2, MoreVertical,
-  BookOpen, Users, FileText, Settings, AlertCircle
-} from 'lucide-react';
-import { useSubjects, useDeleteSubject } from '../../hooks';
-import { useToast } from '../../contexts/ToastContext';
-import { LoadingCard, SkeletonCard } from '../../components/common/Loading';
+import { SkeletonCard } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
 import { SearchInput } from '../../components/ui/Input';
 
@@ -189,7 +177,7 @@ export default function SubjectList() {
   const [deleteSubjectId, setDeleteSubjectId] = useState(null);
 
   const navigate = useNavigate();
-  const { success, error: showError } = useToast();
+  const { error: showError } = useToast();
   
   const { data: subjectsData, isLoading, error } = useSubjects();
   const deleteSubjectMutation = useDeleteSubject();

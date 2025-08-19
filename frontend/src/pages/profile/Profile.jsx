@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { Input, TextArea, Switch, Select } from '../../components/ui/Input';
+import { Input, Textarea, Switch, Select } from '../../components/ui/Input';
 import { LoadingButton } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
 
@@ -346,7 +346,7 @@ function ProfileTab({
         </div>
 
         <div>
-          <TextArea
+          <Textarea
             label="Biografia"
             placeholder="Conte um pouco sobre você..."
             rows={3}

@@ -37,7 +37,7 @@ function Sidebar({ isOpen, onClose }) {
       <div className={`
         fixed top-0 left-0 h-full w-64 bg-white border-r transform transition-transform duration-300 z-50
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
+        lg:translate-x-0 lg:relative lg:z-auto
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -294,16 +294,16 @@ export default function Layout({ children, showFab = false, fabAction, fabIcon: 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
       />
       
-      <div className="lg:ml-64">
+      <div className="flex-1 flex flex-col">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6">
           {children}
         </main>
       </div>

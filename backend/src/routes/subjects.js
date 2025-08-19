@@ -1,78 +1,38 @@
 const express = require('express');
+const { body } = require('express-validator');
 const router = express.Router();
-
 const subjectController = require('../controllers/subjectController');
-const { authenticateToken, requireTeacher, checkOwnership } = require('../middleware/auth');
-const {
-  validateSubjectCreate,
-  validateSubjectUpdate,
-  validatePagination,
-  validateUUIDParam
-} = require('../middleware/validation');
-const { Subject } = require('../models');
 
-// All routes require authentication
-router.use(authenticateToken);
+// Validation rules for subject creation/update
+const subjectValidation = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('description')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Descrição deve ter no máximo 500 caracteres'),
+  body('color')
+    .optional()
+    .matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+    .withMessage('Cor deve estar no formato hexadecimal (#FFFFFF)'),
+  body('credits')
+    .optional()
+    .isInt({ min: 1, max: 20 })
+    .withMessage('Créditos deve ser um número entre 1 e 20'),
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('Status ativo deve ser verdadeiro ou falso'),
+];
 
-// List subjects with pagination and search
-router.get('/', validatePagination, subjectController.getSubjects);
-
-// Get subject statistics for dashboard
+// Routes
+router.get('/', subjectController.getSubjects);
 router.get('/stats', subjectController.getSubjectsStats);
-
-// Create new subject (teachers and admins only)
-router.post('/', requireTeacher, validateSubjectCreate, subjectController.createSubject);
-
-// Get subject by ID
-router.get('/:id', 
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  subjectController.getSubjectById
-);
-
-// Update subject (only owner or admin)
-router.put('/:id',
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  validateSubjectUpdate,
-  subjectController.updateSubject
-);
-
-// Delete subject (only owner or admin)
-router.delete('/:id',
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  subjectController.deleteSubject
-);
-
-// Get questions count by difficulty for a subject
-router.get('/:id/questions-count',
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  subjectController.getQuestionsCount
-);
-
-// Get exams for a subject
-router.get('/:id/exams',
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  validatePagination,
-  subjectController.getSubjectExams
-);
-
-// Get questions for a subject
-router.get('/:id/questions',
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  validatePagination,
-  subjectController.getSubjectQuestions
-);
-
-// Check if subject can create exam with given requirements
-router.post('/:id/check-exam-requirements',
-  validateUUIDParam('id'),
-  checkOwnership(Subject),
-  subjectController.checkExamRequirements
-);
+router.get('/:id', subjectController.getSubjectById);
+router.post('/', subjectValidation, subjectController.createSubject);
+router.put('/:id', subjectValidation, subjectController.updateSubject);
+router.delete('/:id', subjectController.deleteSubject);
 
 module.exports = router;

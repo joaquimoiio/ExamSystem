@@ -8,7 +8,7 @@ import {
 import { useSubjects, useQuestions, useCreateExam } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
-import { Select, Input, TextArea, Switch } from '../../components/ui/Input';
+import { Select, Input, Textarea, Switch } from '../../components/ui/Input';
 
 export default function ExamCreate() {
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -194,7 +194,7 @@ export default function ExamCreate() {
               </div>
 
               <div className="md:col-span-2">
-                <TextArea
+                <Textarea
                   label="Descrição (opcional)"
                   placeholder="Descrição detalhada da prova..."
                   rows={3}

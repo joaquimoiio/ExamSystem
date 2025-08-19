@@ -9,7 +9,7 @@ import { useSubject, useUpdateSubject, useDeleteSubject, useCreateSubject } from
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
-import { Input, TextArea, ColorPicker } from '../../components/ui/Input';
+import { Input, Textarea, ColorPicker } from '../../components/ui/Input';
 
 const predefinedColors = [
   '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
@@ -257,7 +257,7 @@ export default function SubjectDetail() {
             </div>
 
             <div>
-              <TextArea
+              <Textarea
                 label="Descrição (opcional)"
                 placeholder="Descrição detalhada da disciplina..."
                 rows={3}

@@ -525,3 +525,25 @@ export function useGeneratePDFs() {
     },
   });
 }
+
+// ================================
+// DASHBOARD HOOKS
+// ================================
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: apiService.getDashboardStats,
+    staleTime: 30 * 1000, // 30 seconds
+    retry: 1,
+  });
+}
+
+export function useRecentActivity() {
+  return useQuery({
+    queryKey: ['recent-activity'],
+    queryFn: apiService.getRecentActivity,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 1,
+  });
+}

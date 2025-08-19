@@ -6,7 +6,7 @@ import {
   RefreshCw, Save, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import { Input, Select, Switch, TextArea } from '../../components/ui/Input';
+import { Input, Select, Switch, Textarea } from '../../components/ui/Input';
 import { LoadingButton } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
 
@@ -272,7 +272,7 @@ function GeneralTab({ register, errors }) {
         />
       </div>
 
-      <TextArea
+      <Textarea
         label="Descrição do Sistema"
         placeholder="Sistema de provas online para instituições de ensino"
         rows={3}

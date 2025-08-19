@@ -182,6 +182,173 @@ class ApiService {
       console.warn('⚠️ Erro no logout:', error.message);
     }
   }
+
+  // ================================
+  // SUBJECTS API
+  // ================================
+  
+  async getSubjects(params = {}) {
+    console.log('📚 Buscando disciplinas');
+    return this.get('/subjects', { params });
+  }
+
+  async getSubjectById(id) {
+    console.log('📖 Buscando disciplina:', id);
+    return this.get(`/subjects/${id}`);
+  }
+
+  async createSubject(data) {
+    console.log('➕ Criando disciplina:', data);
+    return this.post('/subjects', data);
+  }
+
+  async updateSubject(id, data) {
+    console.log('✏️ Atualizando disciplina:', id, data);
+    return this.put(`/subjects/${id}`, data);
+  }
+
+  async deleteSubject(id) {
+    console.log('🗑️ Deletando disciplina:', id);
+    return this.delete(`/subjects/${id}`);
+  }
+
+  async getSubjectsStats() {
+    console.log('📊 Buscando estatísticas das disciplinas');
+    return this.get('/subjects/stats');
+  }
+
+  // ================================
+  // QUESTIONS API
+  // ================================
+  
+  async getQuestions(params = {}) {
+    console.log('❓ Buscando questões');
+    return this.get('/questions', { params });
+  }
+
+  async getQuestionById(id) {
+    console.log('❓ Buscando questão:', id);
+    return this.get(`/questions/${id}`);
+  }
+
+  async createQuestion(data) {
+    console.log('➕ Criando questão:', data);
+    return this.post('/questions', data);
+  }
+
+  async updateQuestion(id, data) {
+    console.log('✏️ Atualizando questão:', id, data);
+    return this.put(`/questions/${id}`, data);
+  }
+
+  async deleteQuestion(id) {
+    console.log('🗑️ Deletando questão:', id);
+    return this.delete(`/questions/${id}`);
+  }
+
+  async getQuestionsStats() {
+    console.log('📊 Buscando estatísticas das questões');
+    return this.get('/questions/stats');
+  }
+
+  async duplicateQuestion(id) {
+    console.log('📋 Duplicando questão:', id);
+    return this.post(`/questions/${id}/duplicate`);
+  }
+
+  // ================================
+  // EXAMS API
+  // ================================
+  
+  async getExams(params = {}) {
+    console.log('📝 Buscando provas');
+    return this.get('/exams', { params });
+  }
+
+  async getExamById(id) {
+    console.log('📝 Buscando prova:', id);
+    return this.get(`/exams/${id}`);
+  }
+
+  async createExam(data) {
+    console.log('➕ Criando prova:', data);
+    return this.post('/exams', data);
+  }
+
+  async updateExam(id, data) {
+    console.log('✏️ Atualizando prova:', id, data);
+    return this.put(`/exams/${id}`, data);
+  }
+
+  async deleteExam(id) {
+    console.log('🗑️ Deletando prova:', id);
+    return this.delete(`/exams/${id}`);
+  }
+
+  async publishExam(id) {
+    console.log('🚀 Publicando prova:', id);
+    return this.post(`/exams/${id}/publish`);
+  }
+
+  async generatePDFs(id) {
+    console.log('📄 Gerando PDFs da prova:', id);
+    return this.post(`/exams/${id}/generate-pdfs`);
+  }
+
+  async getExamsStats() {
+    console.log('📊 Buscando estatísticas das provas');
+    return this.get('/exams/stats');
+  }
+
+  // ================================
+  // DASHBOARD STATS
+  // ================================
+  
+  async getDashboardStats() {
+    console.log('📊 Buscando estatísticas do dashboard');
+    try {
+      const [subjectsRes, questionsRes, examsRes] = await Promise.all([
+        this.get('/subjects/stats').catch(() => ({ data: { total: 0 } })),
+        this.get('/questions/stats').catch(() => ({ data: { total: 0 } })),
+        this.get('/exams/stats').catch(() => ({ data: { total: 0, published: 0 } }))
+      ]);
+
+      return {
+        success: true,
+        data: {
+          subjects: subjectsRes.data?.total || 0,
+          questions: questionsRes.data?.total || 0,
+          exams: examsRes.data?.total || 0,
+          publishedExams: examsRes.data?.published || 0
+        }
+      };
+    } catch (error) {
+      console.error('❌ Erro ao buscar estatísticas do dashboard:', error);
+      return {
+        success: true,
+        data: {
+          subjects: 0,
+          questions: 0,
+          exams: 0,
+          publishedExams: 0
+        }
+      };
+    }
+  }
+
+  async getRecentActivity() {
+    console.log('📋 Buscando atividade recente');
+    try {
+      // Por enquanto, retorna array vazio já que não temos endpoint de atividades
+      return {
+        success: true,
+        data: []
+      };
+    } catch (error) {
+      console.error('❌ Erro ao buscar atividade recente:', error);
+      return { success: true, data: [] };
+    }
+  }
 }
 
 // Instância única

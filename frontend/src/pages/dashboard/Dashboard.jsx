@@ -1,4 +1,3 @@
-// frontend/src/pages/dashboard/DashboardSafe.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -7,24 +6,24 @@ import {
   ArrowRight, Calendar, Target, Award, LogOut
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDashboardStats, useRecentActivity } from '../../hooks';
 
-export default function DashboardSafe() {
+export default function Dashboard() {
   const { user, logout } = useAuth();
 
-  // Dados simulados para demonstração
-  const stats = {
-    subjects: 3,
-    questions: 15,
-    exams: 2,
-    publishedExams: 1,
+  // Buscar dados reais da API
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useDashboardStats();
+  const { data: activityData, isLoading: activityLoading } = useRecentActivity();
+
+  // Extrair dados ou usar valores padrão
+  const stats = statsData?.data || {
+    subjects: 0,
+    questions: 0,
+    exams: 0,
+    publishedExams: 0,
   };
 
-  const recentActivity = [
-    { action: 'Criou questão', item: 'Trigonometria básica', time: '4 horas atrás', icon: FileText, color: 'success' },
-    { action: 'Publicou prova', item: 'Física - 1º Bimestre', time: '1 dia atrás', icon: CheckCircle, color: 'info' },
-    { action: 'Criou disciplina', item: 'Química Orgânica', time: '2 dias atrás', icon: BookOpen, color: 'warning' },
-    { action: 'Atualizou questão', item: 'Equações de 2º grau', time: '3 dias atrás', icon: FileText, color: 'primary' },
-  ];
+  const recentActivity = activityData?.data || [];
 
   const quickActions = [
     {
@@ -99,6 +98,7 @@ export default function DashboardSafe() {
               icon={BookOpen}
               color="primary"
               to="/subjects"
+              isLoading={statsLoading}
             />
             <StatCard
               title="Questões"
@@ -106,6 +106,7 @@ export default function DashboardSafe() {
               icon={FileText}
               color="success"
               to="/questions"
+              isLoading={statsLoading}
             />
             <StatCard
               title="Provas Criadas"
@@ -113,6 +114,7 @@ export default function DashboardSafe() {
               icon={BarChart3}
               color="warning"
               to="/exams"
+              isLoading={statsLoading}
             />
             <StatCard
               title="Provas Publicadas"
@@ -120,6 +122,7 @@ export default function DashboardSafe() {
               icon={CheckCircle}
               color="info"
               to="/exams?status=published"
+              isLoading={statsLoading}
             />
           </div>
 
@@ -140,7 +143,19 @@ export default function DashboardSafe() {
                   </div>
                 </div>
                 <div className="p-6">
-                  {recentActivity.length > 0 ? (
+                  {activityLoading ? (
+                    <div className="space-y-4">
+                      {[...Array(4)].map((_, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : recentActivity.length > 0 ? (
                     <div className="space-y-4">
                       {recentActivity.map((activity, index) => (
                         <ActivityItem key={index} activity={activity} />
@@ -150,6 +165,9 @@ export default function DashboardSafe() {
                     <div className="text-center py-8">
                       <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">Nenhuma atividade recente</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Suas ações aparecerão aqui quando você começar a usar o sistema
+                      </p>
                     </div>
                   )}
                 </div>
@@ -201,13 +219,29 @@ export default function DashboardSafe() {
 }
 
 // Component for Statistics Cards
-function StatCard({ title, value, icon: Icon, color, to }) {
+function StatCard({ title, value, icon: Icon, color, to, isLoading }) {
   const colorClasses = {
     primary: 'bg-blue-50 border-blue-200 text-blue-600',
     success: 'bg-green-50 border-green-200 text-green-600',
     warning: 'bg-yellow-50 border-yellow-200 text-yellow-600',
     info: 'bg-purple-50 border-purple-200 text-purple-600',
   };
+
+  if (isLoading) {
+    return (
+      <div className={`block p-6 rounded-xl border ${colorClasses[color]}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+            <div className="w-16 h-8 bg-white/50 rounded animate-pulse"></div>
+          </div>
+          <div className="p-3 rounded-lg bg-white/50">
+            <Icon className="w-6 h-6 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Link

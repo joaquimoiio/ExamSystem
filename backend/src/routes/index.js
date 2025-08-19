@@ -2,19 +2,58 @@ const express = require('express');
 const router = express.Router();
 
 // Import routes with fallback
-let authRoutes;
+let authRoutes, subjectRoutes, questionRoutes, examRoutes;
+
 try {
   authRoutes = require('./auth');
   console.log('✅ Auth routes loaded successfully');
 } catch (error) {
   console.error('❌ Error loading auth routes:', error.message);
-  // Criar fallback básico
   authRoutes = express.Router();
   authRoutes.post('/login', (req, res) => {
-    res.status(500).json({
-      success: false,
-      message: 'Auth module not available'
-    });
+    res.status(500).json({ success: false, message: 'Auth module not available' });
+  });
+}
+
+try {
+  subjectRoutes = require('./subjects');
+  console.log('✅ Subject routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading subject routes:', error.message);
+  subjectRoutes = express.Router();
+  subjectRoutes.get('/', (req, res) => {
+    res.json({ success: true, data: { subjects: [], total: 0 } });
+  });
+  subjectRoutes.get('/stats', (req, res) => {
+    res.json({ success: true, data: { total: 0 } });
+  });
+}
+
+try {
+  questionRoutes = require('./questions');
+  console.log('✅ Question routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading question routes:', error.message);
+  questionRoutes = express.Router();
+  questionRoutes.get('/', (req, res) => {
+    res.json({ success: true, data: { questions: [], total: 0 } });
+  });
+  questionRoutes.get('/stats', (req, res) => {
+    res.json({ success: true, data: { total: 0 } });
+  });
+}
+
+try {
+  examRoutes = require('./exams');
+  console.log('✅ Exam routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading exam routes:', error.message);
+  examRoutes = express.Router();
+  examRoutes.get('/', (req, res) => {
+    res.json({ success: true, data: { exams: [], total: 0 } });
+  });
+  examRoutes.get('/stats', (req, res) => {
+    res.json({ success: true, data: { total: 0, published: 0 } });
   });
 }
 
@@ -48,6 +87,11 @@ router.get('/health', (req, res) => {
 // Mount auth routes
 router.use('/auth', authRoutes);
 
+// Mount other routes
+router.use('/subjects', subjectRoutes);
+router.use('/questions', questionRoutes);
+router.use('/exams', examRoutes);
+
 // Catch-all for undefined routes
 router.use('*', (req, res) => {
   console.log('❓ Undefined API route:', req.method, req.originalUrl);
@@ -62,7 +106,13 @@ router.use('*', (req, res) => {
       'GET /api/health',
       'POST /api/auth/login',
       'POST /api/auth/register',
-      'GET /api/auth/profile'
+      'GET /api/auth/profile',
+      'GET /api/subjects',
+      'GET /api/subjects/stats',
+      'GET /api/questions',
+      'GET /api/questions/stats',
+      'GET /api/exams',
+      'GET /api/exams/stats'
     ]
   });
 });

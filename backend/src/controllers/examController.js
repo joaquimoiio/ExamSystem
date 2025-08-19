@@ -1,5 +1,5 @@
 const { Exam, ExamVariation, ExamQuestion, Question, Subject, Answer } = require('../models');
-const { AppError, catchAsync } = require('../utils/appError');
+const { catchAsync, AppError } = require('../utils/appError');
 const { paginate, buildPaginationMeta, generateAccessCode, shuffleArray } = require('../utils/helpers');
 const qrService = require('../services/qrService');
 const { Op } = require('sequelize');

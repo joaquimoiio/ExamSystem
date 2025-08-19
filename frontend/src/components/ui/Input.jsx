@@ -506,4 +506,122 @@ export const Radio = React.forwardRef(({
 
 Radio.displayName = 'Radio';
 
+// Switch Component
+export const Switch = React.forwardRef(({
+  checked = false,
+  onChange,
+  label,
+  description,
+  disabled = false,
+  className = '',
+  ...props
+}, ref) => {
+  return (
+    <div className={`flex items-start space-x-3 ${className}`}>
+      <button
+        ref={ref}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => !disabled && onChange && onChange(!checked)}
+        disabled={disabled}
+        className={`
+          relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+          ${checked 
+            ? 'bg-primary-600' 
+            : 'bg-gray-300'
+          }
+          ${disabled 
+            ? 'opacity-50 cursor-not-allowed' 
+            : 'cursor-pointer'
+          }
+        `}
+        {...props}
+      >
+        <span
+          className={`
+            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+            ${checked ? 'translate-x-6' : 'translate-x-1'}
+          `}
+        />
+      </button>
+      
+      {(label || description) && (
+        <div className="flex-1 min-w-0">
+          {label && (
+            <label className={`block text-sm font-medium ${disabled ? 'text-gray-400' : 'text-gray-900'}`}>
+              {label}
+            </label>
+          )}
+          {description && (
+            <p className={`text-xs ${disabled ? 'text-gray-300' : 'text-gray-500'}`}>
+              {description}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+Switch.displayName = 'Switch';
+
+// ColorPicker Component (básico)
+export const ColorPicker = React.forwardRef(({
+  value = '#3B82F6',
+  onChange,
+  label,
+  error,
+  className = '',
+  ...props
+}, ref) => {
+  const colors = [
+    '#3B82F6', '#10B981', '#F59E0B', '#EF4444',
+    '#8B5CF6', '#06B6D4', '#84CC16', '#F97316',
+    '#EC4899', '#6366F1', '#14B8A6', '#F59E0B'
+  ];
+
+  return (
+    <div className={className}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {colors.map((color) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => onChange && onChange(color)}
+            className={`
+              w-8 h-8 rounded-lg border-2 transition-all
+              ${value === color 
+                ? 'border-gray-900 ring-2 ring-gray-900 ring-offset-2' 
+                : 'border-gray-300 hover:border-gray-400'
+              }
+            `}
+            style={{ backgroundColor: color }}
+            title={color}
+          />
+        ))}
+      </div>
+      <input
+        ref={ref}
+        type="color"
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
+        className="sr-only"
+        {...props}
+      />
+      {error && (
+        <p className="text-xs text-red-600 mt-1">{error}</p>
+      )}
+    </div>
+  );
+});
+
+ColorPicker.displayName = 'ColorPicker';
+
+export { Input };
 export default Input;

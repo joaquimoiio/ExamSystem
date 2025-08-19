@@ -10,7 +10,6 @@ import { useExam, useUpdateExam, useDeleteExam, usePublishExam, useGeneratePDFs 
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
-import { Dropdown } from '../../components/ui/Dropdown';
 
 const statusConfig = {
   draft: { 
@@ -37,6 +36,7 @@ export default function ExamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
+  const [showActionMenu, setShowActionMenu] = useState(false);
   
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
@@ -227,15 +227,38 @@ export default function ExamDetail() {
             Preview
           </Link>
 
-          <Dropdown
-            trigger={
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <MoreVertical className="w-5 h-5" />
-              </button>
-            }
-            items={actionMenuItems}
-            align="right"
-          />
+          <div className="relative">
+            <button 
+              onClick={() => setShowActionMenu(!showActionMenu)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+
+            {showActionMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowActionMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                  {actionMenuItems.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        item.onClick();
+                        setShowActionMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <item.icon className="w-4 h-4 mr-2" />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
