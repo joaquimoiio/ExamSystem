@@ -45,18 +45,31 @@ const examValidation = [
 // Routes básicas usando os controllers existentes
 router.get('/', examController.getExams);
 router.get('/stats', examController.getExamsStats);
+router.get('/recent', examController.getRecentExams);
 router.get('/:id', examController.getExamById);
 router.post('/', examValidation, examController.createExam);
 router.put('/:id', examValidation, examController.updateExam);
 router.delete('/:id', examController.deleteExam);
 
-// Endpoints que podem não existir ainda - com fallback
-router.post('/:id/publish', examController.publishExam || ((req, res) => {
-  res.json({ success: true, message: 'Função de publicação em desenvolvimento' });
-}));
+// Exam management
+router.post('/:id/publish', examController.publishExam);
+router.post('/:id/unpublish', examController.unpublishExam);
+router.post('/:id/duplicate', examController.duplicateExam);
+router.post('/:id/regenerate-variations', examController.regenerateVariations);
 
-router.post('/:id/generate-pdfs', examController.generatePDFs || ((req, res) => {
-  res.json({ success: true, message: 'Geração de PDFs em desenvolvimento' });
-}));
+// Variations
+router.get('/:id/variations', examController.getExamVariations);
+router.get('/:id/variations/:variationId', examController.getExamVariation);
+
+// Analytics and reports
+router.get('/:id/analytics', examController.getExamAnalytics);
+router.get('/:id/answers', examController.getExamAnswers);
+router.post('/:id/export', examController.exportExamResults);
+router.post('/:id/report', examController.generateExamReport);
+router.post('/:id/bulk-grade', examController.bulkGradeExam);
+
+// PDF Generation with QR codes
+router.post('/:id/generate-pdf', examController.generateExamPDF);
+router.post('/:id/generate-all-pdfs', examController.generateAllExamPDFs);
 
 module.exports = router;

@@ -46,6 +46,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSONB,
       comment: 'Stores shuffled alternatives and correct answer mapping'
     },
+    points: {
+      type: DataTypes.DECIMAL(4, 2),
+      allowNull: false,
+      defaultValue: 1.0,
+      validate: {
+        min: 0.1,
+        max: 100.0
+      },
+      comment: 'Points for this specific question in this exam (overrides question default points)'
+    },
     metadata: {
       type: DataTypes.JSONB,
       defaultValue: {}
@@ -143,13 +153,14 @@ module.exports = (sequelize, DataTypes) => {
       question.correctAnswer;
     
     const isCorrect = parseInt(studentAnswer) === correctAnswer;
-    const points = isCorrect ? (question.points || 1) : 0;
+    const questionPoints = this.points || 1; // Use exam-specific points
+    const points = isCorrect ? questionPoints : 0;
     
     return {
       isCorrect,
       points,
       correctAnswer,
-      maxPoints: question.points || 1,
+      maxPoints: questionPoints,
       explanation: question.explanation
     };
   };
@@ -194,7 +205,8 @@ module.exports = (sequelize, DataTypes) => {
       examId,
       variationId,
       questionId: question.id,
-      questionOrder: index
+      questionOrder: index,
+      points: question.examPoints || question.points || 1.0 // Use exam-specific points if provided
     }));
 
     return await this.bulkCreate(examQuestions);
@@ -221,10 +233,10 @@ module.exports = (sequelize, DataTypes) => {
 
     examQuestions.forEach(eq => {
       const difficulty = eq.question.difficulty;
-      const points = eq.question.points || 1;
+      const points = eq.points || 1; // Use exam-specific points
       
       distribution[difficulty]++;
-      distribution.totalPoints += points;
+      distribution.totalPoints += parseFloat(points);
     });
 
     return distribution;

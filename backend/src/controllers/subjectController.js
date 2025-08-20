@@ -28,16 +28,8 @@ const validateSubjectData = (data) => {
     errors.push('Cor é obrigatória e deve estar no formato hexadecimal (#RRGGBB)');
   }
   
-  if (data.code && (data.code.trim().length < 2 || data.code.trim().length > 20)) {
-    errors.push('Código deve ter entre 2 e 20 caracteres');
-  }
-  
   if (data.description && data.description.length > 500) {
     errors.push('Descrição deve ter no máximo 500 caracteres');
-  }
-  
-  if (data.credits && (parseInt(data.credits) < 1 || parseInt(data.credits) > 20)) {
-    errors.push('Créditos devem ser um número entre 1 e 20');
   }
   
   return errors;
@@ -67,7 +59,6 @@ const getSubjects = catchAsync(async (req, res, next) => {
   if (search) {
     whereConditions[Op.or] = [
       { name: { [Op.iLike]: `%${search}%` } },
-      { code: { [Op.iLike]: `%${search}%` } },
       { description: { [Op.iLike]: `%${search}%` } }
     ];
   }
@@ -219,10 +210,10 @@ const createSubject = catchAsync(async (req, res, next) => {
   
   if (!checkAuthentication(req, next)) return;
 
-  const { name, description, color, code, credits, isActive } = req.body;
+  const { name, description, color, isActive } = req.body;
   const userId = req.user.userId;
   
-  console.log('🆕 Dados recebidos:', { name, description, color, code, credits, isActive, userId });
+  console.log('🆕 Dados recebidos:', { name, description, color, isActive, userId });
   
   // Validar dados
   const validationErrors = validateSubjectData(req.body);
@@ -245,28 +236,11 @@ const createSubject = catchAsync(async (req, res, next) => {
       return next(new AppError('Já existe uma disciplina com este nome', 400));
     }
 
-    // Verificar código se fornecido
-    if (code && code.trim()) {
-      const existingByCode = await Subject.findOne({
-        where: { 
-          code: code.trim(),
-          userId 
-        }
-      });
-
-      if (existingByCode) {
-        console.log('❌ Disciplina já existe com código:', code);
-        return next(new AppError('Já existe uma disciplina com este código', 400));
-      }
-    }
-
     // Preparar dados para criação
     const subjectData = {
       name: name.trim(),
       description: description ? description.trim() : '',
       color: color,
-      code: code ? code.trim() : null,
-      credits: parseInt(credits) || 1,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
       userId: userId
     };
@@ -382,7 +356,7 @@ const updateSubject = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
-  const { name, description, color, code, credits, isActive } = req.body;
+  const { name, description, color, isActive } = req.body;
   const userId = req.user.userId;
   
   console.log('✏️ Atualizando disciplina:', { id, userId });
@@ -415,28 +389,11 @@ const updateSubject = catchAsync(async (req, res, next) => {
       }
     }
 
-    // Verificar código único (se alterado)
-    if (code && code.trim() !== subject.code) {
-      const existingByCode = await Subject.findOne({
-        where: { 
-          code: code.trim(),
-          userId,
-          id: { [Op.ne]: id }
-        }
-      });
-
-      if (existingByCode) {
-        return next(new AppError('Já existe uma disciplina com este código', 400));
-      }
-    }
-
     // Preparar dados para atualização
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description ? description.trim() : '';
     if (color !== undefined) updateData.color = color;
-    if (code !== undefined) updateData.code = code ? code.trim() : null;
-    if (credits !== undefined) updateData.credits = parseInt(credits) || 1;
     if (isActive !== undefined) updateData.isActive = Boolean(isActive);
 
     console.log('✏️ Dados para atualização:', updateData);

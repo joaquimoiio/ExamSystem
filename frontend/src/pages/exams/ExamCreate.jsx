@@ -12,11 +12,7 @@ import { Select, Input, Textarea, Switch } from '../../components/ui/Input';
 
 export default function ExamCreate() {
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [difficultyConfig, setDifficultyConfig] = useState({
-    easy: 8,
-    medium: 8,
-    hard: 4,
-  });
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [questionsAvailable, setQuestionsAvailable] = useState({
     total: 0,
     easy: 0,
@@ -24,6 +20,7 @@ export default function ExamCreate() {
     hard: 0,
   });
   const [previewMode, setPreviewMode] = useState(false);
+  const [showQuestionSelector, setShowQuestionSelector] = useState(false);
 
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
@@ -80,31 +77,24 @@ export default function ExamCreate() {
   }, [watchedSubject, questions]);
 
   const onSubmit = async (data) => {
-    const totalQuestions = difficultyConfig.easy + difficultyConfig.medium + difficultyConfig.hard;
-    
-    if (totalQuestions === 0) {
+    if (selectedQuestions.length === 0) {
       showError('Selecione pelo menos uma questão');
       return;
     }
 
-    if (totalQuestions > 50) {
+    if (selectedQuestions.length > 50) {
       showError('Máximo de 50 questões por prova');
-      return;
-    }
-
-    // Validate if we have enough questions
-    if (difficultyConfig.easy > questionsAvailable.easy ||
-        difficultyConfig.medium > questionsAvailable.medium ||
-        difficultyConfig.hard > questionsAvailable.hard) {
-      showError('Questões insuficientes para a distribuição selecionada');
       return;
     }
 
     try {
       const examData = {
         ...data,
-        difficultyDistribution: difficultyConfig,
-        totalQuestions,
+        questions: selectedQuestions.map(q => ({
+          id: q.id,
+          points: q.examPoints || 1.0
+        })),
+        totalQuestions: selectedQuestions.length,
       };
 
       const response = await createExamMutation.mutateAsync(examData);
@@ -115,19 +105,30 @@ export default function ExamCreate() {
     }
   };
 
-  const handleDifficultyChange = (difficulty, value) => {
-    const numValue = Math.max(0, Math.min(value, questionsAvailable[difficulty]));
-    setDifficultyConfig(prev => ({
-      ...prev,
-      [difficulty]: numValue,
-    }));
+  const handleQuestionToggle = (question) => {
+    setSelectedQuestions(prev => {
+      const isSelected = prev.find(q => q.id === question.id);
+      if (isSelected) {
+        return prev.filter(q => q.id !== question.id);
+      } else {
+        return [...prev, { ...question, examPoints: question.points || 1.0 }];
+      }
+    });
   };
 
-  const totalQuestions = difficultyConfig.easy + difficultyConfig.medium + difficultyConfig.hard;
-  const canCreateExam = selectedSubject && totalQuestions > 0 && 
-    difficultyConfig.easy <= questionsAvailable.easy &&
-    difficultyConfig.medium <= questionsAvailable.medium &&
-    difficultyConfig.hard <= questionsAvailable.hard;
+  const handleQuestionPointsChange = (questionId, points) => {
+    setSelectedQuestions(prev => 
+      prev.map(q => 
+        q.id === questionId 
+          ? { ...q, examPoints: parseFloat(points) || 1.0 }
+          : q
+      )
+    );
+  };
+
+  const totalQuestions = selectedQuestions.length;
+  const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.examPoints || 1.0), 0);
+  const canCreateExam = selectedSubject && totalQuestions > 0;
 
   if (createExamMutation.isPending) {
     return <LoadingPage title="Criando prova..." />;
@@ -164,8 +165,7 @@ export default function ExamCreate() {
       {previewMode ? (
         <ExamPreview 
           formData={watch()}
-          difficultyConfig={difficultyConfig}
-          questions={questions}
+          selectedQuestions={selectedQuestions}
           onBack={() => setPreviewMode(false)}
         />
       ) : (
@@ -245,42 +245,83 @@ export default function ExamCreate() {
             </div>
           </div>
 
-          {/* Question Distribution */}
+          {/* Question Selection */}
           {selectedSubject && (
             <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <BarChart3 className="w-5 h-5 text-primary-600 mr-2" />
-                  <h2 className="text-lg font-semibold text-gray-900">Distribuição de Questões</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Seleção de Questões</h2>
                 </div>
                 <div className="text-sm text-gray-600">
-                  Total: {totalQuestions} questões
+                  {totalQuestions} questões • {totalPoints.toFixed(1)} pontos
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <DifficultySelector
-                  label="Fácil"
-                  color="green"
-                  value={difficultyConfig.easy}
-                  available={questionsAvailable.easy}
-                  onChange={(value) => handleDifficultyChange('easy', value)}
-                />
-                <DifficultySelector
-                  label="Médio"
-                  color="yellow"
-                  value={difficultyConfig.medium}
-                  available={questionsAvailable.medium}
-                  onChange={(value) => handleDifficultyChange('medium', value)}
-                />
-                <DifficultySelector
-                  label="Difícil"
-                  color="red"
-                  value={difficultyConfig.hard}
-                  available={questionsAvailable.hard}
-                  onChange={(value) => handleDifficultyChange('hard', value)}
-                />
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowQuestionSelector(!showQuestionSelector)}
+                  className="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors"
+                >
+                  {showQuestionSelector ? 'Ocultar' : 'Selecionar'} Questões ({questionsAvailable.total} disponíveis)
+                </button>
               </div>
+
+              {/* Selected Questions Summary */}
+              {selectedQuestions.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Questões Selecionadas:</h3>
+                  <div className="space-y-3">
+                    {selectedQuestions.map((question, index) => (
+                      <div key={question.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-sm font-medium">Questão {index + 1}</span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                              question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {question.difficulty === 'easy' ? 'Fácil' :
+                               question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 truncate">{question.text}</p>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
+                          <label className="text-sm text-gray-600">Pontos:</label>
+                          <input
+                            type="number"
+                            min="0.1"
+                            max="10"
+                            step="0.1"
+                            value={question.examPoints}
+                            onChange={(e) => handleQuestionPointsChange(question.id, e.target.value)}
+                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleQuestionToggle(question)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Question Selector */}
+              {showQuestionSelector && (
+                <QuestionSelector
+                  questions={questions}
+                  selectedQuestions={selectedQuestions}
+                  onQuestionToggle={handleQuestionToggle}
+                />
+              )}
 
               {questionsAvailable.total === 0 && selectedSubject && (
                 <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -425,48 +466,75 @@ export default function ExamCreate() {
   );
 }
 
-// Component for Difficulty Selector
-function DifficultySelector({ label, color, value, available, onChange }) {
-  const colorClasses = {
-    green: 'border-green-200 bg-green-50',
-    yellow: 'border-yellow-200 bg-yellow-50',
-    red: 'border-red-200 bg-red-50',
-  };
-
-  const textColorClasses = {
-    green: 'text-green-800',
-    yellow: 'text-yellow-800',
-    red: 'text-red-800',
+// Component for Question Selector
+function QuestionSelector({ questions, selectedQuestions, onQuestionToggle }) {
+  const isQuestionSelected = (questionId) => {
+    return selectedQuestions.find(q => q.id === questionId);
   };
 
   return (
-    <div className={`p-4 rounded-lg border ${colorClasses[color]}`}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={`font-medium ${textColorClasses[color]}`}>{label}</h3>
-        <span className="text-sm text-gray-600">{available} disponíveis</span>
+    <div className="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+      <h3 className="text-sm font-medium text-gray-900 mb-3">
+        Selecione as questões ({questions.length} disponíveis):
+      </h3>
+      <div className="space-y-3">
+        {questions.map((question, index) => (
+          <div
+            key={question.id}
+            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+              isQuestionSelected(question.id)
+                ? 'border-primary-300 bg-primary-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => onQuestionToggle(question)}
+          >
+            <div className="flex items-start space-x-3">
+              <input
+                type="checkbox"
+                checked={isQuestionSelected(question.id)}
+                onChange={() => onQuestionToggle(question)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="text-sm font-medium">Questão {index + 1}</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                    question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {question.difficulty === 'easy' ? 'Fácil' :
+                     question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {question.points || 1} ponto(s) padrão
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 line-clamp-2">{question.text}</p>
+                {question.alternatives && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    {question.alternatives.length} alternativas
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-      
-      <input
-        type="number"
-        min="0"
-        max={available}
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value) || 0)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-      />
-      
-      {value > available && (
-        <p className="text-sm text-red-600 mt-2">
-          Insuficientes ({available} disponíveis)
-        </p>
-      )}
     </div>
   );
 }
 
 // Preview Component
-function ExamPreview({ formData, difficultyConfig, questions, onBack }) {
-  const totalQuestions = difficultyConfig.easy + difficultyConfig.medium + difficultyConfig.hard;
+function ExamPreview({ formData, selectedQuestions, onBack }) {
+  const totalQuestions = selectedQuestions.length;
+  const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.examPoints || 1.0), 0);
+  
+  const difficultyCount = {
+    easy: selectedQuestions.filter(q => q.difficulty === 'easy').length,
+    medium: selectedQuestions.filter(q => q.difficulty === 'medium').length,
+    hard: selectedQuestions.filter(q => q.difficulty === 'hard').length,
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
@@ -495,7 +563,7 @@ function ExamPreview({ formData, difficultyConfig, questions, onBack }) {
             </div>
             <div className="flex items-center">
               <FileText className="w-4 h-4 mr-1" />
-              {totalQuestions} questões
+              {totalQuestions} questões • {totalPoints.toFixed(1)} pontos
             </div>
             <div className="flex items-center">
               <Shuffle className="w-4 h-4 mr-1" />
@@ -509,15 +577,15 @@ function ExamPreview({ formData, difficultyConfig, questions, onBack }) {
           <h4 className="font-medium text-gray-900 mb-3">Distribuição por Dificuldade</h4>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-green-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-green-800">{difficultyConfig.easy}</div>
+              <div className="text-2xl font-bold text-green-800">{difficultyCount.easy}</div>
               <div className="text-sm text-green-600">Fácil</div>
             </div>
             <div className="bg-yellow-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-yellow-800">{difficultyConfig.medium}</div>
+              <div className="text-2xl font-bold text-yellow-800">{difficultyCount.medium}</div>
               <div className="text-sm text-yellow-600">Médio</div>
             </div>
             <div className="bg-red-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-red-800">{difficultyConfig.hard}</div>
+              <div className="text-2xl font-bold text-red-800">{difficultyCount.hard}</div>
               <div className="text-sm text-red-600">Difícil</div>
             </div>
           </div>
@@ -554,17 +622,22 @@ function ExamPreview({ formData, difficultyConfig, questions, onBack }) {
           </div>
         </div>
 
-        {/* Sample Questions */}
-        {questions.length > 0 && (
+        {/* Selected Questions with Points */}
+        {selectedQuestions.length > 0 && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Exemplo de Questões</h4>
+            <h4 className="font-medium text-gray-900 mb-3">Questões Selecionadas</h4>
             <div className="space-y-4">
-              {questions.slice(0, 3).map((question, index) => (
+              {selectedQuestions.slice(0, 3).map((question, index) => (
                 <div key={question.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-900">
-                      Questão {index + 1}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900">
+                        Questão {index + 1}
+                      </span>
+                      <span className="text-sm font-bold text-primary-600">
+                        {question.examPoints || 1.0} pts
+                      </span>
+                    </div>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
                       question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -579,7 +652,7 @@ function ExamPreview({ formData, difficultyConfig, questions, onBack }) {
                     {question.alternatives?.slice(0, 2).map((alt, altIndex) => (
                       <div key={altIndex} className="flex items-center space-x-2">
                         <div className="w-4 h-4 border border-gray-300 rounded" />
-                        <span className="text-sm text-gray-600">{alt.text}</span>
+                        <span className="text-sm text-gray-600">{alt}</span>
                       </div>
                     ))}
                     {question.alternatives?.length > 2 && (
@@ -590,9 +663,9 @@ function ExamPreview({ formData, difficultyConfig, questions, onBack }) {
                   </div>
                 </div>
               ))}
-              {questions.length > 3 && (
+              {selectedQuestions.length > 3 && (
                 <div className="text-center text-sm text-gray-500">
-                  +{questions.length - 3} questões adicionais...
+                  +{selectedQuestions.length - 3} questões adicionais...
                 </div>
               )}
             </div>

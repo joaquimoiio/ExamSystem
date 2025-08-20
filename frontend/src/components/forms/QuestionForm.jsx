@@ -12,7 +12,7 @@ const difficultyOptions = [
 
 const typeOptions = [
   { value: 'multiple_choice', label: 'Múltipla Escolha' },
-  { value: 'true_false', label: 'Verdadeiro/Falso' },
+  { value: 'essay', label: 'Dissertativa' },
 ];
 
 export default function QuestionForm({ 
@@ -34,12 +34,14 @@ export default function QuestionForm({
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      statement: question?.statement || '',
+      title: question?.title || '',
+      text: question?.text || '',
       type: question?.type || 'multiple_choice',
       difficulty: question?.difficulty || 'medium',
       points: question?.points || 1,
       subjectId: question?.subjectId || '',
       explanation: question?.explanation || '',
+      image: question?.image || '',
       tags: question?.tags || [],
       alternatives: question?.alternatives || [
         { text: '', isCorrect: false },
@@ -59,15 +61,12 @@ export default function QuestionForm({
   const watchedAlternatives = watch('alternatives');
   const isEditing = !!question;
 
-  // Auto-configure for True/False questions
+  // Auto-configure for question types
   React.useEffect(() => {
-    if (watchedType === 'true_false' && fields.length !== 2) {
-      // Reset to true/false alternatives
-      setValue('alternatives', [
-        { text: 'Verdadeiro', isCorrect: false },
-        { text: 'Falso', isCorrect: true },
-      ]);
-    } else if (watchedType === 'multiple_choice' && fields.length === 2) {
+    if (watchedType === 'essay') {
+      // For essay questions, clear alternatives
+      setValue('alternatives', []);
+    } else if (watchedType === 'multiple_choice' && fields.length === 0) {
       // Reset to multiple choice alternatives
       setValue('alternatives', [
         { text: '', isCorrect: false },
@@ -79,18 +78,27 @@ export default function QuestionForm({
   }, [watchedType, fields.length, setValue]);
 
   const onFormSubmit = async (data) => {
-    // Validate that at least one alternative is correct
-    const hasCorrectAnswer = data.alternatives.some(alt => alt.isCorrect);
-    if (!hasCorrectAnswer) {
-      alert('Pelo menos uma alternativa deve estar marcada como correta');
-      return;
+    // For multiple choice questions, validate alternatives
+    if (data.type === 'multiple_choice') {
+      // Validate that at least one alternative is correct
+      const hasCorrectAnswer = data.alternatives.some(alt => alt.isCorrect);
+      if (!hasCorrectAnswer) {
+        alert('Pelo menos uma alternativa deve estar marcada como correta');
+        return;
+      }
+
+      // Validate that all alternatives have text
+      const emptyAlternatives = data.alternatives.some(alt => !alt.text.trim());
+      if (emptyAlternatives) {
+        alert('Todas as alternativas devem ter texto');
+        return;
+      }
     }
 
-    // Validate that all alternatives have text
-    const emptyAlternatives = data.alternatives.some(alt => !alt.text.trim());
-    if (emptyAlternatives) {
-      alert('Todas as alternativas devem ter texto');
-      return;
+    // For essay questions, alternatives are optional/null
+    if (data.type === 'essay') {
+      data.alternatives = null;
+      data.correctAnswer = null;
     }
 
     try {
@@ -224,13 +232,39 @@ export default function QuestionForm({
         {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label htmlFor="statement" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              Título da Questão *
+            </label>
+            <input
+              id="title"
+              type="text"
+              {...register('title', {
+                required: 'Título é obrigatório',
+                minLength: {
+                  value: 5,
+                  message: 'Título deve ter pelo menos 5 caracteres',
+                },
+                maxLength: {
+                  value: 500,
+                  message: 'Título deve ter no máximo 500 caracteres',
+                },
+              })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ex: Resolução de equações do segundo grau"
+            />
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label htmlFor="text" className="block text-sm font-medium text-gray-700 mb-2">
               Enunciado da Questão *
             </label>
             <textarea
-              id="statement"
+              id="text"
               rows={4}
-              {...register('statement', {
+              {...register('text', {
                 required: 'Enunciado é obrigatório',
                 minLength: {
                   value: 10,
@@ -242,14 +276,30 @@ export default function QuestionForm({
                 },
               })}
               className={`
-                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                ${errors.statement ? 'border-red-300' : 'border-gray-300'}
+                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                ${errors.text ? 'border-red-300' : 'border-gray-300'}
               `}
               placeholder="Digite o enunciado da questão..."
             />
-            {errors.statement && (
-              <p className="mt-1 text-sm text-red-600">{errors.statement.message}</p>
+            {errors.text && (
+              <p className="mt-1 text-sm text-red-600">{errors.text.message}</p>
             )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+              URL da Imagem (opcional)
+            </label>
+            <input
+              id="image"
+              type="url"
+              {...register('image')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="https://exemplo.com/imagem.jpg"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Adicione uma URL de imagem para complementar a questão
+            </p>
           </div>
 
           <div>
@@ -260,7 +310,7 @@ export default function QuestionForm({
               id="subjectId"
               {...register('subjectId', { required: 'Disciplina é obrigatória' })}
               className={`
-                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                 ${errors.subjectId ? 'border-red-300' : 'border-gray-300'}
               `}
             >
@@ -283,7 +333,7 @@ export default function QuestionForm({
             <select
               id="type"
               {...register('type')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {typeOptions.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -300,7 +350,7 @@ export default function QuestionForm({
             <select
               id="difficulty"
               {...register('difficulty')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {difficultyOptions.map((difficulty) => (
                 <option key={difficulty.value} value={difficulty.value}>
@@ -326,7 +376,7 @@ export default function QuestionForm({
                 max: { value: 100, message: 'Máximo 100 pontos' },
               })}
               className={`
-                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                 ${errors.points ? 'border-red-300' : 'border-gray-300'}
               `}
             />
@@ -384,7 +434,7 @@ export default function QuestionForm({
                         message: 'Máximo 500 caracteres',
                       },
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder={`Alternativa ${index + 1}`}
                     disabled={watchedType === 'true_false'}
                   />
@@ -435,7 +485,7 @@ export default function QuestionForm({
               },
             })}
             className={`
-              w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+              w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
               ${errors.explanation ? 'border-red-300' : 'border-gray-300'}
             `}
             placeholder="Explicação sobre a resposta correta (mostrada após a submissão)..."

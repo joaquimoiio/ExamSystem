@@ -87,7 +87,7 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center">
             <div className="text-lg font-semibold text-gray-900">
               {subject.questionsCount || 0}
@@ -99,12 +99,6 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
               {subject.examsCount || 0}
             </div>
             <div className="text-xs text-gray-500">Provas</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold text-gray-900">
-              {subject.credits}
-            </div>
-            <div className="text-xs text-gray-500">Créditos</div>
           </div>
         </div>
 

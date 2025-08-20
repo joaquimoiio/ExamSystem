@@ -1,8 +1,9 @@
-const { Exam, ExamVariation, ExamQuestion, Question, Subject, Answer } = require('../models');
+const { Exam, ExamVariation, ExamQuestion, Question, Subject, Answer, ExamHeader } = require('../models');
 const { catchAsync, AppError } = require('../utils/appError');
 const { paginate, buildPaginationMeta, generateAccessCode, shuffleArray } = require('../utils/helpers');
-const qrService = require('../services/qrService');
 const { Op } = require('sequelize');
+const pdfService = require('../services/pdfService');
+const path = require('path');
 
 // Get public exams
 const getPublicExams = catchAsync(async (req, res, next) => {
@@ -69,7 +70,7 @@ const getExamByAccessCode = catchAsync(async (req, res, next) => {
       {
         model: ExamVariation,
         as: 'variations',
-        attributes: ['id', 'variationNumber', 'qrCode']
+        attributes: ['id', 'variationNumber']
       }
     ]
   });
@@ -273,20 +274,16 @@ const createExam = catchAsync(async (req, res, next) => {
     title,
     description,
     subjectId,
-    totalQuestions,
-    easyQuestions = 0,
-    mediumQuestions = 0,
-    hardQuestions = 0,
-    totalVariations = 1,
-    timeLimit,
-    passingScore = 6.0,
+    questions = [], // Array of {id, points}
+    variations = 1,
+    duration = 60,
     instructions,
+    shuffleQuestions = true,
+    shuffleAlternatives = true,
     allowReview = true,
-    showCorrectAnswers = true,
-    randomizeQuestions = true,
-    randomizeAlternatives = true,
-    maxAttempts = 1,
     showResults = true,
+    maxAttempts = 1,
+    passingScore = 6.0,
     requireFullScreen = false,
     preventCopyPaste = false
   } = req.body;
@@ -300,43 +297,56 @@ const createExam = catchAsync(async (req, res, next) => {
     return next(new AppError('Subject not found', 404));
   }
 
-  // Validate question distribution
-  if (easyQuestions + mediumQuestions + hardQuestions !== totalQuestions) {
-    return next(new AppError('Questions distribution must sum to total questions', 400));
+  // Validate questions array
+  if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    return next(new AppError('At least one question must be selected', 400));
   }
 
-  // Check if enough questions available
-  const [easyCount, mediumCount, hardCount] = await Promise.all([
-    Question.count({ where: { subjectId, difficulty: 'easy', isActive: true } }),
-    Question.count({ where: { subjectId, difficulty: 'medium', isActive: true } }),
-    Question.count({ where: { subjectId, difficulty: 'hard', isActive: true } })
-  ]);
-
-  if (easyCount < easyQuestions || mediumCount < mediumQuestions || hardCount < hardQuestions) {
-    return next(new AppError('Not enough questions available for this distribution', 400));
+  if (questions.length > 50) {
+    return next(new AppError('Maximum 50 questions per exam', 400));
   }
 
+  // Validate that all questions exist and belong to the subject
+  const questionIds = questions.map(q => q.id);
+  const existingQuestions = await Question.findAll({
+    where: {
+      id: questionIds,
+      subjectId,
+      isActive: true
+    }
+  });
+
+  if (existingQuestions.length !== questions.length) {
+    return next(new AppError('Some selected questions are invalid or not available', 400));
+  }
+
+  // Calculate total points
+  const totalPoints = questions.reduce((sum, q) => sum + (parseFloat(q.points) || 1.0), 0);
+
+  // Create exam with the selected questions and their individual points
   const exam = await Exam.create({
     title: title.trim(),
     description: description?.trim(),
     subjectId,
     userId: req.user.id,
-    totalQuestions,
-    easyQuestions,
-    mediumQuestions,
-    hardQuestions,
-    totalVariations,
-    timeLimit,
+    totalQuestions: questions.length,
+    totalVariations: variations,
+    timeLimit: duration,
+    totalPoints, // Store total points
     passingScore,
     instructions: instructions?.trim(),
     allowReview,
-    showCorrectAnswers,
-    randomizeQuestions,
-    randomizeAlternatives,
+    showCorrectAnswers: showResults,
+    randomizeQuestions: shuffleQuestions,
+    randomizeAlternatives: shuffleAlternatives,
     maxAttempts,
     showResults,
     requireFullScreen,
-    preventCopyPaste
+    preventCopyPaste,
+    // Store selected questions with their points in metadata
+    metadata: {
+      selectedQuestions: questions
+    }
   });
 
   res.status(201).json({
@@ -360,7 +370,7 @@ const getExamById = catchAsync(async (req, res, next) => {
       {
         model: ExamVariation,
         as: 'variations',
-        attributes: ['id', 'variationNumber', 'qrCode']
+        attributes: ['id', 'variationNumber']
       }
     ],
     attributes: {
@@ -637,30 +647,6 @@ const getExamAnalytics = catchAsync(async (req, res, next) => {
   });
 });
 
-// Download QR codes
-const downloadQRCodes = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-
-  const exam = await Exam.findByPk(id, {
-    include: [{ model: ExamVariation, as: 'variations', attributes: ['id', 'variationNumber', 'qrCode'] }]
-  });
-
-  if (!exam) {
-    return next(new AppError('Exam not found', 404));
-  }
-
-  // Return QR codes data
-  res.json({
-    success: true,
-    data: {
-      exam: { id: exam.id, title: exam.title },
-      qrCodes: exam.variations.map(variation => ({
-        variationNumber: variation.variationNumber,
-        qrCode: variation.qrCode
-      }))
-    }
-  });
-});
 
 // Helper function to generate exam variations
 const generateExamVariations = async (exam) => {
@@ -718,14 +704,6 @@ const generateExamVariations = async (exam) => {
       });
     }
 
-    // Generate QR code
-    try {
-      const qrResult = await qrService.generateExamQR(exam.id, variation.id, variation.variationNumber);
-      variation.qrCode = qrResult.qrCode;
-      await variation.save();
-    } catch (error) {
-      console.error('Error generating QR code for variation:', variation.id, error);
-    }
   }
 };
 
@@ -917,13 +895,139 @@ const regenerateVariations = catchAsync(async (req, res, next) => {
   });
 });
 
+// Generate exam PDF with QR codes
+const generateExamPDF = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { variationId, examHeaderId } = req.body;
+
+  const exam = await Exam.findByPk(id, {
+    include: [{ model: Subject, as: 'subject', attributes: ['name'] }]
+  });
+
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  // Get variation
+  const variation = await ExamVariation.findByPk(variationId);
+  if (!variation) {
+    return next(new AppError('Variation not found', 404));
+  }
+
+  // Get questions for this variation
+  const questions = await variation.getQuestionsWithOrder();
+
+  // Get exam header
+  let examHeader;
+  if (examHeaderId) {
+    examHeader = await ExamHeader.findByPk(examHeaderId);
+  } else {
+    // Get default header
+    examHeader = await ExamHeader.findOne({ where: { isDefault: true } });
+  }
+
+  if (!examHeader) {
+    return next(new AppError('Exam header not found', 404));
+  }
+
+  // Generate PDF
+  const filename = `exam_${exam.id}_variation_${variation.variationNumber}.pdf`;
+  const outputPath = path.join(__dirname, '../uploads/temp', filename);
+
+  // Ensure temp directory exists
+  pdfService.ensureOutputDir(outputPath);
+
+  await pdfService.generateExamPDF(exam, variation, questions, examHeader, outputPath);
+
+  // Send file
+  res.download(outputPath, filename, (err) => {
+    if (err) {
+      console.error('Error sending PDF:', err);
+    }
+    // Clean up file after sending
+    setTimeout(() => {
+      pdfService.cleanupTempFiles([outputPath]);
+    }, 5000);
+  });
+});
+
+// Generate all exam variations PDFs
+const generateAllExamPDFs = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { examHeaderId } = req.body;
+
+  const exam = await Exam.findByPk(id, {
+    include: [{ model: Subject, as: 'subject', attributes: ['name'] }]
+  });
+
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  // Get all variations
+  const variations = await ExamVariation.findAll({
+    where: { examId: id },
+    order: [['variationNumber', 'ASC']]
+  });
+
+  if (variations.length === 0) {
+    return next(new AppError('No variations found for this exam', 404));
+  }
+
+  // Get exam header
+  let examHeader;
+  if (examHeaderId) {
+    examHeader = await ExamHeader.findByPk(examHeaderId);
+  } else {
+    examHeader = await ExamHeader.findOne({ where: { isDefault: true } });
+  }
+
+  if (!examHeader) {
+    return next(new AppError('Exam header not found', 404));
+  }
+
+  const operations = [];
+  
+  for (const variation of variations) {
+    const questions = await variation.getQuestionsWithOrder();
+    const filename = `exam_${exam.id}_variation_${variation.variationNumber}.pdf`;
+    const outputPath = path.join(__dirname, '../uploads/temp', filename);
+    
+    operations.push({
+      id: variation.id,
+      type: 'exam_pdf',
+      exam,
+      variation,
+      questions,
+      examHeader,
+      outputPath
+    });
+  }
+
+  // Generate all PDFs
+  const results = await pdfService.batchGenerate(operations);
+  
+  res.json({
+    success: true,
+    message: 'Exam PDFs generated successfully',
+    data: {
+      exam: {
+        id: exam.id,
+        title: exam.title
+      },
+      variations: results.length,
+      results
+    }
+  });
+});
+
 module.exports = {
   getPublicExams,
   getExamByAccessCode,
   getExamForTaking,
   getExams,
   getExamsStats,
-  getRecentExams,        // <- ADICIONAR
+  getRecentExams,
   createExam,
   getExamById,
   updateExam,
@@ -931,13 +1035,14 @@ module.exports = {
   publishExam,
   unpublishExam,
   duplicateExam,
-  regenerateVariations,  // <- ADICIONAR
+  regenerateVariations,
   getExamVariations,
-  getExamVariation,      // <- ADICIONAR
-  getExamAnswers,        // <- ADICIONAR
+  getExamVariation,
+  getExamAnswers,
   getExamAnalytics,
-  exportExamResults,     // <- ADICIONAR
-  generateExamReport,    // <- ADICIONAR
-  bulkGradeExam,         // <- ADICIONAR
-  downloadQRCodes
+  exportExamResults,
+  generateExamReport,
+  generateExamPDF,
+  generateAllExamPDFs,
+  bulkGradeExam
 };

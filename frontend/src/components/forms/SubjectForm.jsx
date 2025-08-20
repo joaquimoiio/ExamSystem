@@ -32,7 +32,6 @@ export default function SubjectForm({
       name: subject?.name || '',
       description: subject?.description || '',
       color: subject?.color || '#3B82F6',
-      credits: subject?.credits || 1,
       isActive: subject?.isActive !== false,
     },
   });
@@ -158,37 +157,6 @@ export default function SubjectForm({
           </p>
         </div>
 
-        {/* Credits */}
-        <div>
-          <label htmlFor="credits" className="block text-sm font-medium text-gray-700 mb-2">
-            Carga Horária/Créditos
-          </label>
-          <input
-            id="credits"
-            type="number"
-            min="1"
-            max="20"
-            {...register('credits', {
-              required: 'Carga horária é obrigatória',
-              min: {
-                value: 1,
-                message: 'Mínimo de 1 crédito',
-              },
-              max: {
-                value: 20,
-                message: 'Máximo de 20 créditos',
-              },
-            })}
-            className={`
-              w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-              ${errors.credits ? 'border-red-300' : 'border-gray-300'}
-            `}
-            placeholder="Ex: 4"
-          />
-          {errors.credits && (
-            <p className="mt-1 text-sm text-red-600">{errors.credits.message}</p>
-          )}
-        </div>
 
         {/* Active Status */}
         <div className="flex items-center">
@@ -220,9 +188,6 @@ export default function SubjectForm({
               </p>
               <p className="text-sm text-gray-500">
                 {watch('description') || 'Sem descrição'}
-              </p>
-              <p className="text-xs text-gray-400">
-                {watch('credits')} crédito{watch('credits') > 1 ? 's' : ''}
               </p>
             </div>
           </div>

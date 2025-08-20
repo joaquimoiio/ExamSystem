@@ -2,7 +2,7 @@ const QRCode = require('qrcode');
 const { AppError } = require('../utils/appError');
 
 /**
- * QR Code Service for generating exam QR codes
+ * QR Code Service for generating answer key QR codes
  */
 class QRService {
   constructor() {
@@ -15,25 +15,38 @@ class QRService {
         dark: '#000000',
         light: '#FFFFFF'
       },
-      width: 256
+      width: 200
     };
   }
 
   /**
-   * Generate QR code for exam variation
+   * Generate QR code with answer key for teacher correction
    */
-  async generateExamQR(examId, variationId, variationNumber) {
+  async generateAnswerKeyQR(exam, variation, examQuestions) {
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      
+      // Create answer key data using ExamQuestion data which includes exam-specific points
+      const answerKey = examQuestions.map((examQuestion, index) => ({
+        questionNumber: index + 1,
+        questionId: examQuestion.question.id,
+        correctAnswer: examQuestion.question.type === 'essay' ? null : 
+          (examQuestion.shuffledAlternatives ? examQuestion.shuffledAlternatives.correctAnswer : examQuestion.question.correctAnswer),
+        points: examQuestion.points || 1, // Use exam-specific points
+        type: examQuestion.question.type,
+        difficulty: examQuestion.question.difficulty
+      }));
+
       const qrData = {
-        type: 'exam',
-        examId,
-        variationId,
-        variationNumber,
-        url: `${frontendUrl}/exam/take/${examId}/${variationId}`,
-        timestamp: new Date().toISOString(),
-        version: '1.0'
+        type: 'answer_key',
+        examId: exam.id,
+        examTitle: exam.title,
+        variationId: variation.id,
+        variationNumber: variation.variationNumber,
+        subjectName: exam.subject?.name,
+        totalQuestions: examQuestions.length,
+        totalPoints: examQuestions.reduce((sum, eq) => sum + (parseFloat(eq.points) || 1), 0),
+        answerKey,
+        generatedAt: new Date().toISOString(),
+        version: '2.0'
       };
 
       const qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData), this.defaultOptions);
@@ -41,24 +54,10 @@ class QRService {
       return {
         qrCode: qrCodeDataURL,
         qrData,
-        url: qrData.url
+        answerKey
       };
     } catch (error) {
-      throw new AppError(`Failed to generate QR code: ${error.message}`, 500);
-    }
-  }
-
-  /**
-   * Generate QR code with custom data
-   */
-  async generateCustomQR(data, options = {}) {
-    try {
-      const qrOptions = { ...this.defaultOptions, ...options };
-      const qrCodeDataURL = await QRCode.toDataURL(data, qrOptions);
-      
-      return qrCodeDataURL;
-    } catch (error) {
-      throw new AppError(`Failed to generate custom QR code: ${error.message}`, 500);
+      throw new AppError(`Failed to generate answer key QR code: ${error.message}`, 500);
     }
   }
 
@@ -81,60 +80,57 @@ class QRService {
   }
 
   /**
-   * Generate QR code as SVG string
+   * Generate compact answer key for visual comparison
    */
-  async generateQRSVG(data, options = {}) {
-    try {
-      const qrOptions = { 
-        ...this.defaultOptions, 
-        ...options,
-        type: 'svg'
+  generateVisualAnswerKey(questions) {
+    return questions.map((question, index) => {
+      if (question.type === 'essay') {
+        return {
+          number: index + 1,
+          answer: 'DISSERTATIVA',
+          points: question.points || 1
+        };
+      }
+
+      // For multiple choice, show letter (A, B, C, D, E)
+      const letters = ['A', 'B', 'C', 'D', 'E'];
+      return {
+        number: index + 1,
+        answer: letters[question.correctAnswer] || '?',
+        points: question.points || 1
       };
-      
-      const svg = await QRCode.toString(data, qrOptions);
-      return svg;
-    } catch (error) {
-      throw new AppError(`Failed to generate QR code SVG: ${error.message}`, 500);
-    }
+    });
   }
 
   /**
-   * Validate QR code data
+   * Validate answer key QR code data
    */
-  validateQRData(qrData) {
+  validateAnswerKeyQR(qrData) {
     try {
       const data = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
       
-      if (data.type === 'exam') {
-        const requiredFields = ['examId', 'variationId', 'url'];
-        const missingFields = requiredFields.filter(field => !data[field]);
-        
-        if (missingFields.length > 0) {
-          return {
-            valid: false,
-            message: `Missing required fields: ${missingFields.join(', ')}`
-          };
-        }
-        
-        // Validate UUIDs
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        
-        if (!uuidRegex.test(data.examId) || !uuidRegex.test(data.variationId)) {
-          return {
-            valid: false,
-            message: 'Invalid exam or variation ID format'
-          };
-        }
-        
-        // Validate URL
-        try {
-          new URL(data.url);
-        } catch {
-          return {
-            valid: false,
-            message: 'Invalid URL format'
-          };
-        }
+      if (data.type !== 'answer_key') {
+        return {
+          valid: false,
+          message: 'QR code is not an answer key'
+        };
+      }
+
+      const requiredFields = ['examId', 'variationId', 'answerKey'];
+      const missingFields = requiredFields.filter(field => !data[field]);
+      
+      if (missingFields.length > 0) {
+        return {
+          valid: false,
+          message: `Missing required fields: ${missingFields.join(', ')}`
+        };
+      }
+
+      if (!Array.isArray(data.answerKey) || data.answerKey.length === 0) {
+        return {
+          valid: false,
+          message: 'Answer key must be a non-empty array'
+        };
       }
       
       return { valid: true, data };
@@ -147,125 +143,86 @@ class QRService {
   }
 
   /**
-   * Generate multiple QR codes for exam variations
+   * Compare student answers with answer key from QR code
    */
-  async generateExamVariationQRs(exam, variations) {
+  correctExam(answerKeyData, studentAnswers) {
+    if (!answerKeyData || !answerKeyData.answerKey) {
+      throw new Error('Invalid answer key data');
+    }
+
+    const results = [];
+    let totalPoints = 0;
+    let earnedPoints = 0;
+
+    answerKeyData.answerKey.forEach((keyItem, index) => {
+      const studentAnswer = studentAnswers[index];
+      const maxPoints = keyItem.points || 1;
+      totalPoints += maxPoints;
+
+      let isCorrect = false;
+      let points = 0;
+
+      if (keyItem.type === 'essay') {
+        // Essay questions need manual grading
+        isCorrect = null; // Will be graded manually
+        points = 0; // Will be assigned manually
+      } else {
+        // Multiple choice questions
+        isCorrect = parseInt(studentAnswer) === keyItem.correctAnswer;
+        points = isCorrect ? maxPoints : 0;
+        earnedPoints += points;
+      }
+
+      results.push({
+        questionNumber: keyItem.questionNumber,
+        questionId: keyItem.questionId,
+        studentAnswer,
+        correctAnswer: keyItem.correctAnswer,
+        isCorrect,
+        points,
+        maxPoints,
+        type: keyItem.type,
+        difficulty: keyItem.difficulty
+      });
+    });
+
+    const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 10 : 0;
+
+    return {
+      examId: answerKeyData.examId,
+      variationId: answerKeyData.variationId,
+      totalQuestions: results.length,
+      totalPoints,
+      earnedPoints,
+      score: parseFloat(score.toFixed(2)),
+      results,
+      correctedAt: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Generate multiple answer key QR codes for exam variations
+   */
+  async generateVariationAnswerKeys(exam, variations) {
     try {
-      const qrCodes = [];
+      const answerKeys = [];
       
       for (const variation of variations) {
-        const qrResult = await this.generateExamQR(
-          exam.id,
-          variation.id,
-          variation.variationNumber
-        );
+        // Get questions for this variation in the correct order
+        const questions = await variation.getQuestionsWithOrder();
         
-        qrCodes.push({
+        const answerKeyResult = await this.generateAnswerKeyQR(exam, variation, questions);
+        
+        answerKeys.push({
           variationId: variation.id,
           variationNumber: variation.variationNumber,
-          ...qrResult
+          ...answerKeyResult
         });
       }
       
-      return qrCodes;
+      return answerKeys;
     } catch (error) {
-      throw new AppError(`Failed to generate variation QR codes: ${error.message}`, 500);
-    }
-  }
-
-  /**
-   * Generate QR code with exam information embedded
-   */
-  async generateExamInfoQR(exam, variation) {
-    try {
-      const qrData = {
-        type: 'exam_info',
-        examId: exam.id,
-        examTitle: exam.title,
-        variationId: variation.id,
-        variationNumber: variation.variationNumber,
-        subjectName: exam.subject?.name,
-        totalQuestions: exam.totalQuestions,
-        timeLimit: exam.timeLimit,
-        url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/exam/take/${exam.id}/${variation.id}`,
-        accessCode: exam.accessCode,
-        timestamp: new Date().toISOString()
-      };
-
-      const qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData), {
-        ...this.defaultOptions,
-        width: 300 // Larger size for more data
-      });
-      
-      return {
-        qrCode: qrCodeDataURL,
-        qrData,
-        url: qrData.url
-      };
-    } catch (error) {
-      throw new AppError(`Failed to generate exam info QR code: ${error.message}`, 500);
-    }
-  }
-
-  /**
-   * Create QR code for exam access without variation (general exam access)
-   */
-  async generateExamAccessQR(exam) {
-    try {
-      const qrData = {
-        type: 'exam_access',
-        examId: exam.id,
-        examTitle: exam.title,
-        accessCode: exam.accessCode,
-        url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/exam/access/${exam.accessCode}`,
-        timestamp: new Date().toISOString()
-      };
-
-      const qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData), this.defaultOptions);
-      
-      return {
-        qrCode: qrCodeDataURL,
-        qrData,
-        url: qrData.url
-      };
-    } catch (error) {
-      throw new AppError(`Failed to generate exam access QR code: ${error.message}`, 500);
-    }
-  }
-
-  /**
-   * Batch generate QR codes
-   */
-  async batchGenerateQR(items, type = 'exam') {
-    try {
-      const results = [];
-      
-      for (const item of items) {
-        let qrResult;
-        
-        switch (type) {
-          case 'exam':
-            qrResult = await this.generateExamQR(item.examId, item.variationId, item.variationNumber);
-            break;
-          case 'exam_info':
-            qrResult = await this.generateExamInfoQR(item.exam, item.variation);
-            break;
-          case 'exam_access':
-            qrResult = await this.generateExamAccessQR(item.exam);
-            break;
-          default:
-            qrResult = await this.generateCustomQR(item.data, item.options);
-        }
-        
-        results.push({
-          id: item.id,
-          ...qrResult
-        });
-      }
-      
-      return results;
-    } catch (error) {
-      throw new AppError(`Failed to batch generate QR codes: ${error.message}`, 500);
+      throw new AppError(`Failed to generate variation answer keys: ${error.message}`, 500);
     }
   }
 }

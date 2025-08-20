@@ -1,535 +1,118 @@
-const { Answer, Exam, ExamVariation, Question, Subject } = require('../models');
-const { AppError, catchAsync } = require('../utils/appError');
-const { paginate, buildPaginationMeta } = require('../utils/helpers');
-const { Op } = require('sequelize');
+const { Answer, Exam, ExamVariation, Question } = require('../models');
+const { catchAsync, AppError } = require('../utils/appError');
+const qrService = require('../services/qrService');
 
-// Submit student answers
-const submitAnswers = catchAsync(async (req, res, next) => {
-  const { examId, variationId } = req.params;
-  const { studentName, studentId, studentEmail, answers, timeSpent, startedAt } = req.body;
+// Validate QR code answer key
+const validateAnswerKey = catchAsync(async (req, res, next) => {
+  const { qrData } = req.body;
 
-  // Get variation with questions
-  const variation = await ExamVariation.findOne({
-    where: { id: variationId, examId },
-    include: [
-      {
-        model: Exam,
-        as: 'exam',
-        include: [{ model: Subject, as: 'subject', attributes: ['name'] }]
+  if (!qrData) {
+    return next(new AppError('QR code data is required', 400));
+  }
+
+  const validation = qrService.validateAnswerKeyQR(qrData);
+
+  if (!validation.valid) {
+    return next(new AppError(validation.message, 400));
+  }
+
+  res.json({
+    success: true,
+    message: 'QR code is valid',
+    data: {
+      exam: {
+        id: validation.data.examId,
+        title: validation.data.examTitle,
+        variation: validation.data.variationNumber,
+        totalQuestions: validation.data.totalQuestions,
+        totalPoints: validation.data.totalPoints
       },
-      {
-        model: Question,
-        as: 'questions',
-        through: { attributes: ['questionOrder'] },
-        attributes: ['id', 'correctAnswer', 'difficulty', 'points', 'explanation']
-      }
-    ]
-  });
-
-  if (!variation || !variation.exam.canTakeExam()) {
-    return next(new AppError('Exam not available for submission', 404));
-  }
-
-  // Validate answers length
-  if (!Array.isArray(answers) || answers.length !== variation.questions.length) {
-    return next(new AppError('Invalid number of answers', 400));
-  }
-
-  // Check for existing submission (if maxAttempts = 1)
-  if (variation.exam.maxAttempts <= 1) {
-    const existingSubmission = await Answer.findOne({
-      where: {
-        examId,
-        variationId,
-        [Op.or]: [
-          { studentEmail: studentEmail || null },
-          { studentId: studentId || null }
-        ]
-      }
-    });
-
-    if (existingSubmission) {
-      return next(new AppError('You have already submitted this exam', 400));
+      answerKey: validation.data.answerKey
     }
+  });
+});
+
+// Correct exam using QR code and student answers
+const correctExam = catchAsync(async (req, res, next) => {
+  const { qrData, studentAnswers, studentInfo } = req.body;
+
+  if (!qrData || !studentAnswers) {
+    return next(new AppError('QR code data and student answers are required', 400));
   }
 
-  // Calculate score
-  let totalPoints = 0;
-  let earnedPoints = 0;
-  let correctCount = 0;
-  const detailedAnswers = [];
+  // Validate QR code
+  const validation = qrService.validateAnswerKeyQR(qrData);
+  if (!validation.valid) {
+    return next(new AppError(validation.message, 400));
+  }
 
-  variation.questions.forEach((question, index) => {
-    const studentAnswer = parseInt(answers[index]);
-    const isCorrect = studentAnswer === question.correctAnswer;
-    const points = isCorrect ? (question.points || 1) : 0;
-    const maxPoints = question.points || 1;
+  // Validate student answers format
+  if (!Array.isArray(studentAnswers)) {
+    return next(new AppError('Student answers must be an array', 400));
+  }
 
-    totalPoints += maxPoints;
-    earnedPoints += points;
-    if (isCorrect) correctCount++;
+  if (studentAnswers.length !== validation.data.totalQuestions) {
+    return next(new AppError(
+      `Expected ${validation.data.totalQuestions} answers, got ${studentAnswers.length}`, 
+      400
+    ));
+  }
 
-    detailedAnswers.push({
-      questionId: question.id,
-      answer: studentAnswer,
-      correctAnswer: question.correctAnswer,
-      correct: isCorrect,
-      points: points,
-      maxPoints: maxPoints,
-      difficulty: question.difficulty,
-      explanation: question.explanation
-    });
-  });
+  // Perform correction
+  const correctionResult = qrService.correctExam(validation.data, studentAnswers);
 
-  const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 10 : 0;
-  const isPassed = score >= variation.exam.passingScore;
-
-  // Create answer record
+  // Save correction result to database
   const answerRecord = await Answer.create({
-    userId: req.user?.id || null,
-    studentName,
-    studentId,
-    studentEmail,
-    examId,
-    variationId,
-    answers: detailedAnswers,
-    score: parseFloat(score.toFixed(2)),
-    totalQuestions: variation.questions.length,
-    correctAnswers: correctCount,
-    earnedPoints: parseFloat(earnedPoints.toFixed(2)),
-    totalPoints: parseFloat(totalPoints.toFixed(2)),
-    timeSpent,
-    startedAt: startedAt ? new Date(startedAt) : null,
+    examId: validation.data.examId,
+    variationId: validation.data.variationId,
+    studentName: studentInfo?.name || 'Anonymous',
+    studentEmail: studentInfo?.email || null,
+    studentId: studentInfo?.studentId || null,
+    answers: studentAnswers,
+    score: correctionResult.score,
+    earnedPoints: correctionResult.earnedPoints,
+    totalPoints: correctionResult.totalPoints,
+    isPassed: correctionResult.score >= 6.0, // Assuming 6.0 is passing score
     submittedAt: new Date(),
-    isPassed,
-    ipAddress: req.ip,
-    userAgent: req.get('User-Agent'),
-    status: 'submitted'
-  });
-
-  // Update question statistics
-  for (const question of variation.questions) {
-    const answer = detailedAnswers.find(a => a.questionId === question.id);
-    if (answer) {
-      await question.increment('timesUsed');
-      if (answer.correct) {
-        await question.increment('timesCorrect');
-      }
+    correctionMethod: 'qr_scan',
+    correctionData: {
+      qrCodeVersion: validation.data.version,
+      correctedBy: req.user?.id || 'teacher',
+      results: correctionResult.results
     }
-  }
+  });
 
   res.status(201).json({
     success: true,
-    message: 'Answers submitted successfully',
+    message: 'Exam corrected successfully',
     data: {
-      submissionId: answerRecord.id,
-      score: answerRecord.score,
-      correctAnswers: answerRecord.correctAnswers,
-      totalQuestions: answerRecord.totalQuestions,
-      isPassed: answerRecord.isPassed,
-      grade: answerRecord.calculateGrade(),
-      canViewResults: variation.exam.showResults
-    }
-  });
-});
-
-// Get submission result
-const getSubmissionResult = catchAsync(async (req, res, next) => {
-  const { submissionId } = req.params;
-
-  const submission = await Answer.findByPk(submissionId, {
-    include: [
-      {
-        model: Exam,
-        as: 'exam',
-        attributes: ['id', 'title', 'showResults', 'showCorrectAnswers', 'allowReview'],
-        include: [{ model: Subject, as: 'subject', attributes: ['name', 'color'] }]
+      answer: {
+        id: answerRecord.id,
+        score: correctionResult.score,
+        totalPoints: correctionResult.totalPoints,
+        earnedPoints: correctionResult.earnedPoints,
+        isPassed: correctionResult.score >= 6.0,
+        submittedAt: answerRecord.submittedAt
       },
-      {
-        model: ExamVariation,
-        as: 'variation',
-        attributes: ['id', 'variationNumber']
-      }
-    ]
-  });
-
-  if (!submission) {
-    return next(new AppError('Submission not found', 404));
-  }
-
-  // Check if user can view results
-  if (!submission.exam.showResults && req.user?.id !== submission.userId) {
-    return next(new AppError('Results are not available for viewing', 403));
-  }
-
-  const result = {
-    id: submission.id,
-    studentName: submission.studentName,
-    studentId: submission.studentId,
-    studentEmail: submission.studentEmail,
-    score: submission.score,
-    grade: submission.calculateGrade(),
-    correctAnswers: submission.correctAnswers,
-    totalQuestions: submission.totalQuestions,
-    isPassed: submission.isPassed,
-    timeSpent: submission.getTimeSpentFormatted(),
-    submittedAt: submission.submittedAt,
-    exam: submission.exam,
-    variation: submission.variation,
-    performanceByDifficulty: submission.getPerformanceByDifficulty()
-  };
-
-  // Include detailed results if allowed
-  if (submission.exam.allowReview && submission.exam.showCorrectAnswers) {
-    result.detailedResults = submission.getDetailedResults();
-  }
-
-  res.json({
-    success: true,
-    data: { result }
-  });
-});
-
-// Get submissions for teacher
-const getSubmissions = catchAsync(async (req, res, next) => {
-  const { page = 1, limit = 10, examId, search, status, isPassed } = req.query;
-  const { limit: queryLimit, offset } = paginate(page, limit);
-
-  const where = {};
-  
-  // Filter by exam ownership for non-admin users
-  if (req.user.role !== 'admin') {
-    const userExams = await Exam.findAll({
-      where: { userId: req.user.id },
-      attributes: ['id']
-    });
-    where.examId = { [Op.in]: userExams.map(exam => exam.id) };
-  }
-
-  if (examId) {
-    where.examId = examId;
-  }
-
-  if (status) {
-    where.status = status;
-  }
-
-  if (isPassed !== undefined) {
-    where.isPassed = isPassed === 'true';
-  }
-
-  if (search) {
-    where[Op.or] = [
-      { studentName: { [Op.iLike]: `%${search}%` } },
-      { studentEmail: { [Op.iLike]: `%${search}%` } },
-      { studentId: { [Op.iLike]: `%${search}%` } }
-    ];
-  }
-
-  const { count, rows: submissions } = await Answer.findAndCountAll({
-    where,
-    limit: queryLimit,
-    offset,
-    order: [['submittedAt', 'DESC']],
-    include: [
-      {
-        model: Exam,
-        as: 'exam',
-        attributes: ['id', 'title', 'passingScore'],
-        include: [{ model: Subject, as: 'subject', attributes: ['name', 'color'] }]
-      },
-      {
-        model: ExamVariation,
-        as: 'variation',
-        attributes: ['id', 'variationNumber']
-      }
-    ]
-  });
-
-  const pagination = buildPaginationMeta(page, limit, count);
-
-  res.json({
-    success: true,
-    data: { submissions, pagination }
-  });
-});
-
-// Get submission details
-const getSubmissionDetails = catchAsync(async (req, res, next) => {
-  const { submissionId } = req.params;
-
-  const submission = await Answer.findByPk(submissionId, {
-    include: [
-      {
-        model: Exam,
-        as: 'exam',
-        attributes: ['id', 'title', 'userId', 'showCorrectAnswers'],
-        include: [{ model: Subject, as: 'subject', attributes: ['name'] }]
-      },
-      {
-        model: ExamVariation,
-        as: 'variation',
-        attributes: ['id', 'variationNumber']
-      }
-    ]
-  });
-
-  if (!submission) {
-    return next(new AppError('Submission not found', 404));
-  }
-
-  // Check permissions
-  if (req.user.role !== 'admin' && submission.exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  res.json({
-    success: true,
-    data: {
-      submission: {
-        ...submission.toJSON(),
-        grade: submission.calculateGrade(),
-        timeSpentFormatted: submission.getTimeSpentFormatted(),
-        performanceByDifficulty: submission.getPerformanceByDifficulty(),
-        detailedResults: submission.getDetailedResults()
-      }
+      correction: correctionResult,
+      student: studentInfo
     }
   });
 });
 
-// Update submission feedback
-const updateSubmission = catchAsync(async (req, res, next) => {
-  const { submissionId } = req.params;
-  const { feedback, status } = req.body;
-
-  const submission = await Answer.findByPk(submissionId, {
-    include: [{ model: Exam, as: 'exam', attributes: ['userId'] }]
-  });
-
-  if (!submission) {
-    return next(new AppError('Submission not found', 404));
-  }
-
-  // Check permissions
-  if (req.user.role !== 'admin' && submission.exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  await submission.update({
-    ...(feedback && { feedback }),
-    ...(status && { status })
-  });
-
-  res.json({
-    success: true,
-    message: 'Submission updated successfully',
-    data: { submission }
-  });
-});
-
-// Get exam statistics
-const getCorrectionStats = catchAsync(async (req, res, next) => {
-  const { examId } = req.params;
-
-  // Check exam ownership
-  const exam = await Exam.findByPk(examId);
-  if (!exam) {
-    return next(new AppError('Exam not found', 404));
-  }
-
-  if (req.user.role !== 'admin' && exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  const stats = await Answer.findAll({
-    where: { examId },
-    attributes: [
-      [Answer.sequelize.fn('COUNT', Answer.sequelize.col('id')), 'totalSubmissions'],
-      [Answer.sequelize.fn('AVG', Answer.sequelize.col('score')), 'averageScore'],
-      [Answer.sequelize.fn('MIN', Answer.sequelize.col('score')), 'minScore'],
-      [Answer.sequelize.fn('MAX', Answer.sequelize.col('score')), 'maxScore'],
-      [Answer.sequelize.fn('COUNT', Answer.sequelize.literal('CASE WHEN "isPassed" = true THEN 1 END')), 'passedCount']
-    ],
-    raw: true
-  });
-
-  const result = stats[0] || {};
-  const totalSubmissions = parseInt(result.totalSubmissions) || 0;
-  const passedCount = parseInt(result.passedCount) || 0;
-
-  // Get score distribution
-  const scoreDistribution = await Answer.findAll({
-    where: { examId },
-    attributes: [
-      [Answer.sequelize.fn('FLOOR', Answer.sequelize.col('score')), 'scoreRange'],
-      [Answer.sequelize.fn('COUNT', Answer.sequelize.col('id')), 'count']
-    ],
-    group: [Answer.sequelize.fn('FLOOR', Answer.sequelize.col('score'))],
-    order: [[Answer.sequelize.fn('FLOOR', Answer.sequelize.col('score')), 'ASC']],
-    raw: true
-  });
-
-  res.json({
-    success: true,
-    data: {
-      totalSubmissions,
-      averageScore: result.averageScore ? parseFloat(result.averageScore).toFixed(2) : 0,
-      minScore: result.minScore ? parseFloat(result.minScore).toFixed(2) : 0,
-      maxScore: result.maxScore ? parseFloat(result.maxScore).toFixed(2) : 0,
-      passedCount,
-      failedCount: totalSubmissions - passedCount,
-      passRate: totalSubmissions > 0 ? ((passedCount / totalSubmissions) * 100).toFixed(2) : 0,
-      scoreDistribution
-    }
-  });
-});
-
-// Get question analysis
-const getQuestionAnalysis = catchAsync(async (req, res, next) => {
-  const { examId } = req.params;
-
-  // Check exam ownership
-  const exam = await Exam.findByPk(examId);
-  if (!exam) {
-    return next(new AppError('Exam not found', 404));
-  }
-
-  if (req.user.role !== 'admin' && exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  const answers = await Answer.findAll({
-    where: { examId },
-    attributes: ['answers']
-  });
-
-  const questionStats = {};
-
-  answers.forEach(answer => {
-    if (answer.answers && Array.isArray(answer.answers)) {
-      answer.answers.forEach((questionAnswer, index) => {
-        const questionId = questionAnswer.questionId;
-        
-        if (!questionStats[questionId]) {
-          questionStats[questionId] = {
-            questionNumber: index + 1,
-            totalAttempts: 0,
-            correctAttempts: 0,
-            difficulty: questionAnswer.difficulty,
-            alternativeDistribution: {}
-          };
-        }
-
-        questionStats[questionId].totalAttempts++;
-        
-        if (questionAnswer.correct) {
-          questionStats[questionId].correctAttempts++;
-        }
-
-        // Track answer distribution
-        const studentAnswer = questionAnswer.answer;
-        if (!questionStats[questionId].alternativeDistribution[studentAnswer]) {
-          questionStats[questionId].alternativeDistribution[studentAnswer] = 0;
-        }
-        questionStats[questionId].alternativeDistribution[studentAnswer]++;
-      });
-    }
-  });
-
-  // Calculate success rates
-  Object.keys(questionStats).forEach(questionId => {
-    const stats = questionStats[questionId];
-    stats.successRate = stats.totalAttempts > 0 ? 
-      ((stats.correctAttempts / stats.totalAttempts) * 100).toFixed(2) : 0;
-  });
-
-  res.json({
-    success: true,
-    data: { questionStats }
-  });
-});
-
-// Bulk grade submissions
-const bulkGradeSubmissions = catchAsync(async (req, res, next) => {
-  const { submissionIds, action, feedback } = req.body;
-
-  if (!Array.isArray(submissionIds) || submissionIds.length === 0) {
-    return next(new AppError('Submission IDs are required', 400));
-  }
-
-  const submissions = await Answer.findAll({
-    where: { id: { [Op.in]: submissionIds } },
-    include: [{ model: Exam, as: 'exam', attributes: ['userId'] }]
-  });
-
-  // Check permissions
-  const unauthorizedSubmissions = submissions.filter(
-    sub => req.user.role !== 'admin' && sub.exam.userId !== req.user.id
-  );
-
-  if (unauthorizedSubmissions.length > 0) {
-    return next(new AppError('Access denied for some submissions', 403));
-  }
-
-  const results = [];
-
-  for (const submission of submissions) {
-    try {
-      const updates = {};
-
-      if (action === 'approve') {
-        updates.status = 'graded';
-      } else if (action === 'review') {
-        updates.status = 'reviewed';
-      }
-
-      if (feedback) {
-        updates.feedback = feedback;
-      }
-
-      await submission.update(updates);
-      
-      results.push({
-        id: submission.id,
-        studentName: submission.studentName,
-        status: 'success'
-      });
-    } catch (error) {
-      results.push({
-        id: submission.id,
-        studentName: submission.studentName,
-        status: 'error',
-        error: error.message
-      });
-    }
-  }
-
-  res.json({
-    success: true,
-    message: `Bulk operation completed on ${results.length} submissions`,
-    data: { results }
-  });
-});
-
-// Get submissions by exam
-const getSubmissionsByExam = catchAsync(async (req, res, next) => {
+// Get correction history
+const getCorrectionHistory = catchAsync(async (req, res, next) => {
   const { examId } = req.params;
   const { page = 1, limit = 10 } = req.query;
-  const { limit: queryLimit, offset } = paginate(page, limit);
 
-  // Check exam ownership
-  const exam = await Exam.findByPk(examId);
-  if (!exam) {
-    return next(new AppError('Exam not found', 404));
-  }
+  const offset = (page - 1) * limit;
 
-  if (req.user.role !== 'admin' && exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  const { count, rows: submissions } = await Answer.findAndCountAll({
-    where: { examId },
-    limit: queryLimit,
+  const { count, rows: corrections } = await Answer.findAndCountAll({
+    where: { 
+      examId,
+      correctionMethod: 'qr_scan'
+    },
+    limit: parseInt(limit),
     offset,
     order: [['submittedAt', 'DESC']],
     include: [
@@ -541,215 +124,191 @@ const getSubmissionsByExam = catchAsync(async (req, res, next) => {
     ]
   });
 
-  const pagination = buildPaginationMeta(page, limit, count);
-
   res.json({
     success: true,
-    data: { submissions, pagination }
-  });
-});
-
-// Get submissions by student
-const getSubmissionsByStudent = catchAsync(async (req, res, next) => {
-  const { studentId } = req.params;
-  const { page = 1, limit = 10 } = req.query;
-  const { limit: queryLimit, offset } = paginate(page, limit);
-
-  const where = { studentId };
-
-  // Filter by exam ownership for non-admin users
-  if (req.user.role !== 'admin') {
-    const userExams = await Exam.findAll({
-      where: { userId: req.user.id },
-      attributes: ['id']
-    });
-    where.examId = { [Op.in]: userExams.map(exam => exam.id) };
-  }
-
-  const { count, rows: submissions } = await Answer.findAndCountAll({
-    where,
-    limit: queryLimit,
-    offset,
-    order: [['submittedAt', 'DESC']],
-    include: [
-      {
-        model: Exam,
-        as: 'exam',
-        attributes: ['title']
+    data: {
+      corrections,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / limit)
       }
-    ]
-  });
-
-  const pagination = buildPaginationMeta(page, limit, count);
-
-  res.json({
-    success: true,
-    data: { submissions, pagination }
+    }
   });
 });
 
-// Get pending submissions
-const getPendingSubmissions = catchAsync(async (req, res, next) => {
-  const { page = 1, limit = 10 } = req.query;
-  const { limit: queryLimit, offset } = paginate(page, limit);
+// Get correction statistics
+const getCorrectionStats = catchAsync(async (req, res, next) => {
+  const { examId } = req.params;
 
-  const where = { status: 'submitted' };
+  const corrections = await Answer.findAll({
+    where: { 
+      examId,
+      correctionMethod: 'qr_scan'
+    },
+    attributes: ['score', 'totalPoints', 'earnedPoints', 'isPassed', 'submittedAt']
+  });
 
-  // Filter by exam ownership for non-admin users
-  if (req.user.role !== 'admin') {
-    const userExams = await Exam.findAll({
-      where: { userId: req.user.id },
-      attributes: ['id']
-    });
-    where.examId = { [Op.in]: userExams.map(exam => exam.id) };
-  }
-
-  const { count, rows: submissions } = await Answer.findAndCountAll({
-    where,
-    limit: queryLimit,
-    offset,
-    order: [['submittedAt', 'ASC']],
-    include: [
-      {
-        model: Exam,
-        as: 'exam',
-        attributes: ['title']
+  const totalCorrections = corrections.length;
+  
+  if (totalCorrections === 0) {
+    return res.json({
+      success: true,
+      data: {
+        totalCorrections: 0,
+        averageScore: 0,
+        passRate: 0,
+        stats: {}
       }
-    ]
-  });
+    });
+  }
 
-  const pagination = buildPaginationMeta(page, limit, count);
+  const totalScore = corrections.reduce((sum, c) => sum + c.score, 0);
+  const averageScore = totalScore / totalCorrections;
+  const passedCount = corrections.filter(c => c.isPassed).length;
+  const passRate = (passedCount / totalCorrections) * 100;
+
+  // Score distribution
+  const scoreRanges = {
+    'excellent': corrections.filter(c => c.score >= 9).length,
+    'good': corrections.filter(c => c.score >= 7 && c.score < 9).length,
+    'satisfactory': corrections.filter(c => c.score >= 6 && c.score < 7).length,
+    'needs_improvement': corrections.filter(c => c.score < 6).length
+  };
 
   res.json({
     success: true,
-    data: { submissions, pagination }
+    data: {
+      totalCorrections,
+      averageScore: parseFloat(averageScore.toFixed(2)),
+      passRate: parseFloat(passRate.toFixed(2)),
+      passedCount,
+      failedCount: totalCorrections - passedCount,
+      scoreDistribution: scoreRanges,
+      stats: {
+        minScore: Math.min(...corrections.map(c => c.score)),
+        maxScore: Math.max(...corrections.map(c => c.score)),
+        avgEarnedPoints: corrections.reduce((sum, c) => sum + c.earnedPoints, 0) / totalCorrections,
+        avgTotalPoints: corrections.reduce((sum, c) => sum + c.totalPoints, 0) / totalCorrections
+      }
+    }
   });
 });
 
-// Add feedback
-const addFeedback = catchAsync(async (req, res, next) => {
-  const { submissionId } = req.params;
-  const { feedback } = req.body;
+// Manual correction for essay questions
+const manualCorrection = catchAsync(async (req, res, next) => {
+  const { answerId } = req.params;
+  const { essayGrades } = req.body;
 
-  const submission = await Answer.findByPk(submissionId, {
-    include: [{ model: Exam, as: 'exam', attributes: ['userId'] }]
+  const answer = await Answer.findByPk(answerId);
+  
+  if (!answer) {
+    return next(new AppError('Answer not found', 404));
+  }
+
+  if (!Array.isArray(essayGrades)) {
+    return next(new AppError('Essay grades must be an array', 400));
+  }
+
+  // Update essay question scores
+  let additionalPoints = 0;
+  const updatedResults = answer.correctionData.results.map(result => {
+    if (result.type === 'essay') {
+      const essayGrade = essayGrades.find(g => g.questionId === result.questionId);
+      if (essayGrade) {
+        result.points = Math.min(essayGrade.points, result.maxPoints);
+        result.isCorrect = result.points > 0;
+        result.feedback = essayGrade.feedback || null;
+        additionalPoints += result.points;
+      }
+    }
+    return result;
   });
 
-  if (!submission) {
-    return next(new AppError('Submission not found', 404));
-  }
+  // Recalculate total score
+  const totalEarnedPoints = answer.earnedPoints + additionalPoints;
+  const newScore = (totalEarnedPoints / answer.totalPoints) * 10;
 
-  if (req.user.role !== 'admin' && submission.exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  await submission.update({ feedback });
+  await answer.update({
+    earnedPoints: totalEarnedPoints,
+    score: parseFloat(newScore.toFixed(2)),
+    isPassed: newScore >= 6.0,
+    correctionData: {
+      ...answer.correctionData,
+      results: updatedResults,
+      manuallyGraded: true,
+      gradedBy: req.user?.id || 'teacher',
+      gradedAt: new Date()
+    }
+  });
 
   res.json({
     success: true,
-    message: 'Feedback added successfully'
+    message: 'Manual correction completed successfully',
+    data: {
+      answer: {
+        id: answer.id,
+        score: answer.score,
+        earnedPoints: answer.earnedPoints,
+        isPassed: answer.isPassed,
+        manuallyGraded: true
+      }
+    }
   });
 });
 
-// Adjust score
-const adjustScore = catchAsync(async (req, res, next) => {
-  const { submissionId } = req.params;
-  const { score, reason } = req.body;
-
-  const submission = await Answer.findByPk(submissionId, {
-    include: [{ model: Exam, as: 'exam', attributes: ['userId', 'passingScore'] }]
-  });
-
-  if (!submission) {
-    return next(new AppError('Submission not found', 404));
-  }
-
-  if (req.user.role !== 'admin' && submission.exam.userId !== req.user.id) {
-    return next(new AppError('Access denied', 403));
-  }
-
-  const isPassed = score >= submission.exam.passingScore;
-
-  await submission.update({
-    score: parseFloat(score),
-    isPassed,
-    feedback: reason ? `${submission.feedback || ''}\n\nScore adjusted: ${reason}`.trim() : submission.feedback
-  });
-
-  res.json({
-    success: true,
-    message: 'Score adjusted successfully',
-    data: { newScore: score, isPassed }
-  });
-});
-
-// Regrade submission
-const regradeSubmission = catchAsync(async (req, res, next) => {
-  const { submissionId } = req.params;
-
-  res.json({
-    success: true,
-    message: 'Regrade functionality to be implemented'
-  });
-});
-
-// Export submissions
-const exportSubmissions = catchAsync(async (req, res, next) => {
+// Bulk export corrections
+const exportCorrections = catchAsync(async (req, res, next) => {
+  const { examId } = req.params;
   const { format = 'json' } = req.body;
 
-  res.json({
-    success: true,
-    message: `Export in ${format} format to be implemented`
+  const corrections = await Answer.findAll({
+    where: { 
+      examId,
+      correctionMethod: 'qr_scan'
+    },
+    include: [
+      {
+        model: ExamVariation,
+        as: 'variation',
+        attributes: ['variationNumber']
+      }
+    ],
+    order: [['submittedAt', 'DESC']]
   });
-});
 
-// Performance analytics
-const getPerformanceAnalytics = catchAsync(async (req, res, next) => {
-  const { examId } = req.params;
-
-  res.json({
-    success: true,
-    message: 'Performance analytics to be implemented',
-    data: { examId }
-  });
-});
-
-// Compare students
-const compareStudents = catchAsync(async (req, res, next) => {
-  res.json({
-    success: true,
-    message: 'Student comparison to be implemented'
-  });
-});
-
-// Get suspicious submissions
-const getSuspiciousSubmissions = catchAsync(async (req, res, next) => {
-  const { examId } = req.params;
+  const exportData = corrections.map(correction => ({
+    id: correction.id,
+    studentName: correction.studentName,
+    studentEmail: correction.studentEmail,
+    studentId: correction.studentId,
+    variation: correction.variation?.variationNumber,
+    score: correction.score,
+    earnedPoints: correction.earnedPoints,
+    totalPoints: correction.totalPoints,
+    isPassed: correction.isPassed,
+    submittedAt: correction.submittedAt,
+    correctionMethod: correction.correctionMethod
+  }));
 
   res.json({
     success: true,
-    message: 'Suspicious submissions detection to be implemented',
-    data: { examId }
+    message: `Corrections exported in ${format} format`,
+    data: {
+      corrections: exportData,
+      format,
+      count: exportData.length,
+      exportedAt: new Date()
+    }
   });
 });
 
 module.exports = {
-  submitAnswers,
-  getSubmissionResult,
-  getSubmissions,
-  getSubmissionsByExam,      // <- ADICIONAR
-  getSubmissionsByStudent,   // <- ADICIONAR
-  getPendingSubmissions,     // <- ADICIONAR
-  getSubmissionDetails,
-  updateSubmission,
-  addFeedback,               // <- ADICIONAR
-  adjustScore,               // <- ADICIONAR
-  regradeSubmission,         // <- ADICIONAR
-  exportSubmissions,         // <- ADICIONAR
+  validateAnswerKey,
+  correctExam,
+  getCorrectionHistory,
   getCorrectionStats,
-  getQuestionAnalysis,
-  getPerformanceAnalytics,   // <- ADICIONAR
-  compareStudents,           // <- ADICIONAR
-  getSuspiciousSubmissions,  // <- ADICIONAR
-  bulkGradeSubmissions
+  manualCorrection,
+  exportCorrections
 };

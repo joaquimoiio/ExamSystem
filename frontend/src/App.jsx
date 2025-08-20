@@ -33,6 +33,10 @@ import ExamList from './pages/exams/ExamList';
 import ExamDetail from './pages/exams/ExamDetail';
 import ExamCreate from './pages/exams/ExamCreate';
 
+// Cabeçalhos de Prova
+import ExamHeaderList from './pages/exams/ExamHeaderList';
+import ExamHeaderForm from './pages/exams/ExamHeaderForm';
+
 // Outras páginas
 import Profile from './pages/profile/Profile';
 import Settings from './pages/settings/Settings';
@@ -177,6 +181,38 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <ExamDetail />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Cabeçalhos de Prova */}
+      <Route 
+        path="/exam-headers" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamHeaderList />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/exam-headers/create" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamHeaderForm />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/exam-headers/:id/edit" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamHeaderForm />
             </Layout>
           </ProtectedRoute>
         } 

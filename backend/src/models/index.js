@@ -81,7 +81,8 @@ const models = [
   { name: 'Exam', path: './Exam' },
   { name: 'ExamVariation', path: './ExamVariation' },
   { name: 'ExamQuestion', path: './ExamQuestion' },
-  { name: 'Answer', path: './Answer' }
+  { name: 'Answer', path: './Answer' },
+  { name: 'ExamHeader', path: './ExamHeader' }
 ];
 
 // Importar todos os modelos
@@ -188,6 +189,30 @@ try {
     db.Answer.belongsTo(db.Question, {
       foreignKey: 'questionId',
       as: 'question'
+    });
+  }
+
+  if (db.User && db.ExamHeader) {
+    // User has many ExamHeaders
+    db.User.hasMany(db.ExamHeader, {
+      foreignKey: 'userId',
+      as: 'examHeaders'
+    });
+    db.ExamHeader.belongsTo(db.User, {
+      foreignKey: 'userId',
+      as: 'user'
+    });
+  }
+
+  if (db.Exam && db.ExamHeader) {
+    // Exam belongs to ExamHeader (optional)
+    db.Exam.belongsTo(db.ExamHeader, {
+      foreignKey: 'examHeaderId',
+      as: 'examHeader'
+    });
+    db.ExamHeader.hasMany(db.Exam, {
+      foreignKey: 'examHeaderId',
+      as: 'exams'
     });
   }
 

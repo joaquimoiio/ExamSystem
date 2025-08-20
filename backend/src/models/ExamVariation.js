@@ -1,4 +1,3 @@
-const QRCode = require('qrcode');
 
 module.exports = (sequelize, DataTypes) => {
   const ExamVariation = sequelize.define('ExamVariation', {
@@ -24,13 +23,6 @@ module.exports = (sequelize, DataTypes) => {
         min: 1
       }
     },
-    qrCode: {
-      type: DataTypes.TEXT
-    },
-    qrCodeData: {
-      type: DataTypes.JSONB,
-      defaultValue: {}
-    },
     metadata: {
       type: DataTypes.JSONB,
       defaultValue: {}
@@ -50,37 +42,6 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   // Instance methods
-  ExamVariation.prototype.generateQrCode = async function() {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const qrData = {
-      examId: this.examId,
-      variationId: this.id,
-      variationNumber: this.variationNumber,
-      url: `${frontendUrl}/exam/take/${this.examId}/${this.id}`,
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      this.qrCode = await QRCode.toDataURL(JSON.stringify(qrData), {
-        errorCorrectionLevel: 'M',
-        type: 'image/png',
-        quality: 0.92,
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        width: 256
-      });
-      
-      this.qrCodeData = qrData;
-      await this.save();
-      
-      return this.qrCode;
-    } catch (error) {
-      throw new Error('Failed to generate QR code: ' + error.message);
-    }
-  };
 
   ExamVariation.prototype.getQuestionsWithOrder = async function() {
     const ExamQuestion = sequelize.models.ExamQuestion;

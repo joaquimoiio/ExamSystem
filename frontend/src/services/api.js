@@ -349,6 +349,45 @@ class ApiService {
       return { success: true, data: [] };
     }
   }
+
+  // ================================
+  // EXAM HEADERS API
+  // ================================
+  
+  async getExamHeaders(params = {}) {
+    console.log('📋 Buscando cabeçalhos de prova');
+    return this.get('/exam-headers', { params });
+  }
+
+  async getExamHeaderById(id) {
+    console.log('📋 Buscando cabeçalho de prova:', id);
+    return this.get(`/exam-headers/${id}`);
+  }
+
+  async createExamHeader(data) {
+    console.log('➕ Criando cabeçalho de prova:', data);
+    return this.post('/exam-headers', data);
+  }
+
+  async updateExamHeader(id, data) {
+    console.log('✏️ Atualizando cabeçalho de prova:', id, data);
+    return this.put(`/exam-headers/${id}`, data);
+  }
+
+  async deleteExamHeader(id) {
+    console.log('🗑️ Deletando cabeçalho de prova:', id);
+    return this.delete(`/exam-headers/${id}`);
+  }
+
+  async getDefaultExamHeader() {
+    console.log('📋 Buscando cabeçalho padrão');
+    return this.get('/exam-headers/default');
+  }
+
+  async setExamHeaderAsDefault(id) {
+    console.log('⭐ Definindo cabeçalho como padrão:', id);
+    return this.put(`/exam-headers/${id}/set-default`);
+  }
 }
 
 // Instância única

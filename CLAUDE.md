@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **Exam System** - a full-stack web application for creating, managing, and correcting online exams with multiple variations and automatic QR code correction. The system generates unique exam variations with intelligent question distribution and provides automatic grading via mobile QR code scanning.
+This is an **Exam System** - a full-stack web application for creating, managing, and correcting online exams with multiple variations. The system generates unique exam variations with intelligent question distribution and provides automatic grading.
 
 ## Architecture
 
@@ -22,7 +22,6 @@ This is an **Exam System** - a full-stack web application for creating, managing
   - Answers (student submissions)
 - **Services**: Core business logic in `/backend/src/services/`
   - `pdfService.js`: PDF generation with PDFKit
-  - `qrService.js`: QR code generation for exam variations
   - `emailService.js`: Nodemailer email functionality
 - **Controllers**: RESTful API endpoints following MVC pattern
 - **Smart Exam Generation**: Algorithm distributes questions by difficulty (Easy/Medium/Hard) across multiple variations
@@ -32,7 +31,7 @@ This is an **Exam System** - a full-stack web application for creating, managing
 - **TanStack Query**: Server state management and caching
 - **Tailwind CSS**: Utility-first styling
 - **Context API**: Auth and Toast contexts
-- **Mobile-First**: QR scanner for student exam submission
+- **Responsive Design**: Mobile-optimized interface
 
 ## Development Commands
 
@@ -66,12 +65,12 @@ npm serve                      # Serve built files
 ### Exam Creation & Variation Generation
 - Professors create exams by selecting questions from subject question banks
 - System automatically generates multiple variations (up to 50) using Fisher-Yates shuffle
-- Each variation gets unique QR codes and maintains question difficulty distribution
-- PDF generation creates printable exams with integrated QR codes
+- Each variation maintains question difficulty distribution
+- PDF generation creates printable exams
 
 ### Student Workflow
-- Students scan QR code on printed exam to access mobile submission interface
-- Mobile-optimized UI for answer submission
+- Students access exams through the web interface
+- Responsive UI for answer submission
 - Immediate feedback with scores and statistics after submission
 
 ### Correction System  
@@ -120,7 +119,6 @@ RESTful API with base path `/api`:
 - `/questions` - Question bank management
 - `/exams` - Exam creation and variation generation
 - `/corrections` - Grade submission and statistics
-- `/public` - Public student access endpoints (QR-based)
 
 ## Production Considerations
 

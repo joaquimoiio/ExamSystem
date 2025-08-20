@@ -18,6 +18,7 @@ function Sidebar({ isOpen, onClose }) {
     { path: '/subjects', icon: BookOpen, label: 'Disciplinas' },
     { path: '/questions', icon: FileText, label: 'Questões' },
     { path: '/exams', icon: BarChart3, label: 'Provas' },
+    { path: '/exam-headers', icon: FileText, label: 'Cabeçalhos' },
     { path: '/settings', icon: Settings, label: 'Configurações' },
   ];
 

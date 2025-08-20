@@ -5,6 +5,14 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
+    title: {
+      type: DataTypes.STRING(500),
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [5, 500]
+      }
+    },
     text: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -13,11 +21,25 @@ module.exports = (sequelize, DataTypes) => {
         len: [10, 2000]
       }
     },
+    type: {
+      type: DataTypes.ENUM('multiple_choice', 'essay'),
+      allowNull: false,
+      defaultValue: 'multiple_choice'
+    },
+    image: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
     alternatives: {
       type: DataTypes.JSONB,
-      allowNull: false,
+      allowNull: true,
       validate: {
         isValidAlternatives(value) {
+          // Para questões dissertativas, alternativas podem ser null
+          if (this.type === 'essay') {
+            return;
+          }
+          
           if (!Array.isArray(value) || value.length < 2 || value.length > 5) {
             throw new Error('Must have between 2 and 5 alternatives');
           }
@@ -35,11 +57,16 @@ module.exports = (sequelize, DataTypes) => {
     },
     correctAnswer: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       validate: {
         min: 0,
         max: 4,
         isCorrectIndex(value) {
+          // Para questões dissertativas, correctAnswer pode ser null
+          if (this.type === 'essay') {
+            return;
+          }
+          
           if (this.alternatives && value >= this.alternatives.length) {
             throw new Error('Correct answer index is out of range');
           }
@@ -154,6 +181,17 @@ module.exports = (sequelize, DataTypes) => {
   };
 
   Question.prototype.checkAnswer = function(studentAnswer) {
+    if (this.type === 'essay') {
+      // Para questões dissertativas, não há correção automática
+      return {
+        isCorrect: null, // Será avaliado manualmente
+        points: 0, // Será definido manualmente
+        correctAnswer: null,
+        explanation: this.explanation,
+        essayAnswer: studentAnswer
+      };
+    }
+    
     const isCorrect = parseInt(studentAnswer) === this.correctAnswer;
     const points = isCorrect ? this.points : 0;
     

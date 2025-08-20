@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { AppError } = require('../utils/appError');
 const { formatDateBR } = require('../utils/helpers');
+const qrService = require('./qrService');
 
 /**
  * PDF Service for generating exam reports and documents
@@ -135,6 +136,47 @@ class PDFService {
         }
         
         // Footer
+        this.addFooter(doc);
+
+        doc.end();
+
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate complete exam PDF with questions, QR code and answer key
+   */
+  async generateExamPDF(exam, variation, questions, examHeader, outputPath) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
+        });
+
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
+
+        // Add exam header
+        await this.addExamHeader(doc, examHeader, exam);
+        
+        // Add QR code and answer key section
+        await this.addQRCodeAndAnswerKey(doc, exam, variation, questions);
+        
+        // Add questions
+        await this.addExamQuestions(doc, questions);
+        
+        // Add footer
         this.addFooter(doc);
 
         doc.end();
@@ -736,6 +778,198 @@ class PDFService {
   }
 
   /**
+   * Add exam header section
+   */
+  async addExamHeader(doc, examHeader, exam) {
+    let y = 50;
+    
+    // School info
+    doc.fontSize(16).font(this.fonts.bold);
+    doc.text(examHeader.schoolName || 'Escola', 50, y, { align: 'center' });
+    
+    y += 25;
+    doc.fontSize(12).font(this.fonts.regular);
+    doc.text(`Disciplina: ${examHeader.subjectName || exam.subject?.name || 'N/A'}`, 50, y);
+    doc.text(`Ano: ${examHeader.year || new Date().getFullYear()}`, 350, y);
+    
+    y += 20;
+    doc.text(`Prova: ${exam.title}`, 50, y);
+    doc.text(`Variação: ${exam.variationNumber || 'A'}`, 350, y);
+    
+    y += 20;
+    doc.text(`Data: ___/___/______`, 50, y);
+    doc.text(`Tempo: ${exam.timeLimit ? `${exam.timeLimit} min` : 'Sem limite'}`, 350, y);
+    
+    // Student info section
+    y += 30;
+    doc.fontSize(10).font(this.fonts.regular);
+    doc.text('Nome: _________________________________________________ Turma: _______', 50, y);
+    
+    y += 20;
+    doc.text('Matrícula: ________________________ Data de Nascimento: ___/___/______', 50, y);
+    
+    // Evaluation criteria
+    if (examHeader.evaluationCriteria) {
+      y += 25;
+      doc.fontSize(9).font(this.fonts.bold);
+      doc.text('Critérios de Avaliação:', 50, y);
+      y += 12;
+      doc.fontSize(8).font(this.fonts.regular);
+      const lines = examHeader.evaluationCriteria.split('\n');
+      lines.forEach(line => {
+        doc.text(line, 50, y);
+        y += 10;
+      });
+    }
+    
+    // Instructions
+    if (examHeader.instructions) {
+      y += 15;
+      doc.fontSize(9).font(this.fonts.bold);
+      doc.text('Instruções:', 50, y);
+      y += 12;
+      doc.fontSize(8).font(this.fonts.regular);
+      const lines = examHeader.instructions.split('\n');
+      lines.forEach(line => {
+        doc.text(line, 50, y);
+        y += 10;
+      });
+    }
+    
+    // Separator line
+    y += 15;
+    doc.moveTo(50, y)
+       .lineTo(550, y)
+       .stroke();
+    
+    return y + 10;
+  }
+
+  /**
+   * Add QR code and visual answer key section
+   */
+  async addQRCodeAndAnswerKey(doc, exam, variation, questions) {
+    let y = doc.y || 200;
+    
+    // Generate QR code with answer key
+    const qrResult = await qrService.generateAnswerKeyQR(exam, variation, questions);
+    const qrBuffer = await qrService.generateQRBuffer(JSON.stringify(qrResult.qrData), { width: 120 });
+    
+    // Generate visual answer key
+    const visualAnswerKey = qrService.generateVisualAnswerKey(questions);
+    
+    // QR Code section title
+    doc.fontSize(10).font(this.fonts.bold);
+    doc.text('Gabarito para Correção:', 50, y);
+    
+    y += 20;
+    
+    // Add QR code image
+    doc.image(qrBuffer, 50, y, { width: 120, height: 120 });
+    
+    // Visual answer key next to QR code
+    let answerX = 190;
+    let answerY = y;
+    
+    doc.fontSize(9).font(this.fonts.bold);
+    doc.text('Gabarito Visual:', answerX, answerY);
+    
+    answerY += 15;
+    doc.fontSize(8).font(this.fonts.regular);
+    
+    // Display answers in a grid format
+    const itemsPerRow = 10;
+    visualAnswerKey.forEach((item, index) => {
+      if (index > 0 && index % itemsPerRow === 0) {
+        answerY += 12;
+        answerX = 190;
+      }
+      
+      const text = `${item.number}:${item.answer}`;
+      doc.text(text, answerX, answerY);
+      answerX += 35;
+    });
+    
+    // Separator line
+    y += 140;
+    doc.moveTo(50, y)
+       .lineTo(550, y)
+       .stroke();
+    
+    return y + 10;
+  }
+
+  /**
+   * Add exam questions section
+   */
+  async addExamQuestions(doc, questions) {
+    let y = doc.y || 300;
+    
+    doc.fontSize(12).font(this.fonts.bold);
+    doc.text('QUESTÕES:', 50, y);
+    
+    y += 25;
+    
+    questions.forEach((question, index) => {
+      // Check if we need a new page
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+      }
+      
+      // Question number and title
+      doc.fontSize(10).font(this.fonts.bold);
+      const questionHeader = `${index + 1}. ${question.title || 'Questão'}`;
+      doc.text(questionHeader, 50, y);
+      
+      // Points
+      if (question.points) {
+        doc.text(`(${question.points} pts)`, 500, y);
+      }
+      
+      y += 15;
+      
+      // Question text
+      doc.fontSize(9).font(this.fonts.regular);
+      const questionLines = question.questionText.split('\n');
+      questionLines.forEach(line => {
+        doc.text(line, 50, y);
+        y += 12;
+      });
+      
+      y += 5;
+      
+      // Question type specific content
+      if (question.type === 'multiple_choice') {
+        // Multiple choice alternatives
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        question.alternatives.forEach((alternative, altIndex) => {
+          if (alternative && alternative.trim()) {
+            doc.text(`${letters[altIndex]}) ${alternative}`, 60, y);
+            y += 12;
+          }
+        });
+      } else if (question.type === 'essay') {
+        // Essay question - add lines for answer
+        doc.text('Resposta:', 50, y);
+        y += 15;
+        
+        // Add answer lines
+        for (let i = 0; i < 8; i++) {
+          doc.moveTo(50, y)
+             .lineTo(550, y)
+             .stroke();
+          y += 20;
+        }
+      }
+      
+      y += 15; // Space between questions
+    });
+    
+    return y;
+  }
+
+  /**
    * Clean up temporary files
    */
   async cleanupTempFiles(filePaths) {
@@ -789,6 +1023,16 @@ class PDFService {
             result = await this.generateAnswerSheet(
               operation.exam,
               operation.variation,
+              operation.outputPath
+            );
+            break;
+            
+          case 'exam_pdf':
+            result = await this.generateExamPDF(
+              operation.exam,
+              operation.variation,
+              operation.questions,
+              operation.examHeader,
               operation.outputPath
             );
             break;

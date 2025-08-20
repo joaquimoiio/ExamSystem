@@ -369,37 +369,6 @@
   }
 }
 
-/* QR Scanner specific styles */
-.qr-scanner-container {
-  @apply relative w-full max-w-sm mx-auto;
-}
-
-.qr-scanner-overlay {
-  @apply absolute inset-0 pointer-events-none;
-}
-
-.qr-scanner-corners::before,
-.qr-scanner-corners::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #fff;
-}
-
-.qr-scanner-corners::before {
-  top: 10px;
-  left: 10px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.qr-scanner-corners::after {
-  bottom: 10px;
-  right: 10px;
-  border-left: none;
-  border-top: none;
-}
 
 /* Toast/Notification Components */
 .toast-container {

@@ -36,6 +36,21 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
+    examHeaderId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'exam_headers',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
+    },
+    selectedQuestions: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      comment: 'Array of {questionId, points} objects for custom exam creation'
+    },
     totalQuestions: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -72,6 +87,14 @@ module.exports = (sequelize, DataTypes) => {
         min: 1,
         max: 50
       }
+    },
+    totalPoints: {
+      type: DataTypes.DECIMAL(6, 2),
+      defaultValue: 0,
+      validate: {
+        min: 0
+      },
+      comment: 'Total points for the exam'
     },
     timeLimit: {
       type: DataTypes.INTEGER,

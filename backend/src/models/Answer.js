@@ -110,6 +110,14 @@ module.exports = (sequelize, DataTypes) => {
     userAgent: {
       type: DataTypes.TEXT
     },
+    correctionMethod: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'automatic'
+    },
+    correctionData: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
+    },
     metadata: {
       type: DataTypes.JSONB,
       defaultValue: {}

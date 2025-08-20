@@ -250,20 +250,6 @@ select:focus {
   background-clip: text;
 }
 
-/* QR Scanner specific styles */
-#qr-scanner {
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-#qr-scanner video {
-  border-radius: 0.5rem;
-  object-fit: cover;
-}
-
-#qr-scanner canvas {
-  display: none;
-}
 
 /* Form validation styles */
 .form-error {
@@ -590,20 +576,6 @@ select:focus {
   background-clip: text;
 }
 
-/* QR Scanner specific styles */
-#qr-scanner {
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-#qr-scanner video {
-  border-radius: 0.5rem;
-  object-fit: cover;
-}
-
-#qr-scanner canvas {
-  display: none;
-}
 
 /* Form validation styles */
 .form-error {

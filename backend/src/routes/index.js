@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import routes with fallback
-let authRoutes, subjectRoutes, questionRoutes, examRoutes;
+let authRoutes, subjectRoutes, questionRoutes, examRoutes, examHeaderRoutes, correctionRoutes;
 
 try {
   authRoutes = require('./auth');
@@ -57,6 +57,31 @@ try {
   });
 }
 
+try {
+  examHeaderRoutes = require('./examHeaders');
+  console.log('✅ Exam header routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading exam header routes:', error.message);
+  examHeaderRoutes = express.Router();
+  examHeaderRoutes.get('/', (req, res) => {
+    res.json({ success: true, data: { headers: [], total: 0 } });
+  });
+}
+
+try {
+  correctionRoutes = require('./corrections');
+  console.log('✅ Correction routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading correction routes:', error.message);
+  correctionRoutes = express.Router();
+  correctionRoutes.post('/validate-qr', (req, res) => {
+    res.status(500).json({ success: false, message: 'Correction module not available' });
+  });
+  correctionRoutes.post('/correct-exam', (req, res) => {
+    res.status(500).json({ success: false, message: 'Correction module not available' });
+  });
+}
+
 // API info
 router.get('/', (req, res) => {
   console.log('📋 API info accessed');
@@ -91,6 +116,8 @@ router.use('/auth', authRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/questions', questionRoutes);
 router.use('/exams', examRoutes);
+router.use('/exam-headers', examHeaderRoutes);
+router.use('/corrections', correctionRoutes);
 
 // Catch-all for undefined routes
 router.use('*', (req, res) => {

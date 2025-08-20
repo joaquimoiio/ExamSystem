@@ -700,30 +700,6 @@ export const calculateExamDifficulty = (questions) => {
   return 'medium';
 };
 
-export const generateQRData = (examId, variationId, additionalData = {}) => {
-  return JSON.stringify({
-    examId,
-    variationId,
-    timestamp: Date.now(),
-    version: '1.0',
-    ...additionalData,
-  });
-};
-
-export const parseQRData = (qrString) => {
-  try {
-    const data = JSON.parse(qrString);
-    
-    // Validate required fields
-    if (!data.examId || !data.variationId) {
-      throw new Error('Invalid QR code format');
-    }
-    
-    return data;
-  } catch (error) {
-    throw new Error('Failed to parse QR code data');
-  }
-};
 
 export const calculateTimeRemaining = (startTime, duration) => {
   const now = new Date();
@@ -1475,8 +1451,6 @@ export default {
   getScoreColor,
   getScoreBackground,
   calculateExamDifficulty,
-  generateQRData,
-  parseQRData,
   calculateTimeRemaining,
   calculateExamProgress,
   generateExamSummary,

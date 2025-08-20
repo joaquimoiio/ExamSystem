@@ -1,132 +1,64 @@
 const express = require('express');
+const { body } = require('express-validator');
 const router = express.Router();
-
 const correctionController = require('../controllers/correctionController');
-const { optionalAuth, authenticateToken, requireTeacher } = require('../middleware/auth');
-const {
-  validateAnswerSubmission,
-  validateUUIDParam,
-  validatePagination
-} = require('../middleware/validation');
+const { authenticateToken } = require('../middleware/auth');
 
-// Public route for submitting answers
-router.post('/submit/:examId/:variationId',
-  validateUUIDParam('examId'),
-  validateUUIDParam('variationId'),
-  validateAnswerSubmission,
-  correctionController.submitAnswers
-);
+// Validation for QR code correction
+const correctionValidation = [
+  body('qrData')
+    .notEmpty()
+    .withMessage('QR code data is required'),
+  body('studentAnswers')
+    .isArray()
+    .withMessage('Student answers must be an array'),
+  body('studentInfo.name')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Student name must be between 2 and 100 characters'),
+  body('studentInfo.email')
+    .optional()
+    .isEmail()
+    .withMessage('Invalid email format'),
+  body('studentInfo.studentId')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Student ID must be at most 50 characters')
+];
 
-// Get submission result (public with optional auth for security)
-router.get('/result/:submissionId',
-  validateUUIDParam('submissionId'),
-  optionalAuth,
-  correctionController.getSubmissionResult
-);
+// Validation for manual grading
+const manualGradingValidation = [
+  body('essayGrades')
+    .isArray()
+    .withMessage('Essay grades must be an array'),
+  body('essayGrades.*.questionId')
+    .notEmpty()
+    .withMessage('Question ID is required for each essay grade'),
+  body('essayGrades.*.points')
+    .isNumeric()
+    .withMessage('Points must be a number'),
+  body('essayGrades.*.feedback')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Feedback must be at most 1000 characters')
+];
 
-// Protected routes (authentication required)
+// Apply authentication to all routes
 router.use(authenticateToken);
 
-// Get all submissions for teacher/admin
-router.get('/submissions', 
-  validatePagination, 
-  correctionController.getSubmissions
-);
+// QR Code validation and correction
+router.post('/validate-qr', correctionController.validateAnswerKey);
+router.post('/correct-exam', correctionValidation, correctionController.correctExam);
 
-// Get submissions by exam
-router.get('/submissions/exam/:examId',
-  validateUUIDParam('examId'),
-  validatePagination,
-  correctionController.getSubmissionsByExam
-);
+// Correction management for specific exams
+router.get('/exam/:examId/history', correctionController.getCorrectionHistory);
+router.get('/exam/:examId/stats', correctionController.getCorrectionStats);
+router.post('/exam/:examId/export', correctionController.exportCorrections);
 
-// Get submissions by student
-router.get('/submissions/student/:studentId',
-  validatePagination,
-  correctionController.getSubmissionsByStudent
-);
-
-// Get pending submissions for grading
-router.get('/pending',
-  validatePagination,
-  correctionController.getPendingSubmissions
-);
-
-// Get specific submission details
-router.get('/submissions/:submissionId',
-  validateUUIDParam('submissionId'),
-  correctionController.getSubmissionDetails
-);
-
-// Update submission (manual grading)
-router.put('/submissions/:submissionId',
-  validateUUIDParam('submissionId'),
-  requireTeacher,
-  correctionController.updateSubmission
-);
-
-// Add feedback to submission
-router.post('/submissions/:submissionId/feedback',
-  validateUUIDParam('submissionId'),
-  requireTeacher,
-  correctionController.addFeedback
-);
-
-// Manual score adjustment
-router.post('/submissions/:submissionId/adjust-score',
-  validateUUIDParam('submissionId'),
-  requireTeacher,
-  correctionController.adjustScore
-);
-
-// Bulk grade submissions
-router.post('/bulk-grade',
-  requireTeacher,
-  correctionController.bulkGradeSubmissions
-);
-
-// Regrade submission
-router.post('/submissions/:submissionId/regrade',
-  validateUUIDParam('submissionId'),
-  requireTeacher,
-  correctionController.regradeSubmission
-);
-
-// Export submissions data
-router.post('/export',
-  requireTeacher,
-  correctionController.exportSubmissions
-);
-
-// Get correction statistics
-router.get('/stats/:examId',
-  validateUUIDParam('examId'),
-  correctionController.getCorrectionStats
-);
-
-// Question analysis for exam
-router.get('/question-analysis/:examId',
-  validateUUIDParam('examId'),
-  correctionController.getQuestionAnalysis
-);
-
-// Performance analytics
-router.get('/analytics/:examId',
-  validateUUIDParam('examId'),
-  correctionController.getPerformanceAnalytics
-);
-
-// Compare student performances
-router.post('/compare-students',
-  requireTeacher,
-  correctionController.compareStudents
-);
-
-// Flag suspicious submissions
-router.get('/suspicious/:examId',
-  validateUUIDParam('examId'),
-  requireTeacher,
-  correctionController.getSuspiciousSubmissions
-);
+// Manual correction for essay questions
+router.post('/answer/:answerId/manual-grade', manualGradingValidation, correctionController.manualCorrection);
 
 module.exports = router;
