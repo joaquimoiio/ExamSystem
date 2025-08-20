@@ -289,7 +289,7 @@ export function useCreateSubject() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.createSubject,
+    mutationFn: (data) => apiService.createSubject(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
       success('Disciplina criada com sucesso!');
@@ -322,7 +322,7 @@ export function useDeleteSubject() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.deleteSubject,
+    mutationFn: (id) => apiService.deleteSubject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
       success('Disciplina excluída com sucesso!');
@@ -338,7 +338,7 @@ export function useCreateQuestion() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.createQuestion,
+    mutationFn: (data) => apiService.createQuestion(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
       success('Questão criada com sucesso!');
@@ -371,7 +371,7 @@ export function useDeleteQuestion() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.deleteQuestion,
+    mutationFn: (id) => apiService.deleteQuestion(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questions'] });
       success('Questão excluída com sucesso!');
@@ -387,7 +387,7 @@ export function useCreateExam() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.createExam,
+    mutationFn: (data) => apiService.createExam(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       success('Prova criada com sucesso!');
@@ -420,7 +420,7 @@ export function useDeleteExam() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.deleteExam,
+    mutationFn: (id) => apiService.deleteExam(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       success('Prova excluída com sucesso!');
@@ -436,7 +436,7 @@ export function usePublishExam() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.publishExam,
+    mutationFn: (id) => apiService.publishExam(id),
     onSuccess: (_, examId) => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       queryClient.invalidateQueries({ queryKey: ['exams', examId] });
@@ -452,7 +452,7 @@ export function useGeneratePDFs() {
   const { success, error } = useToast();
 
   return useMutation({
-    mutationFn: apiService.generatePDFs,
+    mutationFn: (id) => apiService.generatePDFs(id),
     onSuccess: () => {
       success('PDFs gerados com sucesso!');
     },
@@ -469,7 +469,7 @@ export function useGeneratePDFs() {
 export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: apiService.getDashboardStats,
+    queryFn: () => apiService.getDashboardStats(),
     staleTime: 30 * 1000, // 30 seconds
     retry: 1,
   });
@@ -478,7 +478,7 @@ export function useDashboardStats() {
 export function useRecentActivity() {
   return useQuery({
     queryKey: ['recent-activity'],
-    queryFn: apiService.getRecentActivity,
+    queryFn: () => apiService.getRecentActivity(),
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 1,
   });

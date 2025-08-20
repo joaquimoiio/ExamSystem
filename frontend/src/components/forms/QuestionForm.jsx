@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { Save, X, Plus, Trash2, Check, AlertCircle } from 'lucide-react';
+import { Save, X, Plus, Trash2, Check, AlertCircle, Upload, Image } from 'lucide-react';
 import { LoadingButton } from '../common/Loading';
 import { useSubjects } from '../../hooks';
 
@@ -34,15 +34,13 @@ export default function QuestionForm({
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      title: question?.title || '',
-      text: question?.text || '',
+      statement: question?.text || question?.statement || '',
       type: question?.type || 'multiple_choice',
       difficulty: question?.difficulty || 'medium',
       points: question?.points || 1,
       subjectId: question?.subjectId || '',
       explanation: question?.explanation || '',
-      image: question?.image || '',
-      tags: question?.tags || [],
+      images: question?.images || [],
       alternatives: question?.alternatives || [
         { text: '', isCorrect: false },
         { text: '', isCorrect: false },
@@ -52,13 +50,19 @@ export default function QuestionForm({
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: alternativeFields, append, remove } = useFieldArray({
     control,
     name: 'alternatives',
   });
 
+  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
+    control,
+    name: 'images',
+  });
+
   const watchedType = watch('type');
   const watchedAlternatives = watch('alternatives');
+  const watchedImages = watch('images');
   const isEditing = !!question;
 
   // Auto-configure for question types
@@ -66,7 +70,7 @@ export default function QuestionForm({
     if (watchedType === 'essay') {
       // For essay questions, clear alternatives
       setValue('alternatives', []);
-    } else if (watchedType === 'multiple_choice' && fields.length === 0) {
+    } else if (watchedType === 'multiple_choice' && alternativeFields.length === 0) {
       // Reset to multiple choice alternatives
       setValue('alternatives', [
         { text: '', isCorrect: false },
@@ -75,7 +79,7 @@ export default function QuestionForm({
         { text: '', isCorrect: false },
       ]);
     }
-  }, [watchedType, fields.length, setValue]);
+  }, [watchedType, alternativeFields.length, setValue]);
 
   const onFormSubmit = async (data) => {
     // For multiple choice questions, validate alternatives
@@ -109,15 +113,26 @@ export default function QuestionForm({
   };
 
   const addAlternative = () => {
-    if (fields.length < 6) {
+    if (alternativeFields.length < 6) {
       append({ text: '', isCorrect: false });
     }
   };
 
   const removeAlternative = (index) => {
-    if (fields.length > 2) {
+    if (alternativeFields.length > 2) {
       remove(index);
     }
+  };
+
+  const addImage = () => {
+    appendImage({ url: '', description: '' });
+  };
+
+  const handleImageUpload = (index, file) => {
+    // In a real implementation, you would upload the file to a server
+    // For now, we'll just create a preview URL
+    const imageUrl = URL.createObjectURL(file);
+    setValue(`images.${index}.url`, imageUrl);
   };
 
   const toggleCorrectAnswer = (index) => {
@@ -166,6 +181,19 @@ export default function QuestionForm({
             <h3 className="text-lg font-medium text-gray-900 leading-relaxed">
               {watch('statement') || 'Digite o enunciado da questão...'}
             </h3>
+            
+            {watchedImages && watchedImages.length > 0 && (
+              <div className="space-y-3">
+                {watchedImages.map((img, index) => (
+                  img.url && (
+                    <div key={index} className="border rounded-lg p-3">
+                      <img src={img.url} alt={img.description || `Imagem ${index + 1}`} className="max-w-full h-auto rounded" />
+                      {img.description && <p className="text-sm text-gray-600 mt-2">{img.description}</p>}
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -232,39 +260,13 @@ export default function QuestionForm({
         {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Título da Questão *
-            </label>
-            <input
-              id="title"
-              type="text"
-              {...register('title', {
-                required: 'Título é obrigatório',
-                minLength: {
-                  value: 5,
-                  message: 'Título deve ter pelo menos 5 caracteres',
-                },
-                maxLength: {
-                  value: 500,
-                  message: 'Título deve ter no máximo 500 caracteres',
-                },
-              })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Ex: Resolução de equações do segundo grau"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-            )}
-          </div>
-
-          <div className="md:col-span-2">
-            <label htmlFor="text" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="statement" className="block text-sm font-medium text-gray-700 mb-2">
               Enunciado da Questão *
             </label>
             <textarea
-              id="text"
+              id="statement"
               rows={4}
-              {...register('text', {
+              {...register('statement', {
                 required: 'Enunciado é obrigatório',
                 minLength: {
                   value: 10,
@@ -277,28 +279,86 @@ export default function QuestionForm({
               })}
               className={`
                 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${errors.text ? 'border-red-300' : 'border-gray-300'}
+                ${errors.statement ? 'border-red-300' : 'border-gray-300'}
               `}
               placeholder="Digite o enunciado da questão..."
             />
-            {errors.text && (
-              <p className="mt-1 text-sm text-red-600">{errors.text.message}</p>
+            {errors.statement && (
+              <p className="mt-1 text-sm text-red-600">{errors.statement.message}</p>
             )}
           </div>
 
+          {/* Images Section */}
           <div className="md:col-span-2">
-            <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-              URL da Imagem (opcional)
-            </label>
-            <input
-              id="image"
-              type="url"
-              {...register('image')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="https://exemplo.com/imagem.jpg"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Imagens (Opcional)
+              </label>
+              <button
+                type="button"
+                onClick={addImage}
+                className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Adicionar Imagem</span>
+              </button>
+            </div>
+            
+            {imageFields.length > 0 && (
+              <div className="space-y-3">
+                {imageFields.map((field, index) => (
+                  <div key={field.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-gray-700">Imagem {index + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">URL da Imagem</label>
+                      <input
+                        type="url"
+                        {...register(`images.${index}.url`)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        placeholder="https://exemplo.com/imagem.jpg"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Descrição (Alt text)</label>
+                      <input
+                        type="text"
+                        {...register(`images.${index}.description`)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        placeholder="Descrição da imagem para acessibilidade"
+                      />
+                    </div>
+                    
+                    {/* Image Preview */}
+                    {watch(`images.${index}.url`) && (
+                      <div className="mt-2">
+                        <img 
+                          src={watch(`images.${index}.url`)} 
+                          alt={watch(`images.${index}.description`) || `Preview ${index + 1}`}
+                          className="max-w-full h-auto max-h-40 rounded border"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
             <p className="mt-1 text-xs text-gray-500">
-              Adicione uma URL de imagem para complementar a questão
+              Adicione uma ou mais imagens para complementar a questão
             </p>
           </div>
 

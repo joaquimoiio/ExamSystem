@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Eye, Edit, Trash2, MoreVertical,
   FileText, BookOpen, Tag, CheckCircle, AlertCircle, Clock,
@@ -434,6 +435,7 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
 }
 
 export default function QuestionList() {
+  const navigate = useNavigate();
   const [deleteQuestionId, setDeleteQuestionId] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -493,11 +495,11 @@ export default function QuestionList() {
 
   // Handle actions
   const handleView = (questionId) => {
-    console.log('Viewing question:', questionId);
+    navigate(`/questions/${questionId}`);
   };
 
   const handleEdit = (questionId) => {
-    console.log('Editing question:', questionId);
+    navigate(`/questions/${questionId}?edit=true`);
   };
 
   const handleDelete = async (questionId) => {
@@ -515,7 +517,7 @@ export default function QuestionList() {
   };
 
   const handleCreateQuestion = () => {
-    console.log('Creating new question');
+    navigate('/questions/new');
   };
 
   const clearAllFilters = () => {
