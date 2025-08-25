@@ -217,11 +217,11 @@ export function LoadingError({
 
 // Componente de rota protegida
 export function ProtectedRoute({ children, requiredRole = null }) {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   // Mostrar loading enquanto verifica autenticação
-  if (loading) {
+  if (isLoading) {
     return <LoadingPage text="Verificando autenticação..." />;
   }
 
@@ -259,9 +259,9 @@ export function ProtectedRoute({ children, requiredRole = null }) {
 
 // Componente para redirecionar usuários logados das páginas públicas
 export function PublicRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingPage text="Verificando autenticação..." />;
   }
 
@@ -275,9 +275,9 @@ export function PublicRoute({ children }) {
 
 // Componente para redirecionamento da rota raiz
 export function RootRedirect() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingPage text="Inicializando aplicação..." />;
   }
 

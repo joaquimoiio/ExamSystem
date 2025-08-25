@@ -2,7 +2,14 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const { AppError } = require('../utils/appError');
-const { formatDateBR } = require('../utils/helpers');
+// Local helper function for date formatting
+const formatDateBR = (date) => {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(new Date(date));
+};
 const qrService = require('./qrService');
 
 /**
@@ -136,6 +143,64 @@ class PDFService {
         }
         
         // Footer
+        this.addFooter(doc);
+
+        doc.end();
+
+        stream.on('finish', () => {
+          resolve(outputPath);
+        });
+
+        stream.on('error', (error) => {
+          reject(error);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate complete PDF with all exam variations
+   */
+  async generateAllVariationsPDF(exam, variations, examHeader, outputPath) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50
+        });
+
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
+
+        for (let i = 0; i < variations.length; i++) {
+          const variation = variations[i];
+          
+          // Get questions for this variation
+          const questions = await variation.getQuestionsWithOrder();
+          
+          if (i > 0) {
+            // Add new page for each variation (except the first)
+            doc.addPage();
+          }
+          
+          // Add exam header with variation info
+          await this.addExamHeaderWithVariation(doc, examHeader, exam, variation);
+          
+          // Add QR code and answer key section
+          await this.addQRCodeAndAnswerKey(doc, exam, variation, questions);
+          
+          // Add questions
+          await this.addExamQuestions(doc, questions);
+          
+          // Add space before next variation
+          if (i < variations.length - 1) {
+            doc.y = 800; // Force new page
+          }
+        }
+        
+        // Add footer to all pages
         this.addFooter(doc);
 
         doc.end();
@@ -778,6 +843,74 @@ class PDFService {
   }
 
   /**
+   * Add exam header section with variation info
+   */
+  async addExamHeaderWithVariation(doc, examHeader, exam, variation) {
+    let y = 50;
+    
+    // School info
+    doc.fontSize(16).font(this.fonts.bold);
+    doc.text(examHeader.schoolName || 'Escola', 50, y, { align: 'center' });
+    
+    y += 25;
+    doc.fontSize(12).font(this.fonts.regular);
+    doc.text(`Disciplina: ${examHeader.subjectName || exam.subject?.name || 'N/A'}`, 50, y);
+    doc.text(`Ano: ${examHeader.year || new Date().getFullYear()}`, 350, y);
+    
+    y += 20;
+    doc.text(`Prova: ${exam.title}`, 50, y);
+    doc.text(`Variação: ${variation.variationNumber}`, 350, y);
+    
+    y += 20;
+    doc.text(`Data: ___/___/______`, 50, y);
+    // Removed time limit since it's a physical PDF exam
+    
+    // Student info section
+    y += 30;
+    doc.fontSize(10).font(this.fonts.regular);
+    doc.text('Nome: _________________________________________________ Turma: _______', 50, y);
+    
+    y += 20;
+    doc.text('Matrícula: ________________________ Data de Nascimento: ___/___/______', 50, y);
+    
+    // Evaluation criteria
+    if (examHeader.evaluationCriteria) {
+      y += 25;
+      doc.fontSize(9).font(this.fonts.bold);
+      doc.text('Critérios de Avaliação:', 50, y);
+      y += 12;
+      doc.fontSize(8).font(this.fonts.regular);
+      const lines = examHeader.evaluationCriteria.split('\n');
+      lines.forEach(line => {
+        doc.text(line, 50, y);
+        y += 10;
+      });
+    }
+    
+    // Instructions
+    if (examHeader.instructions) {
+      y += 15;
+      doc.fontSize(9).font(this.fonts.bold);
+      doc.text('Instruções:', 50, y);
+      y += 12;
+      doc.fontSize(8).font(this.fonts.regular);
+      const lines = examHeader.instructions.split('\n');
+      lines.forEach(line => {
+        doc.text(line, 50, y);
+        y += 10;
+      });
+    }
+    
+    // Separator line
+    y += 15;
+    doc.moveTo(50, y)
+       .lineTo(550, y)
+       .stroke();
+    
+    return y + 10;
+  }
+
+  /**
    * Add exam header section
    */
   async addExamHeader(doc, examHeader, exam) {
@@ -798,7 +931,7 @@ class PDFService {
     
     y += 20;
     doc.text(`Data: ___/___/______`, 50, y);
-    doc.text(`Tempo: ${exam.timeLimit ? `${exam.timeLimit} min` : 'Sem limite'}`, 350, y);
+    // Removed time limit since it's a physical PDF exam
     
     // Student info section
     y += 30;
@@ -911,44 +1044,110 @@ class PDFService {
     y += 25;
     
     questions.forEach((question, index) => {
+      // Estimate space needed for this question
+      const questionLines = (question.text || question.title || '').split('\n');
+      const alternativesCount = question.alternatives ? question.alternatives.filter(alt => alt && alt.trim()).length : 0;
+      const estimatedLines = questionLines.length + alternativesCount + 6; // Header + spaces
+      const estimatedHeight = estimatedLines * 12;
+      
       // Check if we need a new page
-      if (y > 700) {
+      if (y + estimatedHeight > 750) {
         doc.addPage();
         y = 50;
+        
+        // Add header again on new page
+        doc.fontSize(12).font(this.fonts.bold);
+        doc.text('QUESTÕES (continuação):', 50, y);
+        y += 25;
       }
       
       // Question number and title
       doc.fontSize(10).font(this.fonts.bold);
-      const questionHeader = `${index + 1}. ${question.title || 'Questão'}`;
+      const questionHeader = `${index + 1}. ${question.title || `Questão ${index + 1}`}`;
       doc.text(questionHeader, 50, y);
       
       // Points
       if (question.points) {
-        doc.text(`(${question.points} pts)`, 500, y);
+        doc.text(`(${question.points} pts)`, 450, y);
       }
       
       y += 15;
       
       // Question text
       doc.fontSize(9).font(this.fonts.regular);
-      const questionLines = question.questionText.split('\n');
-      questionLines.forEach(line => {
-        doc.text(line, 50, y);
-        y += 12;
+      const text = question.text || question.title || 'Texto da questão não disponível';
+      const textLines = text.split('\n');
+      textLines.forEach(line => {
+        // Check for line wrap
+        if (line.length > 80) {
+          const words = line.split(' ');
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if (currentLine.length + word.length > 75) {
+              doc.text(currentLine, 50, y);
+              y += 12;
+              currentLine = word + ' ';
+            } else {
+              currentLine += word + ' ';
+            }
+          });
+          
+          if (currentLine.trim()) {
+            doc.text(currentLine, 50, y);
+            y += 12;
+          }
+        } else {
+          doc.text(line, 50, y);
+          y += 12;
+        }
       });
       
       y += 5;
       
       // Question type specific content
-      if (question.type === 'multiple_choice') {
-        // Multiple choice alternatives
+      if (question.type === 'multiple_choice' && question.alternatives) {
         const letters = ['A', 'B', 'C', 'D', 'E'];
         question.alternatives.forEach((alternative, altIndex) => {
           if (alternative && alternative.trim()) {
-            doc.text(`${letters[altIndex]}) ${alternative}`, 60, y);
-            y += 12;
+            // Check if we need a new page for alternatives
+            if (y > 720) {
+              doc.addPage();
+              y = 50;
+            }
+            
+            const altText = `${letters[altIndex]}) ${alternative}`;
+            
+            // Handle long alternatives
+            if (altText.length > 75) {
+              const words = altText.split(' ');
+              let currentLine = words[0] + ' '; // Start with A), B), etc.
+              
+              for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + words[i].length > 70) {
+                  doc.text(currentLine, 60, y);
+                  y += 12;
+                  currentLine = '   ' + words[i] + ' '; // Indent continuation
+                } else {
+                  currentLine += words[i] + ' ';
+                }
+              }
+              
+              if (currentLine.trim()) {
+                doc.text(currentLine, 60, y);
+                y += 12;
+              }
+            } else {
+              doc.text(altText, 60, y);
+              y += 12;
+            }
           }
         });
+      } else if (question.type === 'true_false') {
+        doc.text('A) Verdadeiro', 60, y);
+        y += 12;
+        doc.text('B) Falso', 60, y);
+        y += 12;
       } else if (question.type === 'essay') {
         // Essay question - add lines for answer
         doc.text('Resposta:', 50, y);
@@ -956,6 +1155,10 @@ class PDFService {
         
         // Add answer lines
         for (let i = 0; i < 8; i++) {
+          if (y > 750) {
+            doc.addPage();
+            y = 50;
+          }
           doc.moveTo(50, y)
              .lineTo(550, y)
              .stroke();

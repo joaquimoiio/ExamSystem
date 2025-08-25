@@ -98,6 +98,9 @@ const getQuestionsStats = catchAsync(async (req, res, next) => {
 
 // Create question
 const createQuestion = catchAsync(async (req, res, next) => {
+  console.log('🔍 Creating question - req.body:', JSON.stringify(req.body, null, 2));
+  console.log('🔍 Creating question - req.user:', JSON.stringify(req.user, null, 2));
+  
   const {
     text,
     alternatives,
@@ -106,37 +109,70 @@ const createQuestion = catchAsync(async (req, res, next) => {
     subjectId,
     explanation,
     points = 1,
-    tags = []
+    tags = [],
+    title,
+    type = 'multiple_choice'
   } = req.body;
+
+  console.log('🔍 Extracted subjectId:', subjectId);
+  console.log('🔍 Extracted userId:', req.user?.id);
 
   // Validate subject exists and belongs to user
   const subject = await Subject.findOne({
     where: { id: subjectId, userId: req.user.id }
   });
 
+  console.log('🔍 Found subject:', subject ? 'YES' : 'NO');
+  if (subject) {
+    console.log('🔍 Subject details:', JSON.stringify(subject.toJSON(), null, 2));
+  }
+
   if (!subject) {
     return next(new AppError('Subject not found', 404));
   }
 
-  // Validate alternatives and correct answer
-  if (!Array.isArray(alternatives) || alternatives.length < 2 || alternatives.length > 5) {
-    return next(new AppError('Must have between 2 and 5 alternatives', 400));
-  }
+  // Handle different alternative formats (array of objects vs array of strings)
+  let processedAlternatives = [];
+  let calculatedCorrectAnswer = correctAnswer;
 
-  // Clean empty alternatives
-  const cleanAlternatives = alternatives.filter(alt => alt && alt.trim().length > 0);
-  if (cleanAlternatives.length < 2) {
-    return next(new AppError('Must have at least 2 non-empty alternatives', 400));
-  }
+  if (type === 'multiple_choice' && alternatives) {
+    if (Array.isArray(alternatives)) {
+      // Check if alternatives are objects (new format) or strings (old format)
+      if (alternatives.length > 0 && typeof alternatives[0] === 'object' && alternatives[0].text !== undefined) {
+        // New format: array of objects with text and isCorrect
+        processedAlternatives = alternatives
+          .filter(alt => alt && alt.text && alt.text.trim().length > 0)
+          .map(alt => alt.text.trim());
+        
+        // Find correct answer index from isCorrect flag
+        const correctIndex = alternatives.findIndex(alt => alt.isCorrect === true);
+        calculatedCorrectAnswer = correctIndex >= 0 ? correctIndex : 0;
+      } else {
+        // Old format: array of strings
+        processedAlternatives = alternatives.filter(alt => alt && alt.trim().length > 0);
+      }
+    }
 
-  if (correctAnswer < 0 || correctAnswer >= cleanAlternatives.length) {
-    return next(new AppError('Correct answer index is invalid', 400));
+    // Validate alternatives
+    if (processedAlternatives.length < 2 || processedAlternatives.length > 6) {
+      return next(new AppError('Must have between 2 and 6 alternatives', 400));
+    }
+
+    if (calculatedCorrectAnswer < 0 || calculatedCorrectAnswer >= processedAlternatives.length) {
+      return next(new AppError('Correct answer index is invalid', 400));
+    }
+  } else if (type === 'essay') {
+    // For essay questions, no alternatives needed
+    processedAlternatives = [];
+    calculatedCorrectAnswer = null;
   }
 
   const question = await Question.create({
-    text: text.trim(),
-    alternatives: cleanAlternatives.map(alt => alt.trim()),
-    correctAnswer,
+    title: title || text?.substring(0, 100) || 'Untitled Question',
+    text: text?.trim() || '',
+    type: type,
+    alternatives: processedAlternatives,
+    correctAnswer: calculatedCorrectAnswer,
     difficulty,
     subjectId,
     userId: req.user.id,
@@ -567,6 +603,35 @@ const getQuestionStats = catchAsync(async (req, res, next) => {
 });
 
 
+// Update question points
+const updateQuestionPoints = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { points } = req.body;
+
+  if (!points || points < 0.1 || points > 10) {
+    return next(new AppError('Points must be between 0.1 and 10', 400));
+  }
+
+  const question = await Question.findByPk(id);
+
+  if (!question) {
+    return next(new AppError('Question not found', 404));
+  }
+
+  // Check ownership
+  if (req.user.role !== 'admin' && question.userId !== req.user.id) {
+    return next(new AppError('Access denied', 403));
+  }
+
+  await question.update({ points: parseFloat(points) });
+
+  res.json({
+    success: true,
+    message: 'Question points updated successfully',
+    data: { question }
+  });
+});
+
 // Bulk update questions
 const bulkUpdateQuestions = catchAsync(async (req, res, next) => {
   const { questionIds, updateData } = req.body;
@@ -721,6 +786,7 @@ module.exports = {
   getQuestionsByDifficulty,
   searchQuestions,
   duplicateQuestion,
+  updateQuestionPoints,
   bulkDeleteQuestions,
   bulkUpdateQuestions,
   importQuestions,

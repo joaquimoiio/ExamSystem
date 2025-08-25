@@ -1,4 +1,5 @@
 const { Exam, ExamVariation, ExamQuestion, Question, Subject, Answer, ExamHeader } = require('../models');
+const db = require('../models');
 const { catchAsync, AppError } = require('../utils/appError');
 const { paginate, buildPaginationMeta, generateAccessCode, shuffleArray } = require('../utils/helpers');
 const { Op } = require('sequelize');
@@ -198,7 +199,7 @@ const getExams = catchAsync(async (req, res, next) => {
           Exam.sequelize.literal(`(
             SELECT COUNT(*)
             FROM answers
-            WHERE answers.exam_id = "Exam".id
+            WHERE answers."examId" = "Exam".id
           )`),
           'submissionsCount'
         ],
@@ -206,7 +207,7 @@ const getExams = catchAsync(async (req, res, next) => {
           Exam.sequelize.literal(`(
             SELECT COUNT(*)
             FROM exam_variations
-            WHERE exam_variations.exam_id = "Exam".id
+            WHERE exam_variations."examId" = "Exam".id
           )`),
           'variationsCount'
         ]
@@ -246,7 +247,7 @@ const getExamsStats = catchAsync(async (req, res, next) => {
           Exam.sequelize.literal(`(
             SELECT COUNT(*)
             FROM answers
-            WHERE answers.exam_id = "Exam".id
+            WHERE answers."examId" = "Exam".id
           )`),
           'submissionsCount'
         ]
@@ -270,6 +271,8 @@ const getExamsStats = catchAsync(async (req, res, next) => {
 
 // Create exam
 const createExam = catchAsync(async (req, res, next) => {
+  console.log('📝 CreateExam - Dados recebidos:', JSON.stringify(req.body, null, 2));
+  
   const {
     title,
     description,
@@ -287,6 +290,10 @@ const createExam = catchAsync(async (req, res, next) => {
     requireFullScreen = false,
     preventCopyPaste = false
   } = req.body;
+  
+  console.log('📝 Parsed data:', {
+    title, description, subjectId, questions, variations, duration
+  });
 
   // Validate subject exists and belongs to user
   const subject = await Subject.findOne({
@@ -323,6 +330,19 @@ const createExam = catchAsync(async (req, res, next) => {
   // Calculate total points
   const totalPoints = questions.reduce((sum, q) => sum + (parseFloat(q.points) || 1.0), 0);
 
+  // Calculate difficulty distribution based on selected questions
+  const difficultyCount = {
+    easy: 0,
+    medium: 0,
+    hard: 0
+  };
+
+  existingQuestions.forEach(q => {
+    if (q.difficulty === 'easy') difficultyCount.easy++;
+    else if (q.difficulty === 'medium') difficultyCount.medium++;
+    else if (q.difficulty === 'hard') difficultyCount.hard++;
+  });
+
   // Create exam with the selected questions and their individual points
   const exam = await Exam.create({
     title: title.trim(),
@@ -330,6 +350,9 @@ const createExam = catchAsync(async (req, res, next) => {
     subjectId,
     userId: req.user.id,
     totalQuestions: questions.length,
+    easyQuestions: difficultyCount.easy,
+    mediumQuestions: difficultyCount.medium,
+    hardQuestions: difficultyCount.hard,
     totalVariations: variations,
     timeLimit: duration,
     totalPoints, // Store total points
@@ -348,6 +371,9 @@ const createExam = catchAsync(async (req, res, next) => {
       selectedQuestions: questions
     }
   });
+
+  // Generate exam variations with the selected questions
+  await generateExamVariationsWithSelectedQuestions(exam, existingQuestions);
 
   res.status(201).json({
     success: true,
@@ -379,7 +405,7 @@ const getExamById = catchAsync(async (req, res, next) => {
           Exam.sequelize.literal(`(
             SELECT COUNT(*)
             FROM answers
-            WHERE answers.exam_id = "Exam".id
+            WHERE answers."examId" = "Exam".id
           )`),
           'submissionsCount'
         ]
@@ -446,25 +472,60 @@ const updateExam = catchAsync(async (req, res, next) => {
 const deleteExam = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
+  console.log(`🗑️ Iniciando exclusão da prova: ${id}`);
+
   const exam = await Exam.findByPk(id);
 
   if (!exam) {
     return next(new AppError('Exam not found', 404));
   }
 
+  // Check ownership
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Not authorized to delete this exam', 403));
+  }
+
   // Check if exam has submissions
   const submissionsCount = await Answer.count({ where: { examId: id } });
 
   if (submissionsCount > 0) {
+    console.log(`❌ Não é possível excluir prova com ${submissionsCount} respostas`);
     return next(new AppError('Cannot delete exam with existing submissions', 400));
   }
 
-  await exam.destroy();
+  try {
+    // Start transaction for safe deletion
+    await db.sequelize.transaction(async (transaction) => {
+      console.log('🔄 Iniciando transação para exclusão');
 
-  res.json({
-    success: true,
-    message: 'Exam deleted successfully'
-  });
+      // 1. Delete exam questions (exam_questions table)
+      const deletedQuestions = await ExamQuestion.destroy({
+        where: { examId: id },
+        transaction
+      });
+      console.log(`✅ ${deletedQuestions} registros de exam_questions excluídos`);
+
+      // 2. Delete exam variations (exam_variations table)
+      const deletedVariations = await ExamVariation.destroy({
+        where: { examId: id },
+        transaction
+      });
+      console.log(`✅ ${deletedVariations} variações excluídas`);
+
+      // 3. Delete the exam itself
+      await exam.destroy({ transaction });
+      console.log(`✅ Prova ${id} excluída com sucesso`);
+    });
+
+    res.json({
+      success: true,
+      message: 'Exam deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao excluir prova:', error);
+    return next(new AppError('Error deleting exam: ' + error.message, 500));
+  }
 });
 
 // Publish exam
@@ -594,7 +655,7 @@ const getExamVariations = catchAsync(async (req, res, next) => {
           ExamVariation.sequelize.literal(`(
             SELECT COUNT(*)
             FROM answers
-            WHERE answers.variation_id = "ExamVariation".id
+            WHERE answers."variationId" = "ExamVariation".id
           )`),
           'submissionsCount'
         ]
@@ -647,6 +708,50 @@ const getExamAnalytics = catchAsync(async (req, res, next) => {
   });
 });
 
+
+// Helper function to generate exam variations with selected questions
+const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestions) => {
+  console.log('🔄 Generating variations for exam:', exam.id);
+  console.log('📋 Selected questions:', selectedQuestions.map(q => ({ id: q.id, difficulty: q.difficulty })));
+
+  // Create variations
+  for (let i = 0; i < exam.totalVariations; i++) {
+    console.log(`🔄 Creating variation ${i + 1}/${exam.totalVariations}`);
+    
+    // Shuffle questions for this variation if randomization is enabled
+    let questionsForVariation = [...selectedQuestions];
+    if (exam.randomizeQuestions) {
+      questionsForVariation = shuffleArray(questionsForVariation);
+    }
+
+    // Create variation
+    const variation = await ExamVariation.create({
+      examId: exam.id,
+      variationNumber: i + 1
+    });
+
+    console.log('✅ Created variation:', variation.id, 'Number:', variation.variationNumber);
+
+    // Add questions to variation with order
+    for (let j = 0; j < questionsForVariation.length; j++) {
+      const question = questionsForVariation[j];
+      const selectedQuestion = exam.metadata.selectedQuestions.find(q => q.id === question.id);
+      const points = selectedQuestion ? parseFloat(selectedQuestion.points) || 1.0 : 1.0;
+      
+      await ExamQuestion.create({
+        examId: exam.id,
+        variationId: variation.id,
+        questionId: question.id,
+        questionOrder: j,
+        points: points
+      });
+      
+      console.log(`✅ Added question ${question.id} to variation ${variation.variationNumber} at position ${j} with ${points} points`);
+    }
+  }
+  
+  console.log('✅ All variations created successfully');
+};
 
 // Helper function to generate exam variations
 const generateExamVariations = async (exam) => {
@@ -726,7 +831,7 @@ const getRecentExams = catchAsync(async (req, res, next) => {
           Exam.sequelize.literal(`(
             SELECT COUNT(*)
             FROM answers
-            WHERE answers.exam_id = "Exam".id
+            WHERE answers."examId" = "Exam".id
           )`),
           'submissionsCount'
         ]
@@ -745,24 +850,24 @@ const getExamVariation = catchAsync(async (req, res, next) => {
   const { id, variationId } = req.params;
 
   const variation = await ExamVariation.findOne({
-    where: { id: variationId, examId: id },
-    include: [
-      {
-        model: Question,
-        as: 'questions',
-        through: { attributes: ['questionOrder'] },
-        attributes: ['id', 'text', 'alternatives', 'difficulty', 'points']
-      }
-    ]
+    where: { id: variationId, examId: id }
   });
 
   if (!variation) {
     return next(new AppError('Variation not found', 404));
   }
 
+  // Get questions for this variation through ExamQuestion
+  const questions = await variation.getQuestionsWithOrder();
+
   res.json({
     success: true,
-    data: { variation }
+    data: { 
+      variation: {
+        ...variation.toJSON(),
+        questions
+      }
+    }
   });
 });
 
@@ -986,38 +1091,24 @@ const generateAllExamPDFs = catchAsync(async (req, res, next) => {
     return next(new AppError('Exam header not found', 404));
   }
 
-  const operations = [];
-  
-  for (const variation of variations) {
-    const questions = await variation.getQuestionsWithOrder();
-    const filename = `exam_${exam.id}_variation_${variation.variationNumber}.pdf`;
-    const outputPath = path.join(__dirname, '../uploads/temp', filename);
-    
-    operations.push({
-      id: variation.id,
-      type: 'exam_pdf',
-      exam,
-      variation,
-      questions,
-      examHeader,
-      outputPath
-    });
-  }
+  // Generate single PDF with all variations
+  const filename = `exam_${exam.id}_all_variations.pdf`;
+  const outputPath = path.join(__dirname, '../uploads/temp', filename);
 
-  // Generate all PDFs
-  const results = await pdfService.batchGenerate(operations);
-  
-  res.json({
-    success: true,
-    message: 'Exam PDFs generated successfully',
-    data: {
-      exam: {
-        id: exam.id,
-        title: exam.title
-      },
-      variations: results.length,
-      results
+  // Ensure temp directory exists
+  pdfService.ensureOutputDir(outputPath);
+
+  await pdfService.generateAllVariationsPDF(exam, variations, examHeader, outputPath);
+
+  // Send file
+  res.download(outputPath, filename, (err) => {
+    if (err) {
+      console.error('Error sending PDF:', err);
     }
+    // Clean up file after sending
+    setTimeout(() => {
+      pdfService.cleanupTempFiles([outputPath]);
+    }, 5000);
   });
 });
 

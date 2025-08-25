@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { 
   ArrowLeft, Save, Trash2, Edit, Eye, Plus, BookOpen,
-  FileText, BarChart3, AlertTriangle, Clock, Palette
+  FileText, BarChart3, AlertTriangle, Clock, Palette,
+  Search, Filter, MoreVertical, Copy, Grid, List,
+  CheckCircle, Tag, TrendingUp
 } from 'lucide-react';
-import { useSubject, useUpdateSubject, useDeleteSubject, useCreateSubject } from '../../hooks';
+import { useSubject, useUpdateSubject, useDeleteSubject, useCreateSubject, useQuestions, useDeleteQuestion } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
@@ -18,6 +20,18 @@ const predefinedColors = [
   '#EC4899', '#F43F5E', '#64748B', '#6B7280', '#374151'
 ];
 
+const difficultyConfig = {
+  easy: { label: 'Fácil', color: 'green', icon: '📗' },
+  medium: { label: 'Médio', color: 'yellow', icon: '📙' },
+  hard: { label: 'Difícil', color: 'red', icon: '📕' },
+};
+
+const typeConfig = {
+  multiple_choice: { label: 'Múltipla Escolha', icon: CheckCircle, color: 'blue' },
+  true_false: { label: 'Verdadeiro/Falso', icon: AlertTriangle, color: 'purple' },
+  essay: { label: 'Dissertativa', icon: FileText, color: 'gray' },
+};
+
 export default function SubjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,6 +39,14 @@ export default function SubjectDetail() {
   
   const [isEditing, setIsEditing] = useState(!id); // New subject if no ID
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('info'); // 'info' or 'questions'
+  
+  // Questions state
+  const [questionsViewMode, setQuestionsViewMode] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [deleteQuestionId, setDeleteQuestionId] = useState(null);
 
   // Hooks
   const { data: subjectData, isLoading, error } = useSubject(id);
@@ -209,6 +231,36 @@ export default function SubjectDetail() {
         </div>
       )}
 
+      {/* Tabs (only for existing subjects not in edit mode) */}
+      {!isNewSubject && !isEditing && subject && (
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('info')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'info'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 inline mr-2" />
+              Informações
+            </button>
+            <button
+              onClick={() => setActiveTab('questions')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'questions'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FileText className="w-4 h-4 inline mr-2" />
+              Questões ({subject.questionsCount || 0})
+            </button>
+          </nav>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="bg-white rounded-xl shadow-soft border border-gray-100">
         {isEditing ? (
@@ -336,10 +388,13 @@ export default function SubjectDetail() {
         ) : (
           // View Mode
           <div className="p-6 space-y-6">
-            <div className="flex items-center mb-6">
-              <BookOpen className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Informações da Disciplina</h2>
-            </div>
+            {activeTab === 'info' ? (
+              // Subject Information Tab
+              <div>
+                <div className="flex items-center mb-6">
+                  <BookOpen className="w-5 h-5 text-primary-600 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-900">Informações da Disciplina</h2>
+                </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -409,19 +464,38 @@ export default function SubjectDetail() {
               </div>
             </div>
 
-            {/* Metadata */}
-            <div className="pt-6 border-t border-gray-200 text-sm text-gray-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="font-medium">Criado em:</span> {' '}
-                  {subject?.createdAt ? new Date(subject.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
-                </div>
-                <div>
-                  <span className="font-medium">Última atualização:</span> {' '}
-                  {subject?.updatedAt ? new Date(subject.updatedAt).toLocaleDateString('pt-BR') : 'N/A'}
+                {/* Metadata */}
+                <div className="pt-6 border-t border-gray-200 text-sm text-gray-500">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="font-medium">Criado em:</span> {' '}
+                      {subject?.createdAt ? new Date(subject.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Última atualização:</span> {' '}
+                      {subject?.updatedAt ? new Date(subject.updatedAt).toLocaleDateString('pt-BR') : 'N/A'}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              // Questions Tab
+              <QuestionsTab 
+                subjectId={id}
+                subject={subject}
+                viewMode={questionsViewMode}
+                setViewMode={setQuestionsViewMode}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                difficultyFilter={difficultyFilter}
+                setDifficultyFilter={setDifficultyFilter}
+                typeFilter={typeFilter}
+                setTypeFilter={setTypeFilter}
+                deleteQuestionId={deleteQuestionId}
+                setDeleteQuestionId={setDeleteQuestionId}
+                navigate={navigate}
+              />
+            )}
           </div>
         )}
       </div>
@@ -437,6 +511,389 @@ export default function SubjectDetail() {
         confirmVariant="danger"
         isLoading={deleteSubjectMutation.isPending}
       />
+    </div>
+  );
+}
+
+// Component for Questions Tab
+function QuestionsTab({ 
+  subjectId, 
+  subject, 
+  viewMode, 
+  setViewMode, 
+  searchTerm, 
+  setSearchTerm,
+  difficultyFilter,
+  setDifficultyFilter,
+  typeFilter,
+  setTypeFilter,
+  deleteQuestionId,
+  setDeleteQuestionId,
+  navigate
+}) {
+  // Fetch questions for this subject
+  const { data: questionsData, isLoading } = useQuestions({ subjectId });
+  const deleteQuestionMutation = useDeleteQuestion();
+  const questions = questionsData?.data?.questions || [];
+
+  // Filter questions
+  const filteredQuestions = questions.filter(question => {
+    const matchesSearch = !searchTerm || 
+      question.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      question.text?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesDifficulty = difficultyFilter === 'all' || question.difficulty === difficultyFilter;
+    const matchesType = typeFilter === 'all' || question.type === typeFilter;
+    
+    return matchesSearch && matchesDifficulty && matchesType;
+  });
+
+  const handleCreateQuestion = () => {
+    navigate(`/questions/new?subjectId=${subjectId}`);
+  };
+
+  const handleViewQuestion = (questionId) => {
+    navigate(`/questions/${questionId}`);
+  };
+
+  const handleEditQuestion = (questionId) => {
+    navigate(`/questions/${questionId}?edit=true`);
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    try {
+      await deleteQuestionMutation.mutateAsync(questionId);
+      setDeleteQuestionId(null);
+    } catch (error) {
+      console.error('Error deleting question:', error);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDifficultyFilter('all');
+    setTypeFilter('all');
+  };
+
+  const hasFilters = searchTerm || difficultyFilter !== 'all' || typeFilter !== 'all';
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <FileText className="w-5 h-5 text-primary-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Questões da Disciplina</h2>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+            title={`Alterar para visualização ${viewMode === 'grid' ? 'em lista' : 'em grade'}`}
+          >
+            {viewMode === 'grid' ? <List className="w-5 h-5" /> : <Grid className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={handleCreateQuestion}
+            className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Questão
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div className="md:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Buscar questões..."
+                value={searchTerm || ''}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Difficulty Filter */}
+          <div>
+            <select
+              value={difficultyFilter || 'all'}
+              onChange={(e) => setDifficultyFilter(e.target.value)}
+              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="all">Todas as dificuldades</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Médio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </div>
+
+          {/* Type Filter */}
+          <div>
+            <select
+              value={typeFilter || 'all'}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="all">Todos os tipos</option>
+              <option value="multiple_choice">Múltipla Escolha</option>
+              <option value="true_false">Verdadeiro/Falso</option>
+              <option value="essay">Dissertativa</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Results Info */}
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+          <span>
+            {isLoading ? 'Carregando...' : `${filteredQuestions.length} questão${filteredQuestions.length !== 1 ? 'ões' : ''} encontrada${filteredQuestions.length !== 1 ? 's' : ''}`}
+          </span>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      {isLoading ? (
+        <div className={viewMode === 'grid' ? 
+          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : 
+          "space-y-3"
+        }>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+      ) : filteredQuestions.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <FileText className="w-12 h-12 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {hasFilters ? 'Nenhuma questão encontrada' : 'Nenhuma questão criada'}
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+            {hasFilters 
+              ? 'Tente ajustar os filtros para encontrar questões.'
+              : `Comece criando questões para a disciplina ${subject?.name}.`
+            }
+          </p>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={handleCreateQuestion}
+              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {hasFilters ? 'Nova Questão' : 'Criar primeira questão'}
+            </button>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className={viewMode === 'grid' ? 
+          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : 
+          "space-y-3"
+        }>
+          {filteredQuestions.map((question) => (
+            <QuestionCard
+              key={question.id}
+              question={question}
+              onView={handleViewQuestion}
+              onEdit={handleEditQuestion}
+              onDelete={(id) => setDeleteQuestionId(id)}
+              viewMode={viewMode}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteQuestionId !== null}
+        onClose={() => setDeleteQuestionId(null)}
+        onConfirm={() => handleDeleteQuestion(deleteQuestionId)}
+        title="Excluir Questão"
+        message="Tem certeza que deseja excluir esta questão? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        confirmVariant="danger"
+        isLoading={deleteQuestionMutation.isPending}
+      />
+    </div>
+  );
+}
+
+// Component for Question Card
+function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' }) {
+  const difficultyStyle = difficultyConfig[question.difficulty] || difficultyConfig.easy;
+  const typeInfo = typeConfig[question.type] || typeConfig.multiple_choice;
+  const TypeIcon = typeInfo?.icon || FileText;
+
+  if (viewMode === 'list') {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {question.title || question.text || 'Sem título'}
+                </p>
+                <div className="flex items-center space-x-4 mt-1">
+                  <span className="text-xs text-gray-500">
+                    Criada em {new Date(question.createdAt).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className={`
+                  inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                  ${difficultyStyle.color === 'green' ? 'bg-green-100 text-green-800' :
+                    difficultyStyle.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'}
+                `}>
+                  {difficultyStyle.icon} {difficultyStyle.label}
+                </span>
+                
+                <span className={`
+                  inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                  ${typeInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                    typeInfo.color === 'purple' ? 'bg-purple-100 text-purple-800' :
+                    'bg-gray-100 text-gray-800'}
+                `}>
+                  <TypeIcon className="w-3 h-3 mr-1" />
+                  {typeInfo?.label}
+                </span>
+
+                <span className="text-xs text-gray-500 font-medium">
+                  {question.points || 1} pt{(question.points || 1) !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => onView(question.id)}
+                  className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  title="Visualizar"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onEdit(question.id)}
+                  className="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                  title="Editar"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onDelete(question.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Excluir"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
+         onClick={() => onView(question.id)}>
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className={`
+                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                ${difficultyStyle.color === 'green' ? 'bg-green-100 text-green-800' :
+                  difficultyStyle.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'}
+              `}>
+                {difficultyStyle.icon} {difficultyStyle.label}
+              </span>
+              
+              <span className={`
+                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                ${typeInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                  typeInfo.color === 'purple' ? 'bg-purple-100 text-purple-800' :
+                  'bg-gray-100 text-gray-800'}
+              `}>
+                <TypeIcon className="w-3 h-3 mr-1" />
+                {typeInfo?.label}
+              </span>
+
+              <span className="text-xs text-gray-500 font-medium">
+                {question.points || 1} pt{(question.points || 1) !== 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors">
+              {question.title || question.text || 'Sem título'}
+            </h3>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 line-clamp-2">
+            {question.text || 'Questão sem texto definido'}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span className="flex items-center">
+            <Clock className="w-3 h-3 mr-1" />
+            {new Date(question.createdAt).toLocaleDateString('pt-BR')}
+          </span>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(question.id);
+              }}
+              className="p-1 text-gray-400 hover:text-green-600 rounded transition-colors"
+              title="Editar"
+            >
+              <Edit className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(question.id);
+              }}
+              className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
+              title="Excluir"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

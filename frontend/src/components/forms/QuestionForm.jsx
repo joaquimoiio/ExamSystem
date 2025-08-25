@@ -19,7 +19,8 @@ export default function QuestionForm({
   question = null, 
   onSubmit, 
   onCancel, 
-  loading = false 
+  loading = false,
+  defaultSubjectId = null
 }) {
   const [previewMode, setPreviewMode] = useState(false);
   const { data: subjectsData } = useSubjects();
@@ -37,8 +38,8 @@ export default function QuestionForm({
       statement: question?.text || question?.statement || '',
       type: question?.type || 'multiple_choice',
       difficulty: question?.difficulty || 'medium',
-      points: question?.points || 1,
-      subjectId: question?.subjectId || '',
+      points: 1, // Default value, will be set during exam creation
+      subjectId: question?.subjectId || defaultSubjectId || '',
       explanation: question?.explanation || '',
       images: question?.images || [],
       alternatives: question?.alternatives || [
@@ -105,8 +106,20 @@ export default function QuestionForm({
       data.correctAnswer = null;
     }
 
+    // Map statement to text field for backend compatibility
+    const formattedData = {
+      ...data,
+      text: data.statement,
+      title: data.statement.substring(0, 100) + (data.statement.length > 100 ? '...' : ''), // Auto-generate title from statement
+    };
+
+    // Remove empty images
+    if (formattedData.images) {
+      formattedData.images = formattedData.images.filter(img => img.url && img.url.trim());
+    }
+
     try {
-      await onSubmit(data);
+      await onSubmit(formattedData);
     } catch (error) {
       console.error('Form submission error:', error);
     }
@@ -174,7 +187,7 @@ export default function QuestionForm({
               {difficultyOptions.find(d => d.value === watch('difficulty'))?.label}
             </span>
             <span className="text-gray-500">•</span>
-            <span className="text-gray-600">{watch('points')} ponto{watch('points') > 1 ? 's' : ''}</span>
+            <span className="text-gray-600">Pontuação será definida na prova</span>
           </div>
 
           <div className="prose max-w-none">
@@ -418,54 +431,33 @@ export default function QuestionForm({
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              A pontuação será definida ao montar a prova
+            </p>
           </div>
 
-          <div>
-            <label htmlFor="points" className="block text-sm font-medium text-gray-700 mb-2">
-              Pontuação
-            </label>
-            <input
-              id="points"
-              type="number"
-              min="0.1"
-              max="100"
-              step="0.1"
-              {...register('points', {
-                required: 'Pontuação é obrigatória',
-                min: { value: 0.1, message: 'Mínimo 0.1 pontos' },
-                max: { value: 100, message: 'Máximo 100 pontos' },
-              })}
-              className={`
-                w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${errors.points ? 'border-red-300' : 'border-gray-300'}
-              `}
-            />
-            {errors.points && (
-              <p className="mt-1 text-sm text-red-600">{errors.points.message}</p>
-            )}
-          </div>
         </div>
 
         {/* Alternatives */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Alternativas *
-            </label>
-            {watchedType === 'multiple_choice' && fields.length < 6 && (
-              <button
-                type="button"
-                onClick={addAlternative}
-                className="flex items-center space-x-1 px-3 py-1 text-sm bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Adicionar</span>
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {fields.map((field, index) => (
+        {watchedType === 'multiple_choice' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Alternativas *
+              </label>
+              {alternativeFields.length < 6 && (
+                <button
+                  type="button"
+                  onClick={addAlternative}
+                  className="flex items-center space-x-1 px-3 py-1 text-sm bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Adicionar</span>
+                </button>
+              )}
+            </div>
+            <div className="space-y-3">
+              {alternativeFields.map((field, index) => (
               <div key={field.id} className="flex items-start space-x-3">
                 <button
                   type="button"
@@ -505,7 +497,7 @@ export default function QuestionForm({
                   )}
                 </div>
 
-                {watchedType === 'multiple_choice' && fields.length > 2 && (
+                {alternativeFields.length > 2 && (
                   <button
                     type="button"
                     onClick={() => removeAlternative(index)}
@@ -515,20 +507,38 @@ export default function QuestionForm({
                   </button>
                 )}
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="mt-2 flex items-start space-x-2 text-sm text-gray-600">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <p>
-              Clique no círculo ao lado da alternativa para marcá-la como correta. 
-              {watchedType === 'true_false' 
-                ? ' Apenas uma pode estar correta.' 
-                : ' Múltiplas alternativas podem estar corretas.'
-              }
-            </p>
+            <div className="mt-2 flex items-start space-x-2 text-sm text-gray-600">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>
+                Clique no círculo ao lado da alternativa para marcá-la como correta. 
+                Múltiplas alternativas podem estar corretas.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
+
+        {watchedType === 'essay' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Questão: Dissertativa
+            </label>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-blue-800 font-medium mb-1">Questão Dissertativa</p>
+                  <p className="text-blue-700 text-sm">
+                    Esta questão não terá alternativas pré-definidas. Os alunos deverão responder em formato livre.
+                    A correção será manual ou pode ser configurada com critérios específicos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Explanation */}
         <div>

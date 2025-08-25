@@ -241,6 +241,11 @@ class ApiService {
     return this.put(`/questions/${id}`, data);
   }
 
+  async updateQuestionPoints(id, points) {
+    console.log('🎯 Atualizando pontos da questão:', id, points);
+    return this.put(`/questions/${id}/points`, { points });
+  }
+
   async deleteQuestion(id) {
     console.log('🗑️ Deletando questão:', id);
     return this.delete(`/questions/${id}`);

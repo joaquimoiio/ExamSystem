@@ -25,8 +25,8 @@ import SubjectCreate from './pages/subjects/SubjectCreate';
 
 // Questões
 import QuestionList from './pages/questions/QuestionList';
-import QuestionDetail from './pages/questions/QuestionDetail';
-import QuestionCreate from './pages/questions/QuestionCreate';
+import QuestionDetail from './pages/questions/QuestionDetailSimple';
+import QuestionCreate from './pages/questions/QuestionCreateSimple';
 
 // Provas
 import ExamList from './pages/exams/ExamList';
@@ -122,7 +122,7 @@ function AppRoutes() {
         } 
       />
 
-      {/* Questões */}
+      {/* Questões integradas às disciplinas */}
       <Route 
         path="/questions" 
         element={

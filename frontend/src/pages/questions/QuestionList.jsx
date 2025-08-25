@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Eye, Edit, Trash2, MoreVertical,
   FileText, BookOpen, Tag, CheckCircle, AlertCircle, Clock,
   ArrowUpDown, Grid, List, Download, Upload, Copy,
-  TrendingUp, Users, BarChart3, Archive, Star
+  TrendingUp, Users, BarChart3, Archive, Star, ArrowLeft
 } from 'lucide-react';
+import { useQuestions, useSubjects, useSubject, useDeleteQuestion } from '../../hooks';
+import { useToast } from '../../contexts/ToastContext';
 
 const difficultyConfig = {
   easy: { label: 'Fácil', color: 'green', icon: '📗' },
@@ -50,7 +52,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
               {/* Question Preview */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {question.statement || 'Sem enunciado'}
+                  {question.text || question.title || 'Sem enunciado'}
                 </p>
                 <div className="flex items-center space-x-4 mt-1">
                   <span className="text-xs text-gray-500">
@@ -83,9 +85,6 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
                   {typeInfo?.label}
                 </span>
 
-                <span className="text-xs text-gray-500 font-medium">
-                  {question.points} pt{question.points !== 1 ? 's' : ''}
-                </span>
               </div>
 
               {/* Actions */}
@@ -153,13 +152,10 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
                 {typeInfo?.label}
               </span>
 
-              <span className="text-xs text-gray-500 font-medium">
-                {question.points} pt{question.points !== 1 ? 's' : ''}
-              </span>
             </div>
             
             <h3 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
-              {question.statement || 'Sem enunciado'}
+              {question.text || question.title || 'Sem enunciado'}
             </h3>
           </div>
 
@@ -213,7 +209,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
         {/* Content Preview */}
         <div className="mb-4">
           <p className="text-sm text-gray-600 line-clamp-2">
-            {question.statement || 'Questão sem enunciado definido'}
+            {question.text || question.title || 'Questão sem enunciado definido'}
           </p>
         </div>
 
@@ -436,6 +432,8 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
 
 export default function QuestionList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const subjectId = searchParams.get('subjectId');
   const [deleteQuestionId, setDeleteQuestionId] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -445,23 +443,26 @@ export default function QuestionList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
 
-  // These would be replaced with real API hooks in the actual implementation:
-  // const { data: questions = [], isLoading, error } = useQuestions(queryParams);
-  // const { data: subjects = [] } = useSubjects();
-  // const deleteQuestionMutation = useDeleteQuestion();
+  // Real API hooks
+  const queryParams = subjectId ? { subjectId } : {};
+  const { data: questionsData, isLoading, error } = useQuestions(queryParams);
+  const { data: subjectsData } = useSubjects();
+  const { data: currentSubjectData } = useSubject(subjectId);
+  const deleteQuestionMutation = useDeleteQuestion();
   
-  const questions = []; // Will come from API
-  const subjects = []; // Will come from API
-  const isLoading = false; // Will come from API
-  const error = null; // Will come from API
+  const questions = questionsData?.data?.questions || [];
+  const subjects = subjectsData?.data?.subjects || [];
+  const currentSubject = currentSubjectData?.data?.subject;
 
   // Filter questions based on current filters
   const filteredQuestions = questions.filter(question => {
     const matchesSearch = !searchTerm || 
-      question.statement.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      question.subject?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      (question.title && question.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (question.text && question.text.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (question.subject?.name && question.subject.name.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesSubject = subjectFilter === 'all' || 
+    // Se temos subjectId, não precisamos filtrar por disciplina (já está filtrado pela API)
+    const matchesSubject = subjectId || subjectFilter === 'all' || 
       question.subject?.id.toString() === subjectFilter;
     
     const matchesDifficulty = difficultyFilter === 'all' || question.difficulty === difficultyFilter;
@@ -475,14 +476,12 @@ export default function QuestionList() {
   const sortedQuestions = [...filteredQuestions].sort((a, b) => {
     switch (sortBy) {
       case 'title':
-        return a.statement.localeCompare(b.statement);
+        return (a.text || a.title || '').localeCompare(b.text || b.title || '');
       case 'difficulty':
         const diffOrder = { easy: 1, medium: 2, hard: 3 };
         return diffOrder[a.difficulty] - diffOrder[b.difficulty];
       case 'usage':
         return (b.usageCount || 0) - (a.usageCount || 0);
-      case 'points':
-        return b.points - a.points;
       case 'recent':
       default:
         return new Date(b.createdAt) - new Date(a.createdAt);
@@ -504,8 +503,7 @@ export default function QuestionList() {
 
   const handleDelete = async (questionId) => {
     try {
-      // This would be replaced with: await deleteQuestionMutation.mutateAsync(questionId);
-      console.log('Deleting question:', questionId);
+      await deleteQuestionMutation.mutateAsync(questionId);
       setDeleteQuestionId(null);
     } catch (error) {
       console.error('Error deleting question:', error);
@@ -517,7 +515,8 @@ export default function QuestionList() {
   };
 
   const handleCreateQuestion = () => {
-    navigate('/questions/new');
+    const url = subjectId ? `/questions/new?subjectId=${subjectId}` : '/questions/new';
+    navigate(url);
   };
 
   const clearAllFilters = () => {
@@ -536,9 +535,26 @@ export default function QuestionList() {
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Banco de Questões</h1>
-          <p className="text-gray-600 mt-1">Gerencie suas questões e monte provas</p>
+        <div className="flex items-center space-x-4">
+          {subjectId && (
+            <button
+              onClick={() => navigate('/subjects')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {currentSubject ? `Questões - ${currentSubject.name}` : 'Banco de Questões'}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {currentSubject 
+                ? `Gerencie questões da disciplina ${currentSubject.name}`
+                : 'Gerencie suas questões e monte provas'
+              }
+            </p>
+          </div>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -563,7 +579,7 @@ export default function QuestionList() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${subjectId ? 'lg:grid-cols-5' : 'lg:grid-cols-6'} gap-4`}>
           {/* Search */}
           <div className="md:col-span-2">
             <SearchInput
@@ -574,20 +590,22 @@ export default function QuestionList() {
             />
           </div>
 
-          {/* Subject Filter */}
-          <div>
-            <Select
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-              options={[
-                { value: 'all', label: 'Todas as disciplinas' },
-                ...subjects.map(subject => ({
-                  value: subject.id.toString(),
-                  label: subject.name,
-                }))
-              ]}
-            />
-          </div>
+          {/* Subject Filter - só mostrar se não há subjectId */}
+          {!subjectId && (
+            <div>
+              <Select
+                value={subjectFilter}
+                onChange={(e) => setSubjectFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: 'Todas as disciplinas' },
+                  ...subjects.map(subject => ({
+                    value: subject.id.toString(),
+                    label: subject.name,
+                  }))
+                ]}
+              />
+            </div>
+          )}
 
           {/* Difficulty Filter */}
           <div>
@@ -627,7 +645,6 @@ export default function QuestionList() {
                 { value: 'title', label: 'Alfabética' },
                 { value: 'difficulty', label: 'Dificuldade' },
                 { value: 'usage', label: 'Mais usadas' },
-                { value: 'points', label: 'Pontuação' },
               ]}
             />
           </div>

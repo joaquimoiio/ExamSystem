@@ -24,16 +24,36 @@ class QRService {
    */
   async generateAnswerKeyQR(exam, variation, examQuestions) {
     try {
+      console.log('🔍 Generating QR for:', {
+        examId: exam?.id,
+        variationId: variation?.id,
+        questionsCount: examQuestions?.length
+      });
+
+      // Ensure all required data is available
+      if (!exam || !exam.id) {
+        throw new Error('Exam data is incomplete');
+      }
+      if (!variation || !variation.id) {
+        throw new Error('Variation data is incomplete');
+      }
+      if (!examQuestions || !Array.isArray(examQuestions)) {
+        throw new Error('Questions data is incomplete');
+      }
+
       // Create answer key data using ExamQuestion data which includes exam-specific points
-      const answerKey = examQuestions.map((examQuestion, index) => ({
-        questionNumber: index + 1,
-        questionId: examQuestion.question.id,
-        correctAnswer: examQuestion.question.type === 'essay' ? null : 
-          (examQuestion.shuffledAlternatives ? examQuestion.shuffledAlternatives.correctAnswer : examQuestion.question.correctAnswer),
-        points: examQuestion.points || 1, // Use exam-specific points
-        type: examQuestion.question.type,
-        difficulty: examQuestion.question.difficulty
-      }));
+      const answerKey = examQuestions.map((examQuestion, index) => {
+        const question = examQuestion.question || examQuestion;
+        return {
+          questionNumber: index + 1,
+          questionId: question.id,
+          correctAnswer: question.type === 'essay' ? null : 
+            (examQuestion.shuffledAlternatives ? examQuestion.shuffledAlternatives.correctAnswer : question.correctAnswer),
+          points: examQuestion.points || question.points || 1, // Use exam-specific points
+          type: question.type,
+          difficulty: question.difficulty
+        };
+      });
 
       const qrData = {
         type: 'answer_key',
@@ -41,9 +61,12 @@ class QRService {
         examTitle: exam.title,
         variationId: variation.id,
         variationNumber: variation.variationNumber,
-        subjectName: exam.subject?.name,
+        subjectName: exam.subject?.name || 'N/A',
         totalQuestions: examQuestions.length,
-        totalPoints: examQuestions.reduce((sum, eq) => sum + (parseFloat(eq.points) || 1), 0),
+        totalPoints: examQuestions.reduce((sum, eq) => {
+          const points = eq.points || eq.question?.points || 1;
+          return sum + parseFloat(points);
+        }, 0),
         answerKey,
         generatedAt: new Date().toISOString(),
         version: '2.0'
@@ -57,6 +80,7 @@ class QRService {
         answerKey
       };
     } catch (error) {
+      console.error('❌ QR Generation Error:', error);
       throw new AppError(`Failed to generate answer key QR code: ${error.message}`, 500);
     }
   }

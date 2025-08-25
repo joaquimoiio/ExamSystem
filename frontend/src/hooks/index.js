@@ -366,6 +366,23 @@ export function useUpdateQuestion() {
   });
 }
 
+export function useUpdateQuestionPoints() {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: ({ id, points }) => apiService.updateQuestionPoints(id, points),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+      queryClient.invalidateQueries({ queryKey: ['questions', id] });
+      success('Pontuação da questão atualizada com sucesso!');
+    },
+    onError: (err) => {
+      error('Erro ao atualizar pontuação: ' + err.message);
+    },
+  });
+}
+
 export function useDeleteQuestion() {
   const queryClient = useQueryClient();
   const { success, error } = useToast();

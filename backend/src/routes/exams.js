@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const examController = require('../controllers/examController');
+const { authenticateToken, requireTeacher } = require('../middleware/auth');
 
 // Validation rules for exam creation/update
 const examValidation = [
@@ -43,33 +44,33 @@ const examValidation = [
 ];
 
 // Routes básicas usando os controllers existentes
-router.get('/', examController.getExams);
-router.get('/stats', examController.getExamsStats);
-router.get('/recent', examController.getRecentExams);
-router.get('/:id', examController.getExamById);
-router.post('/', examValidation, examController.createExam);
-router.put('/:id', examValidation, examController.updateExam);
-router.delete('/:id', examController.deleteExam);
+router.get('/', authenticateToken, examController.getExams);
+router.get('/stats', authenticateToken, examController.getExamsStats);
+router.get('/recent', authenticateToken, examController.getRecentExams);
+router.get('/:id', authenticateToken, examController.getExamById);
+router.post('/', authenticateToken, requireTeacher, examValidation, examController.createExam);
+router.put('/:id', authenticateToken, requireTeacher, examValidation, examController.updateExam);
+router.delete('/:id', authenticateToken, requireTeacher, examController.deleteExam);
 
 // Exam management
-router.post('/:id/publish', examController.publishExam);
-router.post('/:id/unpublish', examController.unpublishExam);
-router.post('/:id/duplicate', examController.duplicateExam);
-router.post('/:id/regenerate-variations', examController.regenerateVariations);
+router.post('/:id/publish', authenticateToken, requireTeacher, examController.publishExam);
+router.post('/:id/unpublish', authenticateToken, requireTeacher, examController.unpublishExam);
+router.post('/:id/duplicate', authenticateToken, requireTeacher, examController.duplicateExam);
+router.post('/:id/regenerate-variations', authenticateToken, requireTeacher, examController.regenerateVariations);
 
 // Variations
-router.get('/:id/variations', examController.getExamVariations);
-router.get('/:id/variations/:variationId', examController.getExamVariation);
+router.get('/:id/variations', authenticateToken, examController.getExamVariations);
+router.get('/:id/variations/:variationId', authenticateToken, examController.getExamVariation);
 
 // Analytics and reports
-router.get('/:id/analytics', examController.getExamAnalytics);
-router.get('/:id/answers', examController.getExamAnswers);
-router.post('/:id/export', examController.exportExamResults);
-router.post('/:id/report', examController.generateExamReport);
-router.post('/:id/bulk-grade', examController.bulkGradeExam);
+router.get('/:id/analytics', authenticateToken, examController.getExamAnalytics);
+router.get('/:id/answers', authenticateToken, examController.getExamAnswers);
+router.post('/:id/export', authenticateToken, requireTeacher, examController.exportExamResults);
+router.post('/:id/report', authenticateToken, requireTeacher, examController.generateExamReport);
+router.post('/:id/bulk-grade', authenticateToken, requireTeacher, examController.bulkGradeExam);
 
 // PDF Generation with QR codes
-router.post('/:id/generate-pdf', examController.generateExamPDF);
-router.post('/:id/generate-all-pdfs', examController.generateAllExamPDFs);
+router.post('/:id/generate-pdf', authenticateToken, requireTeacher, examController.generateExamPDF);
+router.post('/:id/generate-all-pdfs', authenticateToken, requireTeacher, examController.generateAllExamPDFs);
 
 module.exports = router;

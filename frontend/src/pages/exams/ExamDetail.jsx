@@ -197,7 +197,7 @@ export default function ExamDetail() {
               </div>
               <div className="flex items-center">
                 <Copy className="w-4 h-4 mr-1" />
-                {exam.variations || 0} variações
+                {(exam.variations?.length || exam.variationsCount || 0)} variações
               </div>
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
@@ -272,7 +272,7 @@ export default function ExamDetail() {
         />
         <StatCard
           title="Variações Geradas"
-          value={exam.variations || 0}
+          value={exam.variations?.length || exam.variationsCount || 0}
           icon={Copy}
           color="purple"
         />
@@ -518,11 +518,14 @@ function QuestionsTab({ exam }) {
 }
 
 function VariationsTab({ exam }) {
+  const variations = exam.variations || [];
+  const variationsCount = variations.length || exam.variationsCount || 0;
+  
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
-          Variações ({exam.variations || 0})
+          Variações ({variationsCount})
         </h3>
         <button className="text-primary-600 hover:text-primary-700 font-medium text-sm">
           Regenerar variações
@@ -530,26 +533,37 @@ function VariationsTab({ exam }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: exam.variations || 0 }, (_, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">Variação {index + 1}</h4>
-              <QrCode className="w-5 h-5 text-gray-400" />
+        {variations.length > 0 ? (
+          variations.map((variation) => (
+            <div key={variation.id} className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-gray-900">Variação {variation.variationNumber}</h4>
+                <QrCode className="w-5 h-5 text-gray-400" />
+              </div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div>ID: {variation.id}</div>
+                <div>Número: {variation.variationNumber}</div>
+                <div>QR Code disponível</div>
+              </div>
+              <div className="mt-3 flex space-x-2">
+                <button className="text-xs text-primary-600 hover:text-primary-700">
+                  Ver QR
+                </button>
+                <button className="text-xs text-primary-600 hover:text-primary-700">
+                  Download PDF
+                </button>
+              </div>
             </div>
-            <div className="space-y-2 text-sm text-gray-600">
-              <div>Código: VAR-{exam.id}-{String(index + 1).padStart(2, '0')}</div>
-              <div>QR Code gerado</div>
-            </div>
-            <div className="mt-3 flex space-x-2">
-              <button className="text-xs text-primary-600 hover:text-primary-700">
-                Ver QR
-              </button>
-              <button className="text-xs text-primary-600 hover:text-primary-700">
-                Download PDF
-              </button>
-            </div>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-8">
+            <Copy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">Nenhuma variação encontrada</p>
+            <p className="text-sm text-gray-400 mt-2">
+              As variações serão geradas automaticamente ao criar a prova
+            </p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -645,6 +659,21 @@ function SubmissionsTab({ exam }) {
 }
 
 function SettingsTab({ exam }) {
+  const navigate = useNavigate();
+  const { success, error: showError } = useToast();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const deleteExamMutation = useDeleteExam();
+
+  const handleDelete = async () => {
+    try {
+      await deleteExamMutation.mutateAsync(exam.id);
+      success('Prova excluída com sucesso!');
+      navigate('/exams');
+    } catch (error) {
+      showError(error.message || 'Erro ao excluir prova');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -661,7 +690,7 @@ function SettingsTab({ exam }) {
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Número de variações</dt>
-              <dd className="text-sm text-gray-900">{exam.variations}</dd>
+              <dd className="text-sm text-gray-900">{exam.variations?.length || exam.variationsCount || 0}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Embaralhar questões</dt>
@@ -726,6 +755,29 @@ function SettingsTab({ exam }) {
         </div>
       </div>
 
+      {/* Ações Perigosas */}
+      <div>
+        <h3 className="text-lg font-semibold text-red-700 mb-4">Zona de Perigo</h3>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium text-red-800">Excluir Prova</h4>
+              <p className="text-sm text-red-600 mt-1">
+                Esta ação não pode ser desfeita. A prova e todas as respostas serão permanentemente removidas.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              disabled={deleteExamMutation.isPending}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {deleteExamMutation.isPending ? 'Excluindo...' : 'Excluir Prova'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {exam.status === 'published' && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start">
@@ -740,6 +792,18 @@ function SettingsTab({ exam }) {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Excluir Prova"
+        message="Tem certeza que deseja excluir esta prova? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        confirmVariant="danger"
+        isLoading={deleteExamMutation.isPending}
+      />
     </div>
   );
 }

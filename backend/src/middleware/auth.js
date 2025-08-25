@@ -58,7 +58,8 @@ const authenticateToken = async (req, res, next) => {
 
     // Adicionar informações do usuário ao request
     req.user = {
-      userId: user.id,
+      id: user.id, // CORREÇÃO: usar 'id' ao invés de 'userId'
+      userId: user.id, // manter para compatibilidade
       name: user.name,
       email: user.email,
       role: user.role,
@@ -94,7 +95,8 @@ const optionalAuth = async (req, res, next) => {
       
       if (user && user.isActive) {
         req.user = {
-          userId: user.id,
+          id: user.id, // CORREÇÃO: usar 'id' ao invés de 'userId'
+          userId: user.id, // manter para compatibilidade
           name: user.name || decoded.name,
           email: user.email || decoded.email,
           role: user.role || decoded.role,

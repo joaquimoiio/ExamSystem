@@ -216,6 +216,42 @@ try {
     });
   }
 
+  if (db.ExamQuestion && db.Question) {
+    // ExamQuestion belongs to Question
+    db.ExamQuestion.belongsTo(db.Question, {
+      foreignKey: 'questionId',
+      as: 'question'
+    });
+    db.Question.hasMany(db.ExamQuestion, {
+      foreignKey: 'questionId',
+      as: 'examQuestions'
+    });
+  }
+
+  if (db.ExamQuestion && db.ExamVariation) {
+    // ExamQuestion belongs to ExamVariation
+    db.ExamQuestion.belongsTo(db.ExamVariation, {
+      foreignKey: 'variationId',
+      as: 'variation'
+    });
+    db.ExamVariation.hasMany(db.ExamQuestion, {
+      foreignKey: 'variationId',
+      as: 'examQuestions'
+    });
+  }
+
+  if (db.ExamQuestion && db.Exam) {
+    // ExamQuestion belongs to Exam
+    db.ExamQuestion.belongsTo(db.Exam, {
+      foreignKey: 'examId',
+      as: 'exam'
+    });
+    db.Exam.hasMany(db.ExamQuestion, {
+      foreignKey: 'examId',
+      as: 'examQuestions'
+    });
+  }
+
   console.log('✅ Associações dos modelos configuradas');
 } catch (error) {
   console.warn('⚠️ Erro ao configurar associações:', error.message);

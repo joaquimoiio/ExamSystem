@@ -35,11 +35,11 @@ async function testDatabaseConnection() {
     await sequelize.authenticate();
     logger.info('✅ Database connection established successfully');
     
-    // Sync models in development
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      logger.info('✅ Database models synchronized');
-    }
+    // Skip sync in development to avoid cache issues
+    // if (process.env.NODE_ENV === 'development') {
+    //   await sequelize.sync({ alter: true });
+    //   logger.info('✅ Database models synchronized');
+    // }
   } catch (error) {
     logger.error('❌ Unable to connect to database:', error);
     process.exit(1);

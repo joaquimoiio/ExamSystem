@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const { authenticateToken } = require('../middleware/auth');
 
 // Middleware de validação básica
 const validateLogin = (req, res, next) => {
@@ -40,7 +41,7 @@ const validateRegister = (req, res, next) => {
 router.post('/login', validateLogin, authController.login);
 router.post('/register', validateRegister, authController.register);
 
-// Rotas protegidas (temporariamente sem autenticação para testes)
-router.get('/profile', authController.getProfile);
+// Rotas protegidas
+router.get('/profile', authenticateToken, authController.getProfile);
 
 module.exports = router;

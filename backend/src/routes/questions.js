@@ -2,16 +2,17 @@ const express = require('express');
 const { body } = require('express-validator');
 const router = express.Router();
 const questionController = require('../controllers/questionController');
+const { authenticateToken, requireTeacher } = require('../middleware/auth');
 
 // Validation rules for question creation/update
 const questionValidation = [
   body('subjectId')
-    .isInt({ min: 1 })
-    .withMessage('ID da disciplina é obrigatório'),
-  body('statement')
+    .isUUID()
+    .withMessage('ID da disciplina deve ser um UUID válido'),
+  body('text')
     .trim()
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Enunciado deve ter entre 10 e 1000 caracteres'),
+    .isLength({ min: 10, max: 2000 })
+    .withMessage('Enunciado deve ter entre 10 e 2000 caracteres'),
   body('type')
     .optional()
     .isIn(['multiple_choice', 'true_false', 'essay', 'fill_blank'])
@@ -38,12 +39,13 @@ const questionValidation = [
     .withMessage('Tags devem ser um array'),
 ];
 
-// Routes
-router.get('/', questionController.getQuestions);
-router.get('/stats', questionController.getQuestionsStats);
-router.get('/:id', questionController.getQuestionById);
-router.post('/', questionValidation, questionController.createQuestion);
-router.put('/:id', questionValidation, questionController.updateQuestion);
-router.delete('/:id', questionController.deleteQuestion);
+// Routes (todas protegidas com autenticação)
+router.get('/', authenticateToken, questionController.getQuestions);
+router.get('/stats', authenticateToken, questionController.getQuestionsStats);
+router.get('/:id', authenticateToken, questionController.getQuestionById);
+router.post('/', authenticateToken, requireTeacher, questionValidation, questionController.createQuestion);
+router.put('/:id', authenticateToken, requireTeacher, questionValidation, questionController.updateQuestion);
+router.put('/:id/points', authenticateToken, requireTeacher, questionController.updateQuestionPoints);
+router.delete('/:id', authenticateToken, requireTeacher, questionController.deleteQuestion);
 
 module.exports = router;

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { 
   ArrowLeft, Save, Eye, AlertCircle, CheckCircle, 
-  Settings, FileText, Clock, Shuffle, BarChart3
+  Settings, FileText, Clock, Shuffle, BarChart3,
+  X, EyeOff, Award, Hash, BookOpen
 } from 'lucide-react';
 import { useSubjects, useQuestions, useCreateExam } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
@@ -21,6 +22,8 @@ export default function ExamCreate() {
   });
   const [previewMode, setPreviewMode] = useState(false);
   const [showQuestionSelector, setShowQuestionSelector] = useState(false);
+  const [previewQuestion, setPreviewQuestion] = useState(null);
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
 
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
@@ -105,29 +108,81 @@ export default function ExamCreate() {
     }
   };
 
-  const handleQuestionToggle = (question) => {
-    setSelectedQuestions(prev => {
-      const isSelected = prev.find(q => q.id === question.id);
-      if (isSelected) {
-        return prev.filter(q => q.id !== question.id);
-      } else {
-        return [...prev, { ...question, examPoints: question.points || 1.0 }];
-      }
-    });
-  };
+  const handleQuestionToggle = useCallback((question) => {
+    console.log('=== handleQuestionToggle START ===');
+    console.log('Question received:', question);
+    
+    if (!question || !question.id) {
+      console.error('Invalid question data:', question);
+      showError('Erro: dados da questão inválidos');
+      return;
+    }
+
+    try {
+      setSelectedQuestions(prev => {
+        console.log('Previous selected questions:', prev);
+        const isSelected = prev.find(q => q && q.id === question.id);
+        console.log('Is question selected?', !!isSelected);
+        
+        let newSelection;
+        if (isSelected) {
+          console.log('Removing question:', question.id);
+          newSelection = prev.filter(q => q && q.id !== question.id);
+        } else {
+          console.log('Adding question:', question.id);
+          const questionWithPoints = { 
+            ...question, 
+            examPoints: parseFloat(question.points) || 1.0,
+            // Garantir que temos todos os campos necessários
+            text: question.text || question.title || '',
+            difficulty: question.difficulty || 'medium',
+            type: question.type || 'multiple_choice'
+          };
+          newSelection = [...prev, questionWithPoints];
+        }
+        
+        console.log('New selection:', newSelection);
+        console.log('New selection count:', newSelection.length);
+        console.log('=== handleQuestionToggle END ===');
+        return newSelection;
+      });
+    } catch (error) {
+      console.error('Error in handleQuestionToggle:', error);
+      showError('Erro ao selecionar questão');
+    }
+  }, [showError]);
 
   const handleQuestionPointsChange = (questionId, points) => {
-    setSelectedQuestions(prev => 
-      prev.map(q => 
-        q.id === questionId 
-          ? { ...q, examPoints: parseFloat(points) || 1.0 }
-          : q
-      )
-    );
+    try {
+      if (!questionId) {
+        console.error('Invalid questionId:', questionId);
+        return;
+      }
+
+      const numericPoints = parseFloat(points);
+      if (isNaN(numericPoints) || numericPoints < 0.1 || numericPoints > 10) {
+        console.warn('Invalid points value:', points);
+        return;
+      }
+
+      setSelectedQuestions(prev => 
+        prev.map(q => 
+          q.id === questionId 
+            ? { ...q, examPoints: numericPoints }
+            : q
+        )
+      );
+    } catch (error) {
+      console.error('Error in handleQuestionPointsChange:', error);
+      showError('Erro ao atualizar pontos da questão');
+    }
   };
 
   const totalQuestions = selectedQuestions.length;
-  const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.examPoints || 1.0), 0);
+  const totalPoints = selectedQuestions.reduce((sum, q) => {
+    const points = parseFloat(q.examPoints) || 1.0;
+    return sum + points;
+  }, 0);
   const canCreateExam = selectedSubject && totalQuestions > 0;
 
   if (createExamMutation.isPending) {
@@ -254,7 +309,7 @@ export default function ExamCreate() {
                   <h2 className="text-lg font-semibold text-gray-900">Seleção de Questões</h2>
                 </div>
                 <div className="text-sm text-gray-600">
-                  {totalQuestions} questões • {totalPoints.toFixed(1)} pontos
+                  {totalQuestions} questões • {(totalPoints || 0).toFixed(1)} pontos
                 </div>
               </div>
 
@@ -269,50 +324,84 @@ export default function ExamCreate() {
               </div>
 
               {/* Selected Questions Summary */}
-              {selectedQuestions.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Questões Selecionadas:</h3>
-                  <div className="space-y-3">
-                    {selectedQuestions.map((question, index) => (
-                      <div key={question.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-sm font-medium">Questão {index + 1}</span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                              question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                              question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {question.difficulty === 'easy' ? 'Fácil' :
-                               question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 truncate">{question.text}</p>
-                        </div>
-                        <div className="flex items-center space-x-2 ml-4">
-                          <label className="text-sm text-gray-600">Pontos:</label>
-                          <input
-                            type="number"
-                            min="0.1"
-                            max="10"
-                            step="0.1"
-                            value={question.examPoints}
-                            onChange={(e) => handleQuestionPointsChange(question.id, e.target.value)}
-                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleQuestionToggle(question)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    Questões Selecionadas ({selectedQuestions.length})
+                  </h3>
+                  {selectedQuestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedQuestions([])}
+                      className="text-xs text-red-600 hover:text-red-800"
+                    >
+                      Limpar todas
+                    </button>
+                  )}
                 </div>
-              )}
+                
+                {selectedQuestions.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedQuestions.map((question, index) => {
+                      // Validação extra para garantir que temos os dados da questão
+                      if (!question || !question.id) {
+                        console.warn('Questão inválida encontrada:', question);
+                        return null;
+                      }
+                      
+                      return (
+                        <div key={`selected-${question.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-sm font-medium text-gray-900">Questão {index + 1}</span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                                question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                question.difficulty === 'hard' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {question.difficulty === 'easy' ? 'Fácil' :
+                                 question.difficulty === 'medium' ? 'Médio' : 
+                                 question.difficulty === 'hard' ? 'Difícil' : 'N/A'}
+                              </span>
+                              <span className="text-xs text-gray-500">ID: {question.id}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 truncate" title={question.text}>
+                              {question.text || question.title || 'Texto da questão não disponível'}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+                            <label className="text-xs text-gray-600 whitespace-nowrap">Pontos:</label>
+                            <input
+                              type="number"
+                              min="0.1"
+                              max="10"
+                              step="0.1"
+                              value={question.examPoints || 1.0}
+                              onChange={(e) => handleQuestionPointsChange(question.id, e.target.value)}
+                              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleQuestionToggle(question)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Remover questão"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm">Nenhuma questão selecionada</p>
+                    <p className="text-xs text-gray-400">Clique no botão "Selecionar Questões" acima para começar</p>
+                  </div>
+                )}
+              </div>
 
               {/* Question Selector */}
               {showQuestionSelector && (
@@ -320,6 +409,8 @@ export default function ExamCreate() {
                   questions={questions}
                   selectedQuestions={selectedQuestions}
                   onQuestionToggle={handleQuestionToggle}
+                  onQuestionPreview={setPreviewQuestion}
+                  onQuestionPointsChange={handleQuestionPointsChange}
                 />
               )}
 
@@ -462,14 +553,86 @@ export default function ExamCreate() {
           </div>
         </form>
       )}
+
+      {/* Question Preview Modal */}
+      {previewQuestion && (
+        <QuestionPreviewModal
+          question={previewQuestion}
+          onClose={() => {
+            setPreviewQuestion(null);
+            setShowCorrectAnswers(false);
+          }}
+          showCorrectAnswers={showCorrectAnswers}
+          onToggleAnswers={() => setShowCorrectAnswers(!showCorrectAnswers)}
+        />
+      )}
     </div>
   );
 }
 
+// Simple Checkbox Component
+function SimpleCheckbox({ checked, questionId, question, onToggle }) {
+  const [isChecked, setIsChecked] = useState(checked);
+  
+  useEffect(() => {
+    setIsChecked(checked);
+  }, [checked]);
+
+  const handleClick = () => {
+    console.log('SimpleCheckbox clicked for question:', questionId);
+    console.log('Current checked state:', isChecked);
+    
+    try {
+      onToggle(question);
+    } catch (error) {
+      console.error('Error in SimpleCheckbox onToggle:', error);
+    }
+  };
+
+  return (
+    <input
+      type="checkbox"
+      checked={isChecked}
+      onChange={handleClick}
+      className="w-6 h-6 text-primary-600 border-2 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
+    />
+  );
+}
+
 // Component for Question Selector
-function QuestionSelector({ questions, selectedQuestions, onQuestionToggle }) {
+function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQuestionPreview, onQuestionPointsChange }) {
+  console.log('QuestionSelector rendered with:', {
+    questionsCount: questions?.length || 0,
+    selectedQuestionsCount: selectedQuestions?.length || 0,
+    onQuestionToggle: typeof onQuestionToggle
+  });
+
+  // Add error handling and validation
+  if (!questions || !Array.isArray(questions)) {
+    console.error('QuestionSelector: Invalid questions data:', questions);
+    return (
+      <div className="p-4 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+        Erro ao carregar questões. Dados inválidos.
+      </div>
+    );
+  }
+
+  if (!selectedQuestions || !Array.isArray(selectedQuestions)) {
+    console.error('QuestionSelector: Invalid selectedQuestions data:', selectedQuestions);
+    return (
+      <div className="p-4 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+        Erro ao carregar questões selecionadas. Dados inválidos.
+      </div>
+    );
+  }
+
   const isQuestionSelected = (questionId) => {
-    return selectedQuestions.find(q => q.id === questionId);
+    return selectedQuestions.find(q => q && q.id === questionId);
+  };
+
+  const getQuestionPoints = (questionId) => {
+    const selectedQuestion = selectedQuestions.find(q => q && q.id === questionId);
+    return selectedQuestion ? selectedQuestion.examPoints : (questions.find(q => q && q.id === questionId)?.points || 1.0);
   };
 
   return (
@@ -477,49 +640,116 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle }) {
       <h3 className="text-sm font-medium text-gray-900 mb-3">
         Selecione as questões ({questions.length} disponíveis):
       </h3>
-      <div className="space-y-3">
-        {questions.map((question, index) => (
-          <div
-            key={question.id}
-            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-              isQuestionSelected(question.id)
-                ? 'border-primary-300 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-            onClick={() => onQuestionToggle(question)}
-          >
-            <div className="flex items-start space-x-3">
-              <input
-                type="checkbox"
-                checked={isQuestionSelected(question.id)}
-                onChange={() => onQuestionToggle(question)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-sm font-medium">Questão {index + 1}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                    question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {question.difficulty === 'easy' ? 'Fácil' :
-                     question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {question.points || 1} ponto(s) padrão
-                  </span>
+      <div className="space-y-4">
+        {questions.filter(q => q && q.id).map((question, index) => {
+          const isSelected = isQuestionSelected(question.id);
+          const currentPoints = getQuestionPoints(question.id);
+          
+          return (
+            <div
+              key={question.id}
+              className={`p-4 border rounded-lg transition-colors ${
+                isSelected
+                  ? 'border-primary-300 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-start space-x-4">
+                {/* Checkbox maior */}
+                <div className="flex-shrink-0 pt-1">
+                  <SimpleCheckbox 
+                    checked={!!isSelected} 
+                    questionId={question.id}
+                    question={question}
+                    onToggle={onQuestionToggle}
+                  />
                 </div>
-                <p className="text-sm text-gray-700 line-clamp-2">{question.text}</p>
-                {question.alternatives && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {question.alternatives.length} alternativas
+                
+                {/* Conteúdo da questão */}
+                <div 
+                  className="flex-1 cursor-pointer"
+                  onClick={() => onQuestionPreview(question)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium">Questão {index + 1}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                        question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {question.difficulty === 'easy' ? 'Fácil' :
+                         question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {question.points || 1} pts padrão
+                      </span>
+                    </div>
+                    
+                  </div>
+                  
+                  <p className="text-sm text-gray-700 line-clamp-2 mb-3">
+                    {question.text || question.title}
+                  </p>
+                  
+                  <div className="flex items-center text-xs text-gray-500">
+                    <div>
+                      {question.alternatives && (
+                        <span>{question.alternatives.length} alternativas</span>
+                      )}
+                      {question.type === 'essay' && <span>Questão dissertativa</span>}
+                      {question.type === 'true_false' && <span>Verdadeiro/Falso</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campo de pontuação */}
+                {isSelected && (
+                  <div className="flex-shrink-0">
+                    <div className="flex flex-col items-center space-y-2">
+                      <label className="text-xs font-medium text-gray-600">
+                        Pontos na Prova
+                      </label>
+                      <input
+                        type="number"
+                        min="0.1"
+                        max="10"
+                        step="0.1"
+                        value={currentPoints || 1.0}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          try {
+                            const value = parseFloat(e.target.value);
+                            if (!isNaN(value) && value >= 0.1 && value <= 10) {
+                              onQuestionPointsChange(question.id, value);
+                            }
+                          } catch (error) {
+                            console.error('Error updating points:', error);
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-20 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                      <span className="text-xs text-gray-500">pontos</span>
+                    </div>
                   </div>
                 )}
               </div>
+
+              {/* Linha adicional para mostrar pontos quando não selecionada */}
+              {!isSelected && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>Marque a caixa acima para selecionar esta questão</span>
+                    <span className="bg-gray-100 px-2 py-1 rounded">
+                      {question.points || 1} pts (padrão)
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -671,6 +901,235 @@ function ExamPreview({ formData, selectedQuestions, onBack }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Question Preview Modal Component
+function QuestionPreviewModal({ question, onClose, showCorrectAnswers, onToggleAnswers }) {
+  const difficultyConfig = {
+    easy: { label: 'Fácil', color: 'bg-green-100 text-green-800', icon: '📗' },
+    medium: { label: 'Médio', color: 'bg-yellow-100 text-yellow-800', icon: '📙' },
+    hard: { label: 'Difícil', color: 'bg-red-100 text-red-800', icon: '📕' },
+  };
+
+  const typeConfig = {
+    multiple_choice: { label: 'Múltipla Escolha', icon: CheckCircle },
+    true_false: { label: 'Verdadeiro/Falso', icon: AlertCircle },
+    essay: { label: 'Dissertativa', icon: FileText },
+  };
+
+  const difficultyInfo = difficultyConfig[question.difficulty] || difficultyConfig.medium;
+  const typeInfo = typeConfig[question.type] || typeConfig.multiple_choice;
+  const TypeIcon = typeInfo.icon;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <h2 className="text-2xl font-bold text-gray-900">Preview da Questão</h2>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${difficultyInfo.color}`}>
+                {difficultyInfo.icon} {difficultyInfo.label}
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={onToggleAnswers}
+                className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
+                  showCorrectAnswers 
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {showCorrectAnswers ? (
+                  <>
+                    <EyeOff className="w-4 h-4 mr-2" />
+                    Ocultar Respostas
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Mostrar Respostas
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Question Info */}
+          <div className="flex items-center space-x-4 mt-4 text-sm text-gray-600">
+            <div className="flex items-center">
+              <TypeIcon className="w-4 h-4 mr-1" />
+              {typeInfo.label}
+            </div>
+            <div className="flex items-center">
+              <Award className="w-4 h-4 mr-1" />
+              {question.points || 1} ponto{(question.points || 1) !== 1 ? 's' : ''}
+            </div>
+            <div className="flex items-center">
+              <Hash className="w-4 h-4 mr-1" />
+              ID: {question.id.slice(-8)}
+            </div>
+          </div>
+        </div>
+
+        {/* Question Content */}
+        <div className="p-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              {question.title || 'Questão'}
+            </h3>
+            
+            <div className="prose max-w-none">
+              <p className="text-gray-900 leading-relaxed text-base">
+                {question.text || question.title || 'Enunciado da questão não disponível'}
+              </p>
+            </div>
+
+            {/* Question Image */}
+            {question.image && (
+              <div className="mt-4">
+                <img 
+                  src={question.image} 
+                  alt="Imagem da questão" 
+                  className="max-w-full h-auto rounded-lg shadow-sm border"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Alternatives */}
+          {question.type === 'multiple_choice' && question.alternatives && (
+            <div className="space-y-3">
+              <h4 className="text-md font-semibold text-gray-800 mb-4">Alternativas:</h4>
+              {question.alternatives.map((alternative, index) => (
+                <div
+                  key={index}
+                  className={`flex items-start space-x-3 p-4 rounded-lg border transition-colors ${
+                    showCorrectAnswers && index === question.correctAnswer
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    showCorrectAnswers && index === question.correctAnswer
+                      ? 'bg-green-200 text-green-800'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}>
+                    {String.fromCharCode(65 + index)}
+                  </div>
+                  <div className="flex-1 text-gray-900">
+                    {alternative}
+                  </div>
+                  {showCorrectAnswers && index === question.correctAnswer && (
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* True/False */}
+          {question.type === 'true_false' && (
+            <div className="space-y-3">
+              <h4 className="text-md font-semibold text-gray-800 mb-4">Alternativas:</h4>
+              {['Verdadeiro', 'Falso'].map((option, index) => (
+                <div
+                  key={index}
+                  className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${
+                    showCorrectAnswers && index === question.correctAnswer
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    showCorrectAnswers && index === question.correctAnswer
+                      ? 'bg-green-200 text-green-800'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}>
+                    {index === 0 ? 'V' : 'F'}
+                  </div>
+                  <div className="flex-1 text-gray-900">{option}</div>
+                  {showCorrectAnswers && index === question.correctAnswer && (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Essay */}
+          {question.type === 'essay' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <div className="flex items-center mb-3">
+                <FileText className="w-5 h-5 text-yellow-600 mr-2" />
+                <span className="text-yellow-800 font-medium">Questão Dissertativa</span>
+              </div>
+              <p className="text-yellow-700 text-sm">
+                Esta questão requer resposta escrita do aluno e será corrigida manualmente.
+              </p>
+            </div>
+          )}
+
+          {/* Explanation */}
+          {question.explanation && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Explicação
+              </h4>
+              <p className="text-blue-800 text-sm">{question.explanation}</p>
+            </div>
+          )}
+
+          {/* Tags */}
+          {question.tags && question.tags.length > 0 && (
+            <div className="mt-6">
+              <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
+                <Hash className="w-4 h-4 mr-2" />
+                Tags
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {question.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Esta questão será incluída na prova com a pontuação definida pelo professor.
+            </div>
+            
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Fechar Preview
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
