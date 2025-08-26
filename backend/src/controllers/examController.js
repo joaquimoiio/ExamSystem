@@ -5,6 +5,7 @@ const { paginate, buildPaginationMeta, generateAccessCode, shuffleArray } = requ
 const { Op } = require('sequelize');
 const pdfService = require('../services/pdfService');
 const path = require('path');
+const fs = require('fs');
 
 // Get public exams
 const getPublicExams = catchAsync(async (req, res, next) => {
@@ -258,12 +259,10 @@ const getExamsStats = catchAsync(async (req, res, next) => {
   res.json({
     success: true,
     data: {
-      stats: {
-        totalExams,
-        publishedExams,
-        draftExams: totalExams - publishedExams,
-        totalSubmissions
-      },
+      total: totalExams,
+      published: publishedExams,
+      drafts: totalExams - publishedExams,
+      submissions: totalSubmissions,
       recentExams
     }
   });
@@ -277,9 +276,9 @@ const createExam = catchAsync(async (req, res, next) => {
     title,
     description,
     subjectId,
+    examHeaderId,
     questions = [], // Array of {id, points}
     variations = 1,
-    duration = 60,
     instructions,
     shuffleQuestions = true,
     shuffleAlternatives = true,
@@ -292,7 +291,7 @@ const createExam = catchAsync(async (req, res, next) => {
   } = req.body;
   
   console.log('📝 Parsed data:', {
-    title, description, subjectId, questions, variations, duration
+    title, description, subjectId, questions, variations
   });
 
   // Validate subject exists and belongs to user
@@ -348,13 +347,13 @@ const createExam = catchAsync(async (req, res, next) => {
     title: title.trim(),
     description: description?.trim(),
     subjectId,
+    examHeaderId: examHeaderId || null,
     userId: req.user.id,
     totalQuestions: questions.length,
     easyQuestions: difficultyCount.easy,
     mediumQuestions: difficultyCount.medium,
     hardQuestions: difficultyCount.hard,
     totalVariations: variations,
-    timeLimit: duration,
     totalPoints, // Store total points
     passingScore,
     instructions: instructions?.trim(),
@@ -397,6 +396,14 @@ const getExamById = catchAsync(async (req, res, next) => {
         model: ExamVariation,
         as: 'variations',
         attributes: ['id', 'variationNumber']
+      },
+      {
+        model: Question,
+        as: 'questions',
+        attributes: ['id', 'title', 'text', 'type', 'difficulty', 'points', 'alternatives', 'correctAnswer'],
+        through: {
+          attributes: ['points', 'questionOrder'] // Incluir pontos da tabela ExamQuestion
+        }
       }
     ],
     attributes: {
@@ -408,6 +415,14 @@ const getExamById = catchAsync(async (req, res, next) => {
             WHERE answers."examId" = "Exam".id
           )`),
           'submissionsCount'
+        ],
+        [
+          Exam.sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM exam_questions
+            WHERE exam_questions."examId" = "Exam".id
+          )`),
+          'questionsCount'
         ]
       ]
     }
@@ -708,6 +723,443 @@ const getExamAnalytics = catchAsync(async (req, res, next) => {
   });
 });
 
+// Generate answer sheet (gabarito)
+const generateAnswerSheet = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const exam = await Exam.findByPk(id, {
+    include: [
+      {
+        model: Subject,
+        as: 'subject',
+        attributes: ['id', 'name']
+      },
+      {
+        model: Question,
+        as: 'questions',
+        attributes: ['id', 'title', 'text', 'type', 'difficulty', 'alternatives'],
+        through: {
+          attributes: ['points', 'questionOrder']
+        }
+      },
+      {
+        model: ExamHeader,
+        as: 'examHeader',
+        attributes: ['schoolName', 'subjectName', 'year', 'instructions']
+      }
+    ]
+  });
+
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Unauthorized', 403));
+  }
+
+  // Generate gabarito data
+  const gabaritoData = {
+    exam: {
+      id: exam.id,
+      title: exam.title,
+      description: exam.description,
+      totalQuestions: exam.totalQuestions,
+      subject: exam.subject?.name || 'N/A'
+    },
+    examHeader: exam.examHeader || null,
+    questions: exam.questions.map((question, index) => ({
+      number: index + 1,
+      id: question.id,
+      text: question.text || question.title,
+      type: question.type,
+      difficulty: question.difficulty,
+      points: question.ExamQuestion?.points || 1,
+      alternatives: question.alternatives || [],
+      hasAlternatives: question.alternatives && question.alternatives.length > 0
+    })),
+    metadata: {
+      generatedAt: new Date().toISOString(),
+      generatedBy: req.user.email
+    }
+  };
+
+  res.json({
+    success: true,
+    data: { gabarito: gabaritoData }
+  });
+});
+
+// Validate and correct answers using QR code data
+const validateQRAnswers = catchAsync(async (req, res, next) => {
+  const { qrData, studentAnswers, studentInfo } = req.body;
+
+  console.log('🔍 QR Correction - Received data:', {
+    qrDataType: typeof qrData,
+    answersCount: studentAnswers?.length,
+    hasStudentInfo: !!studentInfo
+  });
+
+  if (!qrData || !studentAnswers || !Array.isArray(studentAnswers)) {
+    return next(new AppError('Dados do QR code ou respostas inválidos', 400));
+  }
+
+  // Validate and parse QR code data
+  const qrService = require('../services/qrService');
+  const validation = qrService.validateAnswerKeyQR(qrData);
+  
+  if (!validation.valid) {
+    return next(new AppError(`QR Code inválido: ${validation.message}`, 400));
+  }
+
+  const answerKeyData = validation.data;
+  console.log('✅ QR Code validated:', {
+    examId: answerKeyData.examId,
+    variationId: answerKeyData.variationId,
+    questionsCount: answerKeyData.answerKey?.length
+  });
+
+  // Verify exam exists
+  const exam = await Exam.findByPk(answerKeyData.examId);
+  if (!exam) {
+    return next(new AppError('Prova não encontrada', 404));
+  }
+
+  // Check ownership
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Não autorizado para corrigir esta prova', 403));
+  }
+
+  // Perform correction using QR service
+  try {
+    const correctionResult = qrService.correctExam(answerKeyData, studentAnswers);
+    
+    console.log('✅ Correction completed:', {
+      score: correctionResult.score,
+      totalQuestions: correctionResult.totalQuestions,
+      correctAnswers: correctionResult.results.filter(r => r.isCorrect).length
+    });
+
+    // Save correction result if student info provided
+    if (studentInfo && (studentInfo.name || studentInfo.email || studentInfo.studentId)) {
+      try {
+        const correctionRecord = await Answer.create({
+          examId: answerKeyData.examId,
+          variationId: answerKeyData.variationId,
+          studentName: studentInfo.name,
+          studentEmail: studentInfo.email,
+          studentId: studentInfo.studentId,
+          answers: JSON.stringify(studentAnswers),
+          score: correctionResult.score,
+          earnedPoints: correctionResult.earnedPoints,
+          totalPoints: correctionResult.totalPoints,
+          isPassed: correctionResult.score >= (exam.passingScore || 6.0),
+          submittedAt: new Date(),
+          correctedAt: new Date(),
+          metadata: {
+            correctionMethod: 'qr_code',
+            variationNumber: answerKeyData.variationNumber,
+            qrCodeVersion: answerKeyData.version,
+            correctedBy: req.user.id,
+            correctionData: correctionResult
+          }
+        });
+        
+        console.log('✅ Correction result saved:', correctionRecord.id);
+        correctionResult.savedRecord = {
+          id: correctionRecord.id,
+          studentName: correctionRecord.studentName
+        };
+      } catch (saveError) {
+        console.warn('⚠️ Could not save correction record:', saveError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Correção realizada com sucesso via QR Code',
+      data: {
+        examTitle: exam.title,
+        variationNumber: answerKeyData.variationNumber,
+        studentInfo: studentInfo,
+        ...correctionResult
+      }
+    });
+
+  } catch (correctionError) {
+    console.error('❌ Correction error:', correctionError);
+    return next(new AppError(`Erro na correção: ${correctionError.message}`, 500));
+  }
+});
+
+// Generate PDF with all exam variations
+const generateAllVariationsPDF = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    console.log(`📊 Buscando exame: ${id}`);
+    
+    const exam = await Exam.findByPk(id, {
+      include: [
+        {
+          model: Subject,
+          as: 'subject',
+          attributes: ['id', 'name']
+        },
+        {
+          model: ExamVariation,
+          as: 'variations',
+          include: [{
+            model: ExamQuestion,
+            as: 'examQuestions',
+            required: false,
+            include: [{
+              model: Question,
+              as: 'question',
+              attributes: ['id', 'title', 'text', 'type', 'difficulty', 'alternatives', 'correctAnswer', 'points']
+            }],
+            order: [['questionOrder', 'ASC']]
+          }],
+          order: [['variationNumber', 'ASC']]
+        },
+        {
+          model: ExamHeader,
+          as: 'examHeader',
+          attributes: ['schoolName', 'subjectName', 'year', 'instructions', 'evaluationCriteria']
+        }
+      ]
+    });
+
+    if (!exam) {
+      console.log('❌ Exame não encontrado');
+      return next(new AppError('Exam not found', 404));
+    }
+
+    if (exam.userId !== req.user.id) {
+      console.log('❌ Usuário não autorizado');
+      return next(new AppError('Unauthorized', 403));
+    }
+
+    console.log(`📊 Exame encontrado: ${exam.title}`);
+    console.log(`📋 Variações encontradas: ${exam.variations?.length || 0}`);
+    
+    if (!exam.variations || exam.variations.length === 0) {
+      console.log('❌ Nenhuma variação encontrada');
+      return next(new AppError('Nenhuma variação encontrada para esta prova', 400));
+    }
+
+    // Verificar se pelo menos uma variação tem questões
+    const variationsWithQuestions = exam.variations.filter(v => v.examQuestions && v.examQuestions.length > 0);
+    console.log(`📋 Variações com questões: ${variationsWithQuestions.length}`);
+    
+    if (variationsWithQuestions.length === 0) {
+      console.log('❌ Nenhuma variação com questões encontrada');
+      return next(new AppError('Nenhuma variação com questões encontrada para esta prova', 400));
+    }
+
+    // Log detailed information about variations
+    exam.variations.forEach((variation, index) => {
+      console.log(`📝 Variação ${variation.variationNumber}: ${variation.examQuestions?.length || 0} questões`);
+      if (variation.examQuestions && variation.examQuestions.length > 0) {
+        variation.examQuestions.forEach((eq, qIndex) => {
+          console.log(`  - Questão ${qIndex + 1}: ${eq.question?.id || 'ID não encontrado'} - ${eq.question?.title?.substring(0, 50) || 'Título não encontrado'}...`);
+        });
+      }
+    });
+
+    const timestamp = Date.now();
+    const filename = `exam_all_variations_${exam.id}_${timestamp}.pdf`;
+    const outputPath = path.join(process.cwd(), 'temp', filename);
+
+    console.log(`📄 Gerando PDF: ${filename}`);
+    console.log(`📍 Caminho: ${outputPath}`);
+
+    // Ensure temp directory exists
+    const tempDir = path.dirname(outputPath);
+    if (!fs.existsSync(tempDir)) {
+      console.log(`📁 Criando diretório: ${tempDir}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Generate PDF with all variations
+    console.log('🔄 Iniciando geração do PDF...');
+    await pdfService.generateAllVariationsPDF(
+      exam,
+      variationsWithQuestions, // Use only variations that have questions
+      exam.examHeader,
+      outputPath
+    );
+    console.log('✅ PDF gerado com sucesso');
+
+    // Send file
+    res.download(outputPath, filename, (err) => {
+      if (err) {
+        console.error('❌ Error sending PDF:', err);
+        return next(new AppError('Erro ao enviar PDF', 500));
+      }
+      
+      // Clean up file after sending
+      setTimeout(() => {
+        pdfService.cleanupTempFiles([outputPath]);
+      }, 5000);
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao gerar PDF com todas as variações:', error);
+    console.error('Stack trace:', error.stack);
+    return next(new AppError(`Erro ao gerar PDF: ${error.message}`, 500));
+  }
+});
+
+// Generate PDF for a single exam variation
+const generateSingleVariationPDF = catchAsync(async (req, res, next) => {
+  const { id, variationId } = req.params;
+
+  try {
+    console.log(`📊 Buscando exame: ${id}, variação: ${variationId}`);
+    
+    const exam = await Exam.findByPk(id, {
+      include: [
+        {
+          model: Subject,
+          as: 'subject',
+          attributes: ['id', 'name']
+        },
+        {
+          model: ExamHeader,
+          as: 'examHeader',
+          attributes: ['schoolName', 'subjectName', 'year', 'instructions', 'evaluationCriteria']
+        }
+      ]
+    });
+
+    if (!exam) {
+      console.log('❌ Exame não encontrado');
+      return next(new AppError('Exam not found', 404));
+    }
+
+    if (exam.userId !== req.user.id) {
+      console.log('❌ Usuário não autorizado');
+      return next(new AppError('Unauthorized', 403));
+    }
+
+    // Get the specific variation with questions
+    const variation = await ExamVariation.findOne({
+      where: { id: variationId, examId: id },
+      include: [{
+        model: ExamQuestion,
+        as: 'examQuestions',
+        include: [{
+          model: Question,
+          as: 'question',
+          attributes: ['id', 'title', 'text', 'type', 'difficulty', 'alternatives', 'correctAnswer', 'points']
+        }],
+        order: [['questionOrder', 'ASC']]
+      }]
+    });
+
+    if (!variation) {
+      console.log('❌ Variação não encontrada');
+      return next(new AppError('Variation not found', 404));
+    }
+
+    if (!variation.examQuestions || variation.examQuestions.length === 0) {
+      console.log('❌ Nenhuma questão encontrada na variação');
+      console.log('🔄 Tentando regenerar variações do exame...');
+      
+      try {
+        // Try to regenerate exam variations if they are empty
+        if (exam.metadata && exam.metadata.selectedQuestions) {
+          // Get the questions for this exam
+          const questions = await Question.findAll({
+            where: {
+              id: exam.metadata.selectedQuestions.map(q => q.id)
+            }
+          });
+          
+          if (questions.length > 0) {
+            console.log(`🔄 Regenerando variações com ${questions.length} questões...`);
+            await generateExamVariationsWithSelectedQuestions(exam, questions);
+            
+            // Retry getting the variation
+            const retryVariation = await ExamVariation.findOne({
+              where: { id: variationId, examId: id },
+              include: [{
+                model: ExamQuestion,
+                as: 'examQuestions',
+                include: [{
+                  model: Question,
+                  as: 'question',
+                  attributes: ['id', 'title', 'text', 'type', 'difficulty', 'alternatives', 'correctAnswer', 'points']
+                }],
+                order: [['questionOrder', 'ASC']]
+              }]
+            });
+            
+            if (retryVariation && retryVariation.examQuestions && retryVariation.examQuestions.length > 0) {
+              console.log(`✅ Variação regenerada com ${retryVariation.examQuestions.length} questões`);
+              // Update the variation reference
+              Object.assign(variation, retryVariation.toJSON());
+            }
+          }
+        }
+        
+        // Check again after regeneration attempt
+        if (!variation.examQuestions || variation.examQuestions.length === 0) {
+          return next(new AppError('Esta variação não possui questões. Por favor, regenere as variações da prova.', 400));
+        }
+      } catch (regenerationError) {
+        console.error('❌ Erro ao regenerar variações:', regenerationError);
+        return next(new AppError('Esta variação não possui questões. Por favor, regenere as variações da prova.', 400));
+      }
+    }
+
+    console.log(`📝 Variação ${variation.variationNumber}: ${variation.examQuestions.length} questões`);
+
+    const timestamp = Date.now();
+    const filename = `exam_variation_${variation.variationNumber}_${exam.id}_${timestamp}.pdf`;
+    const outputPath = path.join(process.cwd(), 'temp', filename);
+
+    console.log(`📄 Gerando PDF: ${filename}`);
+    console.log(`📍 Caminho: ${outputPath}`);
+
+    // Ensure temp directory exists
+    const tempDir = path.dirname(outputPath);
+    if (!fs.existsSync(tempDir)) {
+      console.log(`📁 Criando diretório: ${tempDir}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Generate PDF for single variation
+    console.log('🔄 Iniciando geração do PDF...');
+    await pdfService.generateAllVariationsPDF(
+      exam,
+      [variation], // Array with single variation
+      exam.examHeader,
+      outputPath
+    );
+    console.log('✅ PDF gerado com sucesso');
+
+    // Send file
+    res.download(outputPath, filename, (err) => {
+      if (err) {
+        console.error('❌ Error sending PDF:', err);
+        return next(new AppError('Erro ao enviar PDF', 500));
+      }
+      
+      // Clean up file after sending
+      setTimeout(() => {
+        pdfService.cleanupTempFiles([outputPath]);
+      }, 5000);
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao gerar PDF da variação:', error);
+    console.error('Stack trace:', error.stack);
+    return next(new AppError(`Erro ao gerar PDF: ${error.message}`, 500));
+  }
+});
+
 
 // Helper function to generate exam variations with selected questions
 const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestions) => {
@@ -722,6 +1174,7 @@ const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestio
     let questionsForVariation = [...selectedQuestions];
     if (exam.randomizeQuestions) {
       questionsForVariation = shuffleArray(questionsForVariation);
+      console.log(`🔀 Questions shuffled for variation ${i + 1}`);
     }
 
     // Create variation
@@ -732,18 +1185,30 @@ const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestio
 
     console.log('✅ Created variation:', variation.id, 'Number:', variation.variationNumber);
 
-    // Add questions to variation with order
-    for (let j = 0; j < questionsForVariation.length; j++) {
+    // Add questions to variation with order and shuffled alternatives
+    // Respect the totalQuestions limit configured for the exam
+    const questionsToAdd = Math.min(questionsForVariation.length, exam.totalQuestions);
+    console.log(`📊 Adding ${questionsToAdd} questions (limit: ${exam.totalQuestions}) to variation ${i + 1}`);
+    
+    for (let j = 0; j < questionsToAdd; j++) {
       const question = questionsForVariation[j];
       const selectedQuestion = exam.metadata.selectedQuestions.find(q => q.id === question.id);
       const points = selectedQuestion ? parseFloat(selectedQuestion.points) || 1.0 : 1.0;
+      
+      // Prepare shuffled alternatives for this question in this variation
+      let shuffledAlternatives = null;
+      if (exam.randomizeAlternatives && question.alternatives && question.alternatives.length > 0) {
+        shuffledAlternatives = shuffleAlternativesAndUpdateAnswer(question.alternatives, question.correctAnswer);
+        console.log(`🔀 Alternatives shuffled for question ${question.id} in variation ${variation.variationNumber}`);
+      }
       
       await ExamQuestion.create({
         examId: exam.id,
         variationId: variation.id,
         questionId: question.id,
         questionOrder: j,
-        points: points
+        points: points,
+        shuffledAlternatives: shuffledAlternatives // Store shuffled alternatives for this variation
       });
       
       console.log(`✅ Added question ${question.id} to variation ${variation.variationNumber} at position ${j} with ${points} points`);
@@ -751,6 +1216,36 @@ const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestio
   }
   
   console.log('✅ All variations created successfully');
+};
+
+/**
+ * Helper function to shuffle alternatives and update correct answer index
+ * @param {Array} alternatives - Original alternatives array
+ * @param {number} correctAnswerIndex - Index of correct answer (0-based)
+ * @returns {Object} - Object with shuffled alternatives and new correct answer index
+ */
+const shuffleAlternativesAndUpdateAnswer = (alternatives, correctAnswerIndex) => {
+  if (!alternatives || alternatives.length === 0 || correctAnswerIndex === undefined) {
+    return null;
+  }
+
+  // Create array with alternatives and their original indices
+  const indexedAlternatives = alternatives.map((alt, index) => ({
+    text: alt,
+    originalIndex: index
+  }));
+
+  // Shuffle the indexed alternatives
+  const shuffled = shuffleArray(indexedAlternatives);
+
+  // Find new position of correct answer
+  const newCorrectAnswerIndex = shuffled.findIndex(item => item.originalIndex === correctAnswerIndex);
+
+  return {
+    alternatives: shuffled.map(item => item.text),
+    correctAnswer: newCorrectAnswerIndex,
+    originalCorrectAnswer: correctAnswerIndex
+  };
 };
 
 // Helper function to generate exam variations
@@ -1112,6 +1607,61 @@ const generateAllExamPDFs = catchAsync(async (req, res, next) => {
   });
 });
 
+// Manual correction function
+const correctExamManually = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { submissionId, corrections } = req.body;
+
+  if (!submissionId || !corrections || !Array.isArray(corrections)) {
+    return next(new AppError('Submission ID and corrections array are required', 400));
+  }
+
+  // Find the answer/submission
+  const answer = await Answer.findOne({
+    where: { id: submissionId, examId: id }
+  });
+
+  if (!answer) {
+    return next(new AppError('Submission not found', 404));
+  }
+
+  // Calculate new score based on manual corrections
+  let totalScore = 0;
+  let totalPoints = 0;
+
+  corrections.forEach(correction => {
+    totalPoints += parseFloat(correction.maxPoints || 1);
+    totalScore += parseFloat(correction.earnedPoints || 0);
+  });
+
+  const finalScore = totalPoints > 0 ? (totalScore / totalPoints) * 10 : 0;
+
+  // Update the answer with manual correction data
+  await answer.update({
+    score: parseFloat(finalScore.toFixed(2)),
+    isPassed: finalScore >= (answer.exam?.passingScore || 6),
+    metadata: {
+      ...answer.metadata,
+      correctionMethod: 'manual',
+      manualCorrections: corrections,
+      correctedAt: new Date().toISOString(),
+      correctedBy: req.user.id
+    }
+  });
+
+  res.json({
+    success: true,
+    message: 'Exam corrected manually',
+    data: {
+      submissionId,
+      newScore: finalScore,
+      totalScore,
+      totalPoints,
+      corrections
+    }
+  });
+});
+
 module.exports = {
   getPublicExams,
   getExamByAccessCode,
@@ -1135,5 +1685,10 @@ module.exports = {
   generateExamReport,
   generateExamPDF,
   generateAllExamPDFs,
-  bulkGradeExam
+  bulkGradeExam,
+  generateAnswerSheet,
+  validateQRAnswers,
+  generateAllVariationsPDF,
+  generateSingleVariationPDF,
+  correctExamManually
 };

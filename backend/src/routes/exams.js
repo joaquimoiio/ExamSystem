@@ -13,6 +13,9 @@ const examValidation = [
   body('subjectId')
     .isInt({ min: 1 })
     .withMessage('ID da disciplina é obrigatório'),
+  body('examHeaderId')
+    .isUUID()
+    .withMessage('ID do cabeçalho da prova é obrigatório'),
   body('duration')
     .optional()
     .isInt({ min: 15, max: 480 })
@@ -72,5 +75,16 @@ router.post('/:id/bulk-grade', authenticateToken, requireTeacher, examController
 // PDF Generation with QR codes
 router.post('/:id/generate-pdf', authenticateToken, requireTeacher, examController.generateExamPDF);
 router.post('/:id/generate-all-pdfs', authenticateToken, requireTeacher, examController.generateAllExamPDFs);
+router.get('/:id/generate-all-variations-pdf', authenticateToken, requireTeacher, examController.generateAllVariationsPDF);
+router.get('/:id/variations/:variationId/generate-pdf', authenticateToken, requireTeacher, examController.generateSingleVariationPDF);
+
+// Answer sheet generation
+router.get('/:id/answer-sheet', authenticateToken, requireTeacher, examController.generateAnswerSheet);
+
+// QR Code validation
+router.post('/validate-qr', authenticateToken, examController.validateQRAnswers);
+
+// Manual correction
+router.post('/:id/correct-manual', authenticateToken, requireTeacher, examController.correctExamManually);
 
 module.exports = router;

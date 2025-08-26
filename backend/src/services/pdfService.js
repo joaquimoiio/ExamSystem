@@ -166,6 +166,11 @@ class PDFService {
   async generateAllVariationsPDF(exam, variations, examHeader, outputPath) {
     return new Promise(async (resolve, reject) => {
       try {
+        console.log('🔄 PDFService: Iniciando geração de PDF');
+        console.log(`📊 Exame: ${exam?.title}`);
+        console.log(`📋 Variações: ${variations?.length}`);
+        console.log(`📄 Arquivo: ${outputPath}`);
+
         const doc = new PDFDocument({
           size: 'A4',
           margin: 50
@@ -173,31 +178,59 @@ class PDFService {
 
         const stream = fs.createWriteStream(outputPath);
         doc.pipe(stream);
+        
+        let processedVariations = 0;
 
         for (let i = 0; i < variations.length; i++) {
           const variation = variations[i];
           
-          // Get questions for this variation
-          const questions = await variation.getQuestionsWithOrder();
+          // Use questions already loaded with include
+          const questions = variation.examQuestions?.map(eq => ({
+            ...eq.question,
+            examQuestionOrder: eq.questionOrder,
+            examPoints: eq.points
+          })) || [];
           
-          if (i > 0) {
+          console.log(`🔄 Processando variação ${variation.variationNumber} com ${questions.length} questões`);
+          
+          if (questions.length === 0) {
+            console.log(`⚠️  Pulando variação ${variation.variationNumber} - sem questões`);
+            continue;
+          }
+          
+          if (processedVariations > 0) {
             // Add new page for each variation (except the first)
             doc.addPage();
           }
           
-          // Add exam header with variation info
-          await this.addExamHeaderWithVariation(doc, examHeader, exam, variation);
-          
-          // Add QR code and answer key section
-          await this.addQRCodeAndAnswerKey(doc, exam, variation, questions);
-          
-          // Add questions
-          await this.addExamQuestions(doc, questions);
+          try {
+            // Add exam header with variation info
+            await this.addExamHeaderWithVariation(doc, examHeader, exam, variation);
+            
+            // Add QR code and answer key section
+            await this.addQRCodeAndAnswerKey(doc, exam, variation, questions);
+            
+            // Add questions
+            await this.addExamQuestions(doc, questions);
+            
+            processedVariations++;
+            console.log(`✅ Variação ${variation.variationNumber} processada`);
+            
+          } catch (variationError) {
+            console.error(`❌ Erro ao processar variação ${variation.variationNumber}:`, variationError);
+            // Continue com as outras variações
+          }
           
           // Add space before next variation
           if (i < variations.length - 1) {
             doc.y = 800; // Force new page
           }
+        }
+        
+        console.log(`📊 Total de variações processadas: ${processedVariations}`);
+        
+        if (processedVariations === 0) {
+          throw new Error('Nenhuma variação com questões foi encontrada para gerar o PDF');
         }
         
         // Add footer to all pages
@@ -206,13 +239,16 @@ class PDFService {
         doc.end();
 
         stream.on('finish', () => {
+          console.log('✅ PDFService: PDF finalizado com sucesso');
           resolve(outputPath);
         });
 
         stream.on('error', (error) => {
+          console.error('❌ PDFService: Erro no stream:', error);
           reject(error);
         });
       } catch (error) {
+        console.error('❌ PDFService: Erro geral:', error);
         reject(error);
       }
     });
@@ -854,7 +890,9 @@ class PDFService {
     
     y += 25;
     doc.fontSize(12).font(this.fonts.regular);
-    doc.text(`Disciplina: ${examHeader.subjectName || exam.subject?.name || 'N/A'}`, 50, y);
+    // Garantir que a disciplina seja exibida corretamente
+    const subjectName = exam.subject?.name || examHeader.subjectName || 'Disciplina não informada';
+    doc.text(`Disciplina: ${subjectName}`, 50, y);
     doc.text(`Ano: ${examHeader.year || new Date().getFullYear()}`, 350, y);
     
     y += 20;
@@ -922,7 +960,9 @@ class PDFService {
     
     y += 25;
     doc.fontSize(12).font(this.fonts.regular);
-    doc.text(`Disciplina: ${examHeader.subjectName || exam.subject?.name || 'N/A'}`, 50, y);
+    // Garantir que a disciplina seja exibida corretamente
+    const subjectName = exam.subject?.name || examHeader.subjectName || 'Disciplina não informada';
+    doc.text(`Disciplina: ${subjectName}`, 50, y);
     doc.text(`Ano: ${examHeader.year || new Date().getFullYear()}`, 350, y);
     
     y += 20;
@@ -979,17 +1019,71 @@ class PDFService {
   }
 
   /**
-   * Add QR code and visual answer key section
+   * Add visual answer grid with circles for A, B, C, D, E options
    */
-  async addQRCodeAndAnswerKey(doc, exam, variation, questions) {
+  addVisualAnswerGrid(doc, examQuestions) {
+    let y = doc.y;
+    
+    doc.fontSize(10).font(this.fonts.bold);
+    doc.text('GABARITO - Preencha completamente o círculo da alternativa correta:', 50, y);
+    
+    y += 20;
+    
+    const questionsPerRow = 5;
+    const questionWidth = 100;
+    const rowHeight = 45;
+    
+    examQuestions.forEach((examQuestion, index) => {
+      const questionNum = index + 1;
+      const row = Math.floor(index / questionsPerRow);
+      const col = index % questionsPerRow;
+      
+      const x = 50 + (col * questionWidth);
+      const questionY = y + (row * rowHeight);
+      
+      // Check if we need a new page
+      if (questionY > 700) {
+        doc.addPage();
+        y = 50;
+        const newRow = Math.floor(index / questionsPerRow) - Math.floor(examQuestions.length / questionsPerRow);
+        const questionY = y + (newRow * rowHeight);
+      }
+      
+      // Question number
+      doc.fontSize(9).font(this.fonts.bold);
+      doc.text(`${questionNum}.`, x + 20, questionY);
+      
+      // Answer options with circles (A, B, C, D, E)
+      const options = ['A', 'B', 'C', 'D', 'E'];
+      options.forEach((option, optIndex) => {
+        const optX = x + 5 + (optIndex * 15);
+        const optY = questionY + 15;
+        
+        // Draw circle for answer
+        doc.circle(optX, optY, 4).stroke();
+        
+        // Option letter below circle
+        doc.fontSize(7).font(this.fonts.regular);
+        doc.text(option, optX - 2, optY + 6);
+      });
+    });
+    
+    const totalRows = Math.ceil(examQuestions.length / questionsPerRow);
+    return y + (totalRows * rowHeight) + 20;
+  }
+
+  /**
+   * Add QR code and visual answer key section with shuffled alternatives support
+   */
+  async addQRCodeAndAnswerKey(doc, exam, variation, examQuestions) {
     let y = doc.y || 200;
     
-    // Generate QR code with answer key
-    const qrResult = await qrService.generateAnswerKeyQR(exam, variation, questions);
+    // Generate QR code with answer key (including shuffled alternatives)
+    const qrResult = await qrService.generateAnswerKeyQR(exam, variation, examQuestions);
     const qrBuffer = await qrService.generateQRBuffer(JSON.stringify(qrResult.qrData), { width: 120 });
     
-    // Generate visual answer key
-    const visualAnswerKey = qrService.generateVisualAnswerKey(questions);
+    // Generate visual answer key with correct answers for shuffled alternatives
+    const visualAnswerKey = qrService.generateVisualAnswerKeyFromExamQuestions(examQuestions);
     
     // QR Code section title
     doc.fontSize(10).font(this.fonts.bold);
@@ -998,33 +1092,20 @@ class PDFService {
     y += 20;
     
     // Add QR code image
-    doc.image(qrBuffer, 50, y, { width: 120, height: 120 });
+    doc.image(qrBuffer, 50, y, { width: 80, height: 80 });
     
-    // Visual answer key next to QR code
-    let answerX = 190;
-    let answerY = y;
-    
-    doc.fontSize(9).font(this.fonts.bold);
-    doc.text('Gabarito Visual:', answerX, answerY);
-    
-    answerY += 15;
+    // Instructions next to QR code
     doc.fontSize(8).font(this.fonts.regular);
+    doc.text('Escaneie para correção', 50, y + 85);
+    doc.text(`Variação: ${variation.variationNumber}`, 50, y + 95);
     
-    // Display answers in a grid format
-    const itemsPerRow = 10;
-    visualAnswerKey.forEach((item, index) => {
-      if (index > 0 && index % itemsPerRow === 0) {
-        answerY += 12;
-        answerX = 190;
-      }
-      
-      const text = `${item.number}:${item.answer}`;
-      doc.text(text, answerX, answerY);
-      answerX += 35;
-    });
+    // Add visual answer grid with circles
+    doc.y = y + 110;
+    doc.y = this.addVisualAnswerGrid(doc, examQuestions);
+    y = doc.y;
     
     // Separator line
-    y += 140;
+    y += 25;
     doc.moveTo(50, y)
        .lineTo(550, y)
        .stroke();
@@ -1033,9 +1114,9 @@ class PDFService {
   }
 
   /**
-   * Add exam questions section
+   * Add exam questions section with support for shuffled alternatives
    */
-  async addExamQuestions(doc, questions) {
+  async addExamQuestions(doc, examQuestions) {
     let y = doc.y || 300;
     
     doc.fontSize(12).font(this.fonts.bold);
@@ -1043,10 +1124,20 @@ class PDFService {
     
     y += 25;
     
-    questions.forEach((question, index) => {
+    examQuestions.forEach((examQuestion, index) => {
+      // Get question data - either from examQuestion.question or directly
+      const question = examQuestion.question || examQuestion;
+      
+      // Use shuffled alternatives if available
+      let alternatives = question.alternatives;
+      if (examQuestion.shuffledAlternatives && examQuestion.shuffledAlternatives.alternatives) {
+        alternatives = examQuestion.shuffledAlternatives.alternatives;
+        console.log(`🔀 Using shuffled alternatives for question ${question.id}`);
+      }
+      
       // Estimate space needed for this question
       const questionLines = (question.text || question.title || '').split('\n');
-      const alternativesCount = question.alternatives ? question.alternatives.filter(alt => alt && alt.trim()).length : 0;
+      const alternativesCount = alternatives ? alternatives.filter(alt => alt && alt.trim()).length : 0;
       const estimatedLines = questionLines.length + alternativesCount + 6; // Header + spaces
       const estimatedHeight = estimatedLines * 12;
       
@@ -1066,16 +1157,31 @@ class PDFService {
       const questionHeader = `${index + 1}. ${question.title || `Questão ${index + 1}`}`;
       doc.text(questionHeader, 50, y);
       
-      // Points
-      if (question.points) {
-        doc.text(`(${question.points} pts)`, 450, y);
+      // Points - use exam-specific points if available
+      const points = examQuestion.points || question.points;
+      if (points) {
+        doc.text(`(${points} pts)`, 450, y);
       }
       
       y += 15;
       
-      // Question text
+      // Question text - garantir que o enunciado apareça
       doc.fontSize(9).font(this.fonts.regular);
-      const text = question.text || question.title || 'Texto da questão não disponível';
+      let text = '';
+      
+      // Priorizar question.text, depois question.statement, depois question.title
+      if (question.text && question.text.trim()) {
+        text = question.text.trim();
+      } else if (question.statement && question.statement.trim()) {
+        text = question.statement.trim();
+      } else if (question.title && question.title.trim()) {
+        text = question.title.trim();
+      } else {
+        text = 'Texto da questão não disponível';
+      }
+      
+      console.log(`📝 Questão ${index + 1}: ${text.substring(0, 50)}...`);
+      
       const textLines = text.split('\n');
       textLines.forEach(line => {
         // Check for line wrap
@@ -1103,46 +1209,65 @@ class PDFService {
         }
       });
       
-      y += 5;
+      y += 8;
       
-      // Question type specific content
-      if (question.type === 'multiple_choice' && question.alternatives) {
-        const letters = ['A', 'B', 'C', 'D', 'E'];
-        question.alternatives.forEach((alternative, altIndex) => {
-          if (alternative && alternative.trim()) {
-            // Check if we need a new page for alternatives
-            if (y > 720) {
-              doc.addPage();
-              y = 50;
-            }
-            
-            const altText = `${letters[altIndex]}) ${alternative}`;
-            
-            // Handle long alternatives
-            if (altText.length > 75) {
-              const words = altText.split(' ');
-              let currentLine = words[0] + ' '; // Start with A), B), etc.
+      // Question type specific content - garantir que alternativas apareçam
+      if (question.type === 'multiple_choice') {
+        // Garantir que temos alternativas
+        let finalAlternatives = alternatives;
+        
+        // Se não temos alternativas nas variações embaralhadas, pegar as originais
+        if (!finalAlternatives || finalAlternatives.length === 0) {
+          finalAlternatives = question.alternatives || [];
+        }
+        
+        // Filtrar alternativas válidas
+        const validAlternatives = finalAlternatives.filter(alt => alt && alt.trim && alt.trim() !== '');
+        
+        console.log(`🔄 Questão ${index + 1}: ${validAlternatives.length} alternativas válidas`);
+        
+        if (validAlternatives.length > 0) {
+          const letters = ['A', 'B', 'C', 'D', 'E'];
+          validAlternatives.forEach((alternative, altIndex) => {
+            if (altIndex < 5) { // Máximo 5 alternativas (A-E)
+              // Check if we need a new page for alternatives
+              if (y > 720) {
+                doc.addPage();
+                y = 50;
+              }
               
-              for (let i = 1; i < words.length; i++) {
-                if (currentLine.length + words[i].length > 70) {
+              const altText = `${letters[altIndex]}) ${alternative.trim()}`;
+              
+              // Handle long alternatives
+              if (altText.length > 75) {
+                const words = altText.split(' ');
+                let currentLine = words[0] + ' '; // Start with A), B), etc.
+                
+                for (let i = 1; i < words.length; i++) {
+                  if (currentLine.length + words[i].length > 70) {
+                    doc.text(currentLine, 60, y);
+                    y += 12;
+                    currentLine = '   ' + words[i] + ' '; // Indent continuation
+                  } else {
+                    currentLine += words[i] + ' ';
+                  }
+                }
+                
+                if (currentLine.trim()) {
                   doc.text(currentLine, 60, y);
                   y += 12;
-                  currentLine = '   ' + words[i] + ' '; // Indent continuation
-                } else {
-                  currentLine += words[i] + ' ';
                 }
-              }
-              
-              if (currentLine.trim()) {
-                doc.text(currentLine, 60, y);
+              } else {
+                doc.text(altText, 60, y);
                 y += 12;
               }
-            } else {
-              doc.text(altText, 60, y);
-              y += 12;
             }
-          }
-        });
+          });
+        } else {
+          doc.fontSize(8).font(this.fonts.italic);
+          doc.text('(Alternativas não disponíveis)', 60, y);
+          y += 12;
+        }
       } else if (question.type === 'true_false') {
         doc.text('A) Verdadeiro', 60, y);
         y += 12;

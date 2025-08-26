@@ -393,6 +393,47 @@ class ApiService {
     console.log('⭐ Definindo cabeçalho como padrão:', id);
     return this.put(`/exam-headers/${id}/set-default`);
   }
+
+  async generateAnswerSheet(id) {
+    console.log('📋 Gerando gabarito para o exame:', id);
+    return this.get(`/exams/${id}/answer-sheet`);
+  }
+
+  async generateAllVariationsPDF(id) {
+    console.log('📄 Gerando PDF com todas as variações:', id);
+    // Para download de arquivo, precisamos fazer uma requisição especial
+    const response = await fetch(`${this.baseURL}/exams/${id}/generate-all-variations-pdf`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Erro ao gerar PDF das variações');
+    }
+    
+    return response;
+  }
+
+  async generateSingleVariationPDF(examId, variationId) {
+    console.log('📄 Gerando PDF da variação individual:', examId, variationId);
+    // Para download de arquivo, precisamos fazer uma requisição especial
+    const response = await fetch(`${this.baseURL}/exams/${examId}/variations/${variationId}/generate-pdf`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || 'Erro ao gerar PDF da variação');
+    }
+    
+    return response;
+  }
+
+  async getExamVariation(examId, variationId) {
+    console.log('📋 Buscando variação do exame:', examId, variationId);
+    return this.get(`/exams/${examId}/variations/${variationId}`);
+  }
 }
 
 // Instância única

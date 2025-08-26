@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, Home, BookOpen, FileText, BarChart3, Settings, 
   User, LogOut, Bell, Search, Moon, Sun, Wifi, WifiOff,
-  ChevronDown, Plus, HelpCircle
+  ChevronDown, Plus, HelpCircle, QrCode
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApp } from '../../contexts/AppContext';
@@ -18,6 +18,7 @@ function Sidebar({ isOpen, onClose }) {
     { path: '/subjects', icon: BookOpen, label: 'Disciplinas' },
     { path: '/exams', icon: BarChart3, label: 'Provas' },
     { path: '/exam-headers', icon: FileText, label: 'Cabeçalhos' },
+    { path: '/qr-scanner', icon: QrCode, label: 'Scanner QR' },
     { path: '/settings', icon: Settings, label: 'Configurações' },
   ];
 

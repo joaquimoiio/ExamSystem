@@ -44,14 +44,25 @@ class QRService {
       // Create answer key data using ExamQuestion data which includes exam-specific points
       const answerKey = examQuestions.map((examQuestion, index) => {
         const question = examQuestion.question || examQuestion;
+        let correctAnswer = question.correctAnswer;
+        
+        // Handle essay questions
+        if (question.type === 'essay') {
+          correctAnswer = null;
+        } else if (examQuestion.shuffledAlternatives && examQuestion.shuffledAlternatives.correctAnswer !== undefined) {
+          // Use shuffled correct answer position
+          correctAnswer = examQuestion.shuffledAlternatives.correctAnswer;
+        }
+        
         return {
           questionNumber: index + 1,
           questionId: question.id,
-          correctAnswer: question.type === 'essay' ? null : 
-            (examQuestion.shuffledAlternatives ? examQuestion.shuffledAlternatives.correctAnswer : question.correctAnswer),
+          correctAnswer: correctAnswer,
+          originalCorrectAnswer: question.correctAnswer, // Keep original for reference
           points: examQuestion.points || question.points || 1, // Use exam-specific points
           type: question.type,
-          difficulty: question.difficulty
+          difficulty: question.difficulty,
+          hasShuffledAlternatives: !!examQuestion.shuffledAlternatives
         };
       });
 
@@ -122,6 +133,38 @@ class QRService {
         number: index + 1,
         answer: letters[question.correctAnswer] || '?',
         points: question.points || 1
+      };
+    });
+  }
+
+  /**
+   * Generate visual answer key from ExamQuestion objects (with shuffled alternatives support)
+   */
+  generateVisualAnswerKeyFromExamQuestions(examQuestions) {
+    return examQuestions.map((examQuestion, index) => {
+      const question = examQuestion.question || examQuestion;
+      
+      if (question.type === 'essay') {
+        return {
+          number: index + 1,
+          answer: 'DISSERTATIVA',
+          points: examQuestion.points || question.points || 1
+        };
+      }
+
+      // For multiple choice, use shuffled correct answer if available
+      const letters = ['A', 'B', 'C', 'D', 'E'];
+      let correctAnswer = question.correctAnswer;
+      
+      // If alternatives were shuffled, use the new correct answer position
+      if (examQuestion.shuffledAlternatives && examQuestion.shuffledAlternatives.correctAnswer !== undefined) {
+        correctAnswer = examQuestion.shuffledAlternatives.correctAnswer;
+      }
+      
+      return {
+        number: index + 1,
+        answer: letters[correctAnswer] || '?',
+        points: examQuestion.points || question.points || 1
       };
     });
   }

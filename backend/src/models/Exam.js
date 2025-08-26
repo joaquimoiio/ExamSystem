@@ -38,13 +38,13 @@ module.exports = (sequelize, DataTypes) => {
     },
     examHeaderId: {
       type: DataTypes.UUID,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: 'exam_headers',
         key: 'id'
       },
       onUpdate: 'CASCADE',
-      onDelete: 'SET NULL'
+      onDelete: 'RESTRICT'
     },
     selectedQuestions: {
       type: DataTypes.JSONB,

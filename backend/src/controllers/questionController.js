@@ -89,8 +89,11 @@ const getQuestionsStats = catchAsync(async (req, res, next) => {
 
   res.json({
     success: true,
-    data: { 
-      stats: result,
+    data: {
+      total: result.total,
+      easy: result.easy,
+      medium: result.medium,
+      hard: result.hard,
       recentQuestions
     }
   });

@@ -4,11 +4,12 @@ import {
   ArrowLeft, Edit, Trash2, Download, Share2, Eye,
   Play, Pause, Archive, Copy, Settings, BarChart3,
   FileText, Clock, Users, QrCode, CheckCircle,
-  AlertTriangle, MoreVertical
+  AlertTriangle, MoreVertical, Calculator, BookOpen
 } from 'lucide-react';
 import { useExam, useUpdateExam, useDeleteExam, usePublishExam, useGeneratePDFs } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
+import apiService from '../../services/api';
 import { ConfirmationModal } from '../../components/ui/Modal';
 
 const statusConfig = {
@@ -58,6 +59,27 @@ export default function ExamDetail() {
       navigate('/exams');
     } catch (error) {
       showError(error.message || 'Erro ao excluir prova');
+    }
+  };
+
+  const handleGenerateAllVariationsPDF = async () => {
+    try {
+      const response = await apiService.generateAllVariationsPDF(exam.id);
+      
+      // Criar download do arquivo
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prova_${exam.title}_todas_variacoes.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      success('PDF com todas as variações gerado com sucesso!');
+    } catch (error) {
+      showError(error.message || 'Erro ao gerar PDF das variações');
     }
   };
 
@@ -123,7 +145,6 @@ export default function ExamDetail() {
     { id: 'overview', label: 'Visão Geral', icon: BarChart3 },
     { id: 'questions', label: 'Questões', icon: FileText },
     { id: 'variations', label: 'Variações', icon: Copy },
-    { id: 'submissions', label: 'Respostas', icon: Users },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
@@ -182,28 +203,18 @@ export default function ExamDetail() {
               </span>
             </div>
             
+            {exam.subject?.name && (
+              <div className="flex items-center mb-2">
+                <BookOpen className="w-4 h-4 text-gray-500 mr-2" />
+                <span className="text-gray-600 font-medium">{exam.subject.name}</span>
+              </div>
+            )}
+            
             {exam.description && (
               <p className="text-gray-600 mb-3">{exam.description}</p>
             )}
             
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center">
-                <FileText className="w-4 h-4 mr-1" />
-                {exam.questionsCount || 0} questões
-              </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                {exam.duration} minutos
-              </div>
-              <div className="flex items-center">
-                <Copy className="w-4 h-4 mr-1" />
-                {(exam.variations?.length || exam.variationsCount || 0)} variações
-              </div>
-              <div className="flex items-center">
-                <Users className="w-4 h-4 mr-1" />
-                {exam.submissionsCount || 0} respostas
-              </div>
-            </div>
+            {/* Métricas removidas conforme solicitado */}
           </div>
         </div>
 
@@ -227,6 +238,14 @@ export default function ExamDetail() {
             Preview
           </Link>
 
+          <Link
+            to={`/exams/${id}/correction`}
+            className="inline-flex items-center px-4 py-2 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 transition-colors"
+          >
+            <Calculator className="w-4 h-4 mr-2" />
+            Corrigir Prova
+          </Link>
+
           <div className="relative">
             <button 
               onClick={() => setShowActionMenu(!showActionMenu)}
@@ -242,19 +261,25 @@ export default function ExamDetail() {
                   onClick={() => setShowActionMenu(false)}
                 />
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                  {actionMenuItems.map((item, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        item.onClick();
-                        setShowActionMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    >
-                      <item.icon className="w-4 h-4 mr-2" />
-                      {item.label}
-                    </button>
-                  ))}
+                  {actionMenuItems.map((item, index) => {
+                    if (item.type === 'divider') {
+                      return <div key={index} className="border-t border-gray-200 my-1" />;
+                    }
+                    
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          item.onClick();
+                          setShowActionMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        <item.icon className="w-4 h-4 mr-2" />
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -262,33 +287,7 @@ export default function ExamDetail() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          title="Total de Questões"
-          value={exam.questionsCount || 0}
-          icon={FileText}
-          color="blue"
-        />
-        <StatCard
-          title="Variações Geradas"
-          value={exam.variations?.length || exam.variationsCount || 0}
-          icon={Copy}
-          color="purple"
-        />
-        <StatCard
-          title="Respostas Recebidas"
-          value={exam.submissionsCount || 0}
-          icon={Users}
-          color="green"
-        />
-        <StatCard
-          title="Taxa de Conclusão"
-          value={`${exam.completionRate || 0}%`}
-          icon={CheckCircle}
-          color="yellow"
-        />
-      </div>
+      {/* Quick Stats - Removed as requested */}
 
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-soft border border-gray-100">
@@ -320,7 +319,6 @@ export default function ExamDetail() {
           {activeTab === 'overview' && <OverviewTab exam={exam} />}
           {activeTab === 'questions' && <QuestionsTab exam={exam} />}
           {activeTab === 'variations' && <VariationsTab exam={exam} />}
-          {activeTab === 'submissions' && <SubmissionsTab exam={exam} />}
           {activeTab === 'settings' && <SettingsTab exam={exam} />}
         </div>
       </div>
@@ -351,29 +349,6 @@ export default function ExamDetail() {
   );
 }
 
-// Component for Statistics Cards
-function StatCard({ title, value, icon: Icon, color }) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    purple: 'bg-purple-50 text-purple-600',
-    green: 'bg-green-50 text-green-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-  };
-
-  return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-        </div>
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Tab Components
 function OverviewTab({ exam }) {
@@ -472,12 +447,20 @@ function OverviewTab({ exam }) {
 }
 
 function QuestionsTab({ exam }) {
+  const totalPoints = exam.questions?.reduce((sum, question) => {
+    const points = parseFloat(question.ExamQuestion?.points || question.points || 1);
+    return sum + (isNaN(points) ? 1 : points);
+  }, 0) || 0;
+
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Questões da Prova ({exam.questions?.length || 0})
-        </h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Questões da Prova
+          </h3>
+        </div>
         <Link
           to={`/exams/${exam.id}/questions`}
           className="text-primary-600 hover:text-primary-700 font-medium text-sm"
@@ -488,48 +471,154 @@ function QuestionsTab({ exam }) {
 
       {exam.questions && exam.questions.length > 0 ? (
         <div className="space-y-4">
-          {exam.questions.map((question, index) => (
-            <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-3">
-                <span className="text-sm font-medium text-gray-900">
-                  Questão {index + 1}
-                </span>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                  question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {question.difficulty === 'easy' ? 'Fácil' :
-                   question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
-                </span>
+          {exam.questions.map((question, index) => {
+            const questionPoints = parseFloat(question.ExamQuestion?.points || question.points || 1);
+            const alternativesCount = question.alternatives?.length || 0;
+            
+            return (
+              <div key={question.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm font-medium text-gray-900">
+                      Questão {index + 1}
+                    </span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                      question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      question.difficulty === 'hard' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {question.difficulty === 'easy' ? 'Fácil' :
+                       question.difficulty === 'medium' ? 'Médio' : 
+                       question.difficulty === 'hard' ? 'Difícil' : 'N/A'}
+                    </span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                      {questionPoints} {questionPoints === 1 ? 'ponto' : 'pontos'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    ID: {question.id}
+                  </div>
+                </div>
+                
+                <div className="mb-3">
+                  <h4 className="text-sm font-medium text-gray-900 mb-1">
+                    {question.title || 'Sem título'}
+                  </h4>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {question.text || 'Texto da questão não disponível'}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center space-x-4">
+                    <span className="flex items-center">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {question.type === 'multiple_choice' ? 'Múltipla Escolha' :
+                       question.type === 'true_false' ? 'Verdadeiro/Falso' :
+                       question.type === 'essay' ? 'Dissertativa' : 'N/A'}
+                    </span>
+                    {alternativesCount > 0 && (
+                      <span className="flex items-center">
+                        <BarChart3 className="w-3 h-3 mr-1" />
+                        {alternativesCount} alternativas
+                      </span>
+                    )}
+                  </div>
+                  {question.ExamQuestion?.questionOrder && (
+                    <span>Ordem: {question.ExamQuestion.questionOrder}</span>
+                  )}
+                </div>
               </div>
-              <p className="text-gray-700 line-clamp-2">{question.text}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
-        <div className="text-center py-8">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Nenhuma questão encontrada</p>
+        <div className="text-center py-12">
+          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma questão encontrada</h3>
+          <p className="text-gray-500 mb-4">Esta prova ainda não possui questões cadastradas.</p>
+          <Link
+            to={`/exams/${exam.id}/questions`}
+            className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Adicionar Questões
+          </Link>
         </div>
       )}
     </div>
   );
 }
 
+
+
 function VariationsTab({ exam }) {
   const variations = exam.variations || [];
-  const variationsCount = variations.length || exam.variationsCount || 0;
+  const { success, error: showError } = useToast();
+
+  const handleGenerateAllVariationsPDF = async () => {
+    try {
+      const response = await apiService.generateAllVariationsPDF(exam.id);
+      
+      // Criar download do arquivo
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prova_${exam.title}_todas_variacoes.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      success('PDF com todas as variações gerado com sucesso!');
+    } catch (error) {
+      showError(error.message || 'Erro ao gerar PDF das variações');
+    }
+  };
+
+  const handleDownloadVariationPDF = async (variation) => {
+    try {
+      const response = await apiService.generateSingleVariationPDF(exam.id, variation.id);
+      
+      // Criar download do arquivo
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prova_${exam.title}_variacao_${variation.variationNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      success(`PDF da variação ${variation.variationNumber} gerado com sucesso!`);
+    } catch (error) {
+      showError(error.message || 'Erro ao gerar PDF da variação');
+    }
+  };
   
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
-          Variações ({variationsCount})
+          Variações da Prova
         </h3>
-        <button className="text-primary-600 hover:text-primary-700 font-medium text-sm">
-          Regenerar variações
-        </button>
+        <div className="flex items-center space-x-3">
+          {variations.length > 0 && (
+            <button
+              onClick={handleGenerateAllVariationsPDF}
+              className="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              PDF Todas
+            </button>
+          )}
+          <button className="text-primary-600 hover:text-primary-700 font-medium text-sm">
+            Regenerar variações
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -549,7 +638,10 @@ function VariationsTab({ exam }) {
                 <button className="text-xs text-primary-600 hover:text-primary-700">
                   Ver QR
                 </button>
-                <button className="text-xs text-primary-600 hover:text-primary-700">
+                <button 
+                  onClick={() => handleDownloadVariationPDF(variation)}
+                  className="text-xs text-primary-600 hover:text-primary-700"
+                >
                   Download PDF
                 </button>
               </div>
@@ -565,95 +657,6 @@ function VariationsTab({ exam }) {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function SubmissionsTab({ exam }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Respostas Recebidas ({exam.submissionsCount || 0})
-        </h3>
-        <button className="text-primary-600 hover:text-primary-700 font-medium text-sm">
-          Exportar resultados
-        </button>
-      </div>
-
-      {exam.submissions && exam.submissions.length > 0 ? (
-        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-          <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Aluno
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Variação
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nota
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tempo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Data
-                </th>
-                <th className="relative px-6 py-3">
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {exam.submissions.map((submission) => (
-                <tr key={submission.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {submission.studentName || 'Anônimo'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    Variação {submission.variationNumber}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      submission.score >= 7 ? 'bg-green-100 text-green-800' :
-                      submission.score >= 5 ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {submission.score?.toFixed(1) || '0.0'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {submission.timeSpent || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(submission.submittedAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      to={`/submissions/${submission.id}`}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      Ver detalhes
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Nenhuma resposta recebida ainda</p>
-          {exam.status === 'published' && (
-            <p className="text-sm text-gray-400 mt-2">
-              Compartilhe o QR code da prova para que os alunos possam responder
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -674,6 +677,27 @@ function SettingsTab({ exam }) {
     }
   };
 
+  const handleGenerateAllVariationsPDF = async () => {
+    try {
+      const response = await apiService.generateAllVariationsPDF(exam.id);
+      
+      // Criar download do arquivo
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prova_${exam.title}_todas_variacoes.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      success('PDF com todas as variações gerado com sucesso!');
+    } catch (error) {
+      showError(error.message || 'Erro ao gerar PDF das variações');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -684,14 +708,6 @@ function SettingsTab({ exam }) {
           </p>
           
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Duração</dt>
-              <dd className="text-sm text-gray-900">{exam.duration} minutos</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Número de variações</dt>
-              <dd className="text-sm text-gray-900">{exam.variations?.length || exam.variationsCount || 0}</dd>
-            </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Embaralhar questões</dt>
               <dd className="text-sm text-gray-900">
@@ -750,6 +766,32 @@ function SettingsTab({ exam }) {
                 <p className="text-sm text-gray-500">Ver relatório detalhado de desempenho</p>
               </div>
               <BarChart3 className="w-5 h-5 text-gray-400" />
+            </div>
+          </button>
+
+          <button 
+            onClick={() => window.open(`/exams/${exam.id}/gabarito`, '_blank')}
+            className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900">Gerar Gabarito</h4>
+                <p className="text-sm text-gray-500">Folha de respostas para preenchimento</p>
+              </div>
+              <FileText className="w-5 h-5 text-gray-400" />
+            </div>
+          </button>
+
+          <button 
+            onClick={handleGenerateAllVariationsPDF}
+            className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900">PDF Todas as Variações</h4>
+                <p className="text-sm text-gray-500">Baixar PDF com todas as variações da prova</p>
+              </div>
+              <Download className="w-5 h-5 text-gray-400" />
             </div>
           </button>
         </div>

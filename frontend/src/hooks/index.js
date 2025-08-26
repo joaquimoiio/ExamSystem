@@ -280,6 +280,22 @@ export function useExam(id) {
   });
 }
 
+export function useExamHeaders(params = {}) {
+  return useQuery({
+    queryKey: ['examHeaders', params],
+    queryFn: () => apiService.getExamHeaders(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useExamHeader(id) {
+  return useQuery({
+    queryKey: ['examHeaders', id],
+    queryFn: () => apiService.getExamHeaderById(id),
+    enabled: !!id,
+  });
+}
+
 // ================================
 // MUTATION HOOKS
 // ================================

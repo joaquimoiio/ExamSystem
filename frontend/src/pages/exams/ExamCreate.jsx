@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { 
   ArrowLeft, Save, Eye, AlertCircle, CheckCircle, 
   Settings, FileText, Clock, Shuffle, BarChart3,
   X, EyeOff, Award, Hash, BookOpen
 } from 'lucide-react';
-import { useSubjects, useQuestions, useCreateExam } from '../../hooks';
+import { useSubjects, useQuestions, useCreateExam, useUpdateExam, useExam, useExamHeaders } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
 import { Select, Input, Textarea, Switch } from '../../components/ui/Input';
 
-export default function ExamCreate() {
+export default function ExamCreate({ mode = 'create' }) {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [questionsAvailable, setQuestionsAvailable] = useState({
@@ -26,26 +26,33 @@ export default function ExamCreate() {
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
 
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = mode === 'edit' && id;
   const { success, error: showError } = useToast();
+  
   const { data: subjectsData } = useSubjects();
   const { data: questionsData } = useQuestions({
     subjectId: selectedSubject,
     limit: 1000, // Get all questions for preview
   });
+  const { data: examHeadersData } = useExamHeaders();
+  const { data: examData, isLoading: examLoading } = useExam(id, { enabled: isEditMode });
   const createExamMutation = useCreateExam();
+  const updateExamMutation = useUpdateExam();
 
   const {
     register,
     handleSubmit,
     control,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
       title: '',
       description: '',
       subjectId: '',
-      duration: 60,
+      examHeaderId: '',
       variations: 5,
       shuffleQuestions: true,
       shuffleAlternatives: true,
@@ -60,7 +67,44 @@ export default function ExamCreate() {
 
   const subjects = subjectsData?.data?.subjects || [];
   const questions = questionsData?.data?.questions || [];
+  const examHeaders = examHeadersData?.data?.headers || [];
+  const exam = examData?.data?.exam;
   const watchedSubject = watch('subjectId');
+
+  // Preencher formulário quando estiver editando
+  useEffect(() => {
+    if (isEditMode && exam && !examLoading) {
+      reset({
+        title: exam.title || '',
+        description: exam.description || '',
+        subjectId: exam.subjectId || '',
+        examHeaderId: exam.examHeaderId || '',
+        variations: exam.totalVariations || 5,
+        shuffleQuestions: exam.randomizeQuestions || false,
+        shuffleAlternatives: exam.randomizeAlternatives || false,
+        showResults: exam.showResults || false,
+        allowReview: exam.allowReview || false,
+        timeLimit: !!exam.timeLimit,
+        showTimer: true,
+        preventCopy: exam.preventCopyPaste || false,
+        randomizeOrder: exam.randomizeQuestions || false,
+      });
+
+      // Preencher questões selecionadas
+      if (exam.questions && exam.questions.length > 0) {
+        const questionsWithPoints = exam.questions.map(q => ({
+          ...q,
+          points: q.ExamQuestion?.points || q.points || 1
+        }));
+        setSelectedQuestions(questionsWithPoints);
+      }
+
+      // Definir disciplina selecionada
+      if (exam.subjectId) {
+        setSelectedSubject(exam.subjectId);
+      }
+    }
+  }, [isEditMode, exam, examLoading, reset]);
 
   // Update selected subject and calculate available questions
   useEffect(() => {
@@ -100,11 +144,17 @@ export default function ExamCreate() {
         totalQuestions: selectedQuestions.length,
       };
 
-      const response = await createExamMutation.mutateAsync(examData);
-      success('Prova criada com sucesso!');
-      navigate(`/exams/${response.data.exam.id}`);
+      if (isEditMode) {
+        await updateExamMutation.mutateAsync({ id, data: examData });
+        success('Prova atualizada com sucesso!');
+        navigate(`/exams/${id}`);
+      } else {
+        const response = await createExamMutation.mutateAsync(examData);
+        success('Prova criada com sucesso!');
+        navigate(`/exams/${response.data.exam.id}`);
+      }
     } catch (error) {
-      showError(error.message || 'Erro ao criar prova');
+      showError(error.message || (isEditMode ? 'Erro ao atualizar prova' : 'Erro ao criar prova'));
     }
   };
 
@@ -185,8 +235,12 @@ export default function ExamCreate() {
   }, 0);
   const canCreateExam = selectedSubject && totalQuestions > 0;
 
-  if (createExamMutation.isPending) {
-    return <LoadingPage title="Criando prova..." />;
+  if (createExamMutation.isPending || updateExamMutation.isPending) {
+    return <LoadingPage title={isEditMode ? "Atualizando prova..." : "Criando prova..."} />;
+  }
+
+  if (isEditMode && examLoading) {
+    return <LoadingPage title="Carregando dados da prova..." />;
   }
 
   return (
@@ -201,7 +255,9 @@ export default function ExamCreate() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Nova Prova</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {isEditMode ? 'Editar Prova' : 'Nova Prova'}
+            </h1>
             <p className="text-gray-600">Configure sua prova com múltiplas variações</p>
           </div>
         </div>
@@ -278,25 +334,37 @@ export default function ExamCreate() {
               </div>
 
               <div>
-                <Input
-                  label="Duração (minutos)"
-                  type="number"
-                  min="15"
-                  max="300"
-                  error={errors.duration?.message}
-                  {...register('duration', {
-                    required: 'Duração é obrigatória',
-                    min: {
-                      value: 15,
-                      message: 'Duração mínima de 15 minutos',
-                    },
-                    max: {
-                      value: 300,
-                      message: 'Duração máxima de 300 minutos',
-                    },
-                  })}
-                />
+                <div className="space-y-2">
+                  <Controller
+                    name="examHeaderId"
+                    control={control}
+                    rules={{ required: 'Cabeçalho da prova é obrigatório' }}
+                    render={({ field }) => (
+                      <Select
+                        label="Cabeçalho da Prova"
+                        placeholder="Selecione um cabeçalho"
+                        options={examHeaders.map(header => ({
+                          value: header.id,
+                          label: `${header.schoolName} - ${header.subjectName} (${header.year})`,
+                        }))}
+                        error={errors.examHeaderId?.message}
+                        {...field}
+                      />
+                    )}
+                  />
+                  <div className="flex items-center text-xs text-gray-500">
+                    <span>Não encontrou o cabeçalho que precisa?</span>
+                    <button
+                      type="button"
+                      onClick={() => window.open('/exam-headers/create', '_blank')}
+                      className="ml-2 text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Criar novo cabeçalho
+                    </button>
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 
@@ -547,7 +615,10 @@ export default function ExamCreate() {
                 className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {isSubmitting ? 'Criando...' : 'Criar Prova'}
+                {isSubmitting ? 
+                  (isEditMode ? 'Atualizando...' : 'Criando...') : 
+                  (isEditMode ? 'Atualizar Prova' : 'Criar Prova')
+                }
               </button>
             </div>
           </div>
@@ -788,16 +859,16 @@ function ExamPreview({ formData, selectedQuestions, onBack }) {
           
           <div className="flex items-center space-x-6 text-sm text-gray-600">
             <div className="flex items-center">
-              <Clock className="w-4 h-4 mr-1" />
-              {formData.duration} minutos
-            </div>
-            <div className="flex items-center">
               <FileText className="w-4 h-4 mr-1" />
               {totalQuestions} questões • {totalPoints.toFixed(1)} pontos
             </div>
             <div className="flex items-center">
               <Shuffle className="w-4 h-4 mr-1" />
               {formData.variations} variações
+            </div>
+            <div className="flex items-center">
+              <BookOpen className="w-4 h-4 mr-1" />
+              {formData.subjectId ? subjects.find(s => s.id === formData.subjectId)?.name || 'Disciplina' : 'Disciplina'}
             </div>
           </div>
         </div>

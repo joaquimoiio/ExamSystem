@@ -41,7 +41,7 @@ const getSubjects = catchAsync(async (req, res, next) => {
   
   if (!checkAuthentication(req, next)) return;
 
-  const userId = req.user.userId;
+  const userId = req.user.id;
   console.log('👤 Usuário ID:', userId);
 
   // Parâmetros de paginação e filtros
@@ -160,7 +160,7 @@ const getSubjectsStats = catchAsync(async (req, res, next) => {
   
   if (!checkAuthentication(req, next)) return;
 
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
   try {
     console.log('📊 Calculando estatísticas para usuário:', userId);
@@ -189,11 +189,9 @@ const getSubjectsStats = catchAsync(async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        overview: {
-          totalSubjects,
-          totalQuestions,
-          totalExams
-        },
+        total: totalSubjects,
+        totalQuestions,
+        totalExams,
         subjects: recentSubjects
       }
     });
@@ -211,7 +209,7 @@ const createSubject = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { name, description, color, isActive } = req.body;
-  const userId = req.user.userId;
+  const userId = req.user.id;
   
   console.log('🆕 Dados recebidos:', { name, description, color, isActive, userId });
   
@@ -292,7 +290,7 @@ const getSubjectById = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
-  const userId = req.user.userId;
+  const userId = req.user.id;
   
   console.log('🔍 Buscando disciplina ID:', id, 'para usuário:', userId);
   
@@ -357,7 +355,7 @@ const updateSubject = catchAsync(async (req, res, next) => {
 
   const { id } = req.params;
   const { name, description, color, isActive } = req.body;
-  const userId = req.user.userId;
+  const userId = req.user.id;
   
   console.log('✏️ Atualizando disciplina:', { id, userId });
   
@@ -452,7 +450,7 @@ const deleteSubject = catchAsync(async (req, res, next) => {
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
-  const userId = req.user.userId;
+  const userId = req.user.id;
   
   console.log('🗑️ Excluindo disciplina ID:', id, 'para usuário:', userId);
   

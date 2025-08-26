@@ -90,41 +90,7 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Disciplinas"
-              value={stats.subjects}
-              icon={BookOpen}
-              color="primary"
-              to="/subjects"
-              isLoading={statsLoading}
-            />
-            <StatCard
-              title="Questões"
-              value={stats.questions}
-              icon={FileText}
-              color="success"
-              to="/questions"
-              isLoading={statsLoading}
-            />
-            <StatCard
-              title="Provas Criadas"
-              value={stats.exams}
-              icon={BarChart3}
-              color="warning"
-              to="/exams"
-              isLoading={statsLoading}
-            />
-            <StatCard
-              title="Provas Publicadas"
-              value={stats.publishedExams}
-              icon={CheckCircle}
-              color="info"
-              to="/exams?status=published"
-              isLoading={statsLoading}
-            />
-          </div>
+          {/* Statistics Cards - Removed as requested */}
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

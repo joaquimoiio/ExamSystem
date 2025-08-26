@@ -32,10 +32,15 @@ import QuestionCreate from './pages/questions/QuestionCreateSimple';
 import ExamList from './pages/exams/ExamList';
 import ExamDetail from './pages/exams/ExamDetail';
 import ExamCreate from './pages/exams/ExamCreate';
+import ExamCorrection from './pages/exams/ExamCorrection';
 
 // Cabeçalhos de Prova
 import ExamHeaderList from './pages/exams/ExamHeaderList';
 import ExamHeaderForm from './pages/exams/ExamHeaderForm';
+
+// Gabarito e QR Scanner
+import AnswerSheet from './pages/exams/AnswerSheet';
+import QRScanner from './pages/exams/QRScanner';
 
 // Outras páginas
 import Profile from './pages/profile/Profile';
@@ -181,6 +186,44 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <ExamDetail />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/exams/:id/edit" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamCreate mode="edit" />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/exams/:id/correction" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamCorrection />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/exams/:id/gabarito" 
+        element={
+          <ProtectedRoute>
+            <AnswerSheet />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/qr-scanner" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QRScanner />
             </Layout>
           </ProtectedRoute>
         } 
