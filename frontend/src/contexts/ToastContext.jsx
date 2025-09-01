@@ -6,7 +6,7 @@ const ToastContext = createContext();
 const toastReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_TOAST':
-      return [...state, { ...action.payload, id: Date.now() + Math.random() }];
+      return [...state, action.payload];
     case 'REMOVE_TOAST':
       return state.filter(toast => toast.id !== action.payload);
     case 'CLEAR_ALL':
@@ -30,7 +30,8 @@ const toastStyles = {
   info: 'toast-info',
 };
 
-function ToastContainer({ toasts, dispatch }) {
+function ToastContainer({ toasts, dispatch, removeToastWithAnimation }) {
+
   return (
     <div className="toast-container">
       {toasts.map(toast => {
@@ -39,6 +40,7 @@ function ToastContainer({ toasts, dispatch }) {
         return (
           <div
             key={toast.id}
+            data-toast-id={toast.id}
             className={`
               p-4 rounded-xl flex items-start space-x-3 
               transform transition-all duration-300 animate-slide-in
@@ -55,7 +57,7 @@ function ToastContainer({ toasts, dispatch }) {
               <div className="text-sm opacity-95">{toast.message}</div>
             </div>
             <button 
-              onClick={() => dispatch({ type: 'REMOVE_TOAST', payload: toast.id })}
+              onClick={() => removeToastWithAnimation(toast.id)}
               className="flex-shrink-0 text-white hover:text-gray-200 transition-all duration-200 ml-2 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
             >
               <X size={16} />
@@ -70,13 +72,27 @@ function ToastContainer({ toasts, dispatch }) {
 export function ToastProvider({ children }) {
   const [toasts, dispatch] = useReducer(toastReducer, []);
 
+  const removeToastWithAnimation = (toastId) => {
+    const toastElement = document.querySelector(`[data-toast-id="${toastId}"]`);
+    if (toastElement) {
+      toastElement.classList.add('animate-slide-out');
+      setTimeout(() => {
+        dispatch({ type: 'REMOVE_TOAST', payload: toastId });
+      }, 300);
+    } else {
+      dispatch({ type: 'REMOVE_TOAST', payload: toastId });
+    }
+  };
+
   const addToast = (message, type = 'info', options = {}) => {
+    const toastId = Date.now() + Math.random();
     const toast = {
       message,
       type,
       title: options.title,
       duration: options.duration || 4000,
       persistent: options.persistent || false,
+      id: toastId,
     };
 
     dispatch({ type: 'ADD_TOAST', payload: toast });
@@ -84,15 +100,15 @@ export function ToastProvider({ children }) {
     // Auto-remove toast after duration (unless persistent)
     if (!toast.persistent && toast.duration > 0) {
       setTimeout(() => {
-        dispatch({ type: 'REMOVE_TOAST', payload: toast.id });
+        removeToastWithAnimation(toastId);
       }, toast.duration);
     }
 
-    return toast.id;
+    return toastId;
   };
 
   const removeToast = (id) => {
-    dispatch({ type: 'REMOVE_TOAST', payload: id });
+    removeToastWithAnimation(id);
   };
 
   const clearAllToasts = () => {
@@ -119,7 +135,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <ToastContainer toasts={toasts} dispatch={dispatch} />
+      <ToastContainer toasts={toasts} dispatch={dispatch} removeToastWithAnimation={removeToastWithAnimation} />
     </ToastContext.Provider>
   );
 }

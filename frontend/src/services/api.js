@@ -295,6 +295,11 @@ class ApiService {
     return this.post(`/exams/${id}/publish`);
   }
 
+  async regenerateVariations(id) {
+    console.log('🔄 Regenerando variações da prova:', id);
+    return this.post(`/exams/${id}/regenerate-variations`);
+  }
+
   async generatePDFs(id) {
     console.log('📄 Gerando PDFs da prova:', id);
     return this.post(`/exams/${id}/generate-pdfs`);
@@ -303,6 +308,11 @@ class ApiService {
   async getExamsStats() {
     console.log('📊 Buscando estatísticas das provas');
     return this.get('/exams/stats');
+  }
+
+  async updateExamQuestions(id, data) {
+    console.log('📝 Atualizando questões da prova:', id, data);
+    return this.put(`/exams/${id}/questions`, data);
   }
 
   // ================================
@@ -399,10 +409,10 @@ class ApiService {
     return this.get(`/exams/${id}/answer-sheet`);
   }
 
-  async generateAllVariationsPDF(id) {
-    console.log('📄 Gerando PDF com todas as variações:', id);
+  async generateAllVariationsPDF(id, layout = 'single') {
+    console.log('📄 Gerando PDF com todas as variações:', id, 'Layout:', layout);
     // Para download de arquivo, precisamos fazer uma requisição especial
-    const response = await fetch(`${this.baseURL}/exams/${id}/generate-all-variations-pdf`, {
+    const response = await fetch(`${this.baseURL}/exams/${id}/generate-all-variations-pdf?layout=${layout}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });

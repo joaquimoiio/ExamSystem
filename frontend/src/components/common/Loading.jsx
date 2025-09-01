@@ -25,7 +25,7 @@ export default function Loading({
       <div className="text-center">
         <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600 mx-auto`} />
         {showText && (
-          <p className="mt-2 text-sm text-gray-600">{text}</p>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{text}</p>
         )}
       </div>
     </div>
@@ -35,7 +35,7 @@ export default function Loading({
 // Full page loading
 export function LoadingPage({ text = 'Carregando página...' }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Loading size="large" text={text} />
     </div>
   );
@@ -60,7 +60,7 @@ export function SkeletonLine({ width = 'full', height = '4', className = '' }) {
   return (
     <div 
       className={`
-        bg-gray-200 rounded animate-pulse
+        bg-gray-200 dark:bg-gray-700 rounded animate-pulse
         ${widthClasses[width]} ${heightClasses[height]} ${className}
       `} 
     />
@@ -69,9 +69,9 @@ export function SkeletonLine({ width = 'full', height = '4', className = '' }) {
 
 export function SkeletonCard({ lines = 3, showImage = true, className = '' }) {
   return (
-    <div className={`bg-white p-6 rounded-lg border ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
       {showImage && (
-        <div className="w-full h-48 bg-gray-200 rounded-lg animate-pulse mb-4" />
+        <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-4" />
       )}
       <div className="space-y-3">
         {[...Array(lines)].map((_, i) => (
@@ -87,9 +87,9 @@ export function SkeletonCard({ lines = 3, showImage = true, className = '' }) {
 
 export function SkeletonTable({ rows = 5, columns = 4 }) {
   return (
-    <div className="bg-white rounded-lg border overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Header */}
-      <div className="border-b p-4">
+      <div className="border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
           {[...Array(columns)].map((_, i) => (
             <SkeletonLine key={i} width="3/4" />
@@ -99,7 +99,7 @@ export function SkeletonTable({ rows = 5, columns = 4 }) {
       
       {/* Rows */}
       {[...Array(rows)].map((_, rowIndex) => (
-        <div key={rowIndex} className="border-b last:border-b-0 p-4">
+        <div key={rowIndex} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 p-4">
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
             {[...Array(columns)].map((_, colIndex) => (
               <SkeletonLine 
@@ -167,12 +167,12 @@ export function LoadingQuestions() {
   return (
     <div className="space-y-4">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-white rounded-lg border p-6">
+        <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <SkeletonLine width="full" height="6" className="mb-4" />
           <div className="space-y-2">
             {[...Array(4)].map((_, j) => (
               <div key={j} className="flex items-center space-x-3">
-                <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+                <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                 <SkeletonLine width="3/4" />
               </div>
             ))}
@@ -196,11 +196,11 @@ export function LoadingError({
 }) {
   return (
     <div className="text-center py-12">
-      <div className="bg-red-100 p-4 rounded-full inline-block mb-4">
-        <AlertTriangle className="w-8 h-8 text-red-600" />
+      <div className="bg-red-100 dark:bg-red-900/20 p-4 rounded-full inline-block mb-4">
+        <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600 mb-6">{message}</p>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>
+      <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
       {showRetry && onRetry && (
         <LoadingButton onClick={onRetry} variant="outline">
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -233,13 +233,13 @@ export function ProtectedRoute({ children, requiredRole = null }) {
   // Verificar role se especificado
   if (requiredRole && user?.role !== requiredRole) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="bg-red-100 p-4 rounded-full inline-block mb-4">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
+          <div className="bg-red-100 dark:bg-red-900/20 p-4 rounded-full inline-block mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             Você não tem permissão para acessar esta página.
           </p>
           <LoadingButton 

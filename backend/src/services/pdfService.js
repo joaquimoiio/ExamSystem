@@ -32,7 +32,7 @@ class PDFService {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -76,7 +76,7 @@ class PDFService {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -122,7 +122,7 @@ class PDFService {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -163,7 +163,7 @@ class PDFService {
   /**
    * Generate complete PDF with all exam variations
    */
-  async generateAllVariationsPDF(exam, variations, examHeader, outputPath) {
+  async generateAllVariationsPDF(exam, variations, examHeader, outputPath, layout = 'single') {
     return new Promise(async (resolve, reject) => {
       try {
         console.log('🔄 PDFService: Iniciando geração de PDF');
@@ -173,7 +173,7 @@ class PDFService {
 
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -185,13 +185,40 @@ class PDFService {
           const variation = variations[i];
           
           // Use questions already loaded with include
-          const questions = variation.examQuestions?.map(eq => ({
-            ...eq.question,
-            examQuestionOrder: eq.questionOrder,
-            examPoints: eq.points
-          })) || [];
+          const questions = variation.examQuestions?.map(eq => {
+            if (!eq.question) {
+              console.error(`❌ Questão sem dados: examQuestionId=${eq.id}, questionId=${eq.questionId}`);
+              return null;
+            }
+            
+            // Get question data from the nested question object
+            const question = eq.question.dataValues || eq.question;
+            
+            return {
+              ...question,
+              examQuestionOrder: eq.questionOrder,
+              examPoints: eq.points,
+              shuffledAlternatives: eq.shuffledAlternatives,
+              // Keep the full examQuestion object for reference
+              examQuestion: eq
+            };
+          }).filter(q => q !== null) || [];
           
           console.log(`🔄 Processando variação ${variation.variationNumber} com ${questions.length} questões`);
+          
+          // Debug: Log first question structure
+          if (questions.length > 0) {
+            const firstQ = questions[0];
+            console.log(`🔍 Primeira questão da variação ${variation.variationNumber}:`, {
+              id: firstQ.id,
+              title: firstQ.title,
+              text: firstQ.text,
+              hasText: !!firstQ.text,
+              textLength: firstQ.text ? firstQ.text.length : 0,
+              alternatives: firstQ.alternatives ? firstQ.alternatives.length : 0,
+              originalExamQuestion: !!firstQ.examQuestion
+            });
+          }
           
           if (questions.length === 0) {
             console.log(`⚠️  Pulando variação ${variation.variationNumber} - sem questões`);
@@ -211,7 +238,7 @@ class PDFService {
             await this.addQRCodeAndAnswerKey(doc, exam, variation, questions);
             
             // Add questions
-            await this.addExamQuestions(doc, questions);
+            await this.addExamQuestions(doc, questions, layout);
             
             processedVariations++;
             console.log(`✅ Variação ${variation.variationNumber} processada`);
@@ -257,12 +284,12 @@ class PDFService {
   /**
    * Generate complete exam PDF with questions, QR code and answer key
    */
-  async generateExamPDF(exam, variation, questions, examHeader, outputPath) {
+  async generateExamPDF(exam, variation, questions, examHeader, outputPath, layout = 'single') {
     return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -275,7 +302,7 @@ class PDFService {
         await this.addQRCodeAndAnswerKey(doc, exam, variation, questions);
         
         // Add questions
-        await this.addExamQuestions(doc, questions);
+        await this.addExamQuestions(doc, questions, layout);
         
         // Add footer
         this.addFooter(doc);
@@ -303,7 +330,7 @@ class PDFService {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -708,19 +735,34 @@ class PDFService {
   addFooter(doc) {
     const pages = doc.bufferedPageRange();
     
+    // Ensure we have valid page range
+    if (!pages || pages.count === 0) {
+      console.log('⚠️ No pages in PDF buffer to add footer');
+      return;
+    }
+    
+    console.log(`📄 Adding footer to ${pages.count} pages (range: ${pages.start} to ${pages.start + pages.count - 1})`);
+    
     for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
+      const pageIndex = pages.start + i;
       
-      // Footer line
-      doc.moveTo(50, 770)
-         .lineTo(550, 770)
-         .stroke();
-      
-      // Footer text
-      doc.fontSize(8).font(this.fonts.regular);
-      doc.text('Generated by Exam System', 50, 780);
-      doc.text(`Generated on ${formatDateBR(new Date())}`, 50, 790);
-      doc.text(`Page ${i + 1} of ${pages.count}`, 500, 780);
+      try {
+        doc.switchToPage(pageIndex);
+        
+        // Footer line
+        doc.moveTo(50, 770)
+           .lineTo(550, 770)
+           .stroke();
+        
+        // Footer text
+        doc.fontSize(8).font(this.fonts.regular);
+        doc.text('Generated by Exam System', 50, 780);
+        doc.text(`Generated on ${formatDateBR(new Date())}`, 50, 790);
+        doc.text(`Page ${i + 1} of ${pages.count}`, 500, 780);
+      } catch (error) {
+        console.error(`❌ Error adding footer to page ${pageIndex}:`, error.message);
+        // Continue with other pages
+      }
     }
   }
 
@@ -778,7 +820,7 @@ class PDFService {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margin: 50
+          margin: 30
         });
 
         const stream = fs.createWriteStream(outputPath);
@@ -882,274 +924,495 @@ class PDFService {
    * Add exam header section with variation info
    */
   async addExamHeaderWithVariation(doc, examHeader, exam, variation) {
-    let y = 50;
+    let y = 40; // Reduzido de 50 para 40
+    
+    // Ensure examHeader is not null/undefined
+    const header = examHeader || {};
     
     // School info
-    doc.fontSize(16).font(this.fonts.bold);
-    doc.text(examHeader.schoolName || 'Escola', 50, y, { align: 'center' });
+    doc.fontSize(12).font(this.fonts.bold); // Reduzido de 16 para 12
+    doc.text(header.schoolName || 'Escola', 50, y, { align: 'center' });
     
-    y += 25;
-    doc.fontSize(12).font(this.fonts.regular);
+    y += 16; // Reduzido de 25 para 16
+    doc.fontSize(10).font(this.fonts.regular); // Reduzido de 12 para 10
     // Garantir que a disciplina seja exibida corretamente
-    const subjectName = exam.subject?.name || examHeader.subjectName || 'Disciplina não informada';
+    const subjectName = exam.subject?.name || header.subjectName || 'Disciplina não informada';
     doc.text(`Disciplina: ${subjectName}`, 50, y);
-    doc.text(`Ano: ${examHeader.year || new Date().getFullYear()}`, 350, y);
+    doc.text(`Ano: ${header.year || new Date().getFullYear()}`, 350, y);
     
-    y += 20;
+    y += 14; // Reduzido de 20 para 14
     doc.text(`Prova: ${exam.title}`, 50, y);
     doc.text(`Variação: ${variation.variationNumber}`, 350, y);
     
-    y += 20;
+    y += 14; // Reduzido de 20 para 14
     doc.text(`Data: ___/___/______`, 50, y);
     // Removed time limit since it's a physical PDF exam
     
     // Student info section
-    y += 30;
-    doc.fontSize(10).font(this.fonts.regular);
+    y += 18; // Reduzido de 30 para 18
+    doc.fontSize(9).font(this.fonts.regular); // Reduzido de 10 para 9
     doc.text('Nome: _________________________________________________ Turma: _______', 50, y);
     
-    y += 20;
-    doc.text('Matrícula: ________________________ Data de Nascimento: ___/___/______', 50, y);
     
     // Evaluation criteria
-    if (examHeader.evaluationCriteria) {
-      y += 25;
-      doc.fontSize(9).font(this.fonts.bold);
+    if (header.evaluationCriteria) {
+      y += 16; // Reduzido de 25 para 16
+      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
       doc.text('Critérios de Avaliação:', 50, y);
-      y += 12;
-      doc.fontSize(8).font(this.fonts.regular);
-      const lines = examHeader.evaluationCriteria.split('\n');
+      y += 10; // Reduzido de 12 para 10
+      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
+      const lines = header.evaluationCriteria.split('\n');
       lines.forEach(line => {
         doc.text(line, 50, y);
-        y += 10;
+        y += 8; // Reduzido de 10 para 8
       });
     }
     
     // Instructions
-    if (examHeader.instructions) {
-      y += 15;
-      doc.fontSize(9).font(this.fonts.bold);
+    if (header.instructions) {
+      y += 14; // Reduzido de 20 para 14
+      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
       doc.text('Instruções:', 50, y);
-      y += 12;
-      doc.fontSize(8).font(this.fonts.regular);
-      const lines = examHeader.instructions.split('\n');
+      
+      // Removed separator line after instructions title
+      y += 10; // Reduzido de 12 para 10
+      
+      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
+      const lines = header.instructions.split('\n');
+      
       lines.forEach(line => {
         doc.text(line, 50, y);
-        y += 10;
+        y += 10; // Reduzido de 12 para 10
       });
+      
+      // Removed bottom separator line after instructions text
+      y += 10; // Reduzido de 15 para 10
     }
     
     // Separator line
-    y += 15;
+    y += 10; // Reduzido de 15 para 10
     doc.moveTo(50, y)
        .lineTo(550, y)
        .stroke();
     
-    return y + 10;
+    return y + 8; // Reduzido de 10 para 8
   }
 
   /**
    * Add exam header section
    */
   async addExamHeader(doc, examHeader, exam) {
-    let y = 50;
+    let y = 40; // Reduzido de 50 para 40
+    
+    // Ensure examHeader is not null/undefined
+    const header = examHeader || {};
     
     // School info
-    doc.fontSize(16).font(this.fonts.bold);
-    doc.text(examHeader.schoolName || 'Escola', 50, y, { align: 'center' });
+    doc.fontSize(12).font(this.fonts.bold); // Reduzido de 16 para 12
+    doc.text(header.schoolName || 'Escola', 50, y, { align: 'center' });
     
-    y += 25;
-    doc.fontSize(12).font(this.fonts.regular);
+    y += 16; // Reduzido de 25 para 16
+    doc.fontSize(10).font(this.fonts.regular); // Reduzido de 12 para 10
     // Garantir que a disciplina seja exibida corretamente
-    const subjectName = exam.subject?.name || examHeader.subjectName || 'Disciplina não informada';
+    const subjectName = exam.subject?.name || header.subjectName || 'Disciplina não informada';
     doc.text(`Disciplina: ${subjectName}`, 50, y);
-    doc.text(`Ano: ${examHeader.year || new Date().getFullYear()}`, 350, y);
+    doc.text(`Ano: ${header.year || new Date().getFullYear()}`, 350, y);
     
-    y += 20;
+    y += 14; // Reduzido de 20 para 14
     doc.text(`Prova: ${exam.title}`, 50, y);
     doc.text(`Variação: ${exam.variationNumber || 'A'}`, 350, y);
     
-    y += 20;
+    y += 14; // Reduzido de 20 para 14
     doc.text(`Data: ___/___/______`, 50, y);
     // Removed time limit since it's a physical PDF exam
     
     // Student info section
-    y += 30;
-    doc.fontSize(10).font(this.fonts.regular);
+    y += 18; // Reduzido de 30 para 18
+    doc.fontSize(9).font(this.fonts.regular); // Reduzido de 10 para 9
     doc.text('Nome: _________________________________________________ Turma: _______', 50, y);
     
-    y += 20;
-    doc.text('Matrícula: ________________________ Data de Nascimento: ___/___/______', 50, y);
     
     // Evaluation criteria
-    if (examHeader.evaluationCriteria) {
-      y += 25;
-      doc.fontSize(9).font(this.fonts.bold);
+    if (header.evaluationCriteria) {
+      y += 16; // Reduzido de 25 para 16
+      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
       doc.text('Critérios de Avaliação:', 50, y);
-      y += 12;
-      doc.fontSize(8).font(this.fonts.regular);
-      const lines = examHeader.evaluationCriteria.split('\n');
+      y += 10; // Reduzido de 12 para 10
+      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
+      const lines = header.evaluationCriteria.split('\n');
       lines.forEach(line => {
         doc.text(line, 50, y);
-        y += 10;
+        y += 8; // Reduzido de 10 para 8
       });
     }
     
     // Instructions
-    if (examHeader.instructions) {
-      y += 15;
-      doc.fontSize(9).font(this.fonts.bold);
+    if (header.instructions) {
+      y += 14; // Reduzido de 20 para 14
+      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
       doc.text('Instruções:', 50, y);
-      y += 12;
-      doc.fontSize(8).font(this.fonts.regular);
-      const lines = examHeader.instructions.split('\n');
+      
+      // Removed separator line after instructions title
+      y += 10; // Reduzido de 12 para 10
+      
+      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
+      const lines = header.instructions.split('\n');
+      
       lines.forEach(line => {
         doc.text(line, 50, y);
-        y += 10;
+        y += 10; // Reduzido de 12 para 10
       });
+      
+      // Removed bottom separator line after instructions text
+      y += 10; // Reduzido de 15 para 10
     }
     
     // Separator line
-    y += 15;
+    y += 10; // Reduzido de 15 para 10
     doc.moveTo(50, y)
        .lineTo(550, y)
        .stroke();
     
-    return y + 10;
+    return y + 8; // Reduzido de 10 para 8
   }
 
   /**
-   * Add visual answer grid with circles for A, B, C, D, E options
+   * Add visual answer grid positioned to the right of QR code
+   * This creates BLANK circles for students to fill in their answers
+   */
+  addVisualAnswerGridSideways(doc, examQuestions, startX, startY) {
+    let y = startY;
+    
+    doc.fontSize(10).font(this.fonts.bold);
+    doc.text('GABARITO', startX, y);
+    
+    y += 15;
+    doc.fontSize(8).font(this.fonts.regular);
+    doc.text('Preencha completamente o círculo', startX, y);
+    doc.text('correspondente à sua resposta', startX, y + 10);
+    
+    y += 30;
+    
+    // Store initial Y position and calculate estimated final position
+    const initialY = y - 10;
+    const cornerSize = 8;
+    const endX = startX + 220; // Width of the answer grid
+    
+    // Top-left and top-right corners
+    doc.rect(startX - 20, initialY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    doc.rect(endX - cornerSize, initialY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    
+    // Table header
+    doc.fontSize(9).font(this.fonts.bold);
+    doc.text('Q', startX, y); // Question column header
+    doc.text('A', startX + 30, y);
+    doc.text('B', startX + 55, y);
+    doc.text('C', startX + 80, y);
+    doc.text('D', startX + 105, y);
+    doc.text('E', startX + 130, y);
+    
+    y += 15;
+    
+    // Header separator line (removed)
+    y += 10;
+    
+    const rowHeight = 15;
+    const questionColumn = startX;
+    const alternativeColumns = [startX + 30, startX + 55, startX + 80, startX + 105, startX + 130]; // A, B, C, D, E positions
+    
+    examQuestions.forEach((examQuestion, index) => {
+      const questionNum = index + 1;
+      
+      // Check if we need a new page (keeping same logic)
+      if (y > 720) {
+        doc.addPage();
+        y = 50;
+        
+        // Repeat header on new page
+        doc.fontSize(10).font(this.fonts.bold);
+        doc.text('GABARITO (continuação)', startX, y);
+        y += 25;
+        
+        doc.fontSize(9).font(this.fonts.bold);
+        doc.text('Q', startX, y);
+        doc.text('A', startX + 30, y);
+        doc.text('B', startX + 55, y);
+        doc.text('C', startX + 80, y);
+        doc.text('D', startX + 105, y);
+        doc.text('E', startX + 130, y);
+        y += 15;
+        
+        // Removed separator line below header
+        y += 10;
+      }
+      
+      // Question number
+      doc.fontSize(9).font(this.fonts.regular);
+      doc.text(`${questionNum}`, questionColumn, y);
+      
+      // Draw EMPTY circles for each alternative (A, B, C, D, E) for student to fill
+      const options = ['A', 'B', 'C', 'D', 'E'];
+      options.forEach((option, optIndex) => {
+        const optX = alternativeColumns[optIndex];
+        const optY = y + 3;
+        
+        // Always draw empty circles - student will fill them in
+        doc.circle(optX, optY, 4).stroke();
+      });
+      
+      y += rowHeight;
+      
+      // Add a light separator line every 5 questions for better readability
+      if ((index + 1) % 5 === 0) {
+        doc.strokeOpacity(0.3);
+        doc.moveTo(startX - 5, y + 2).lineTo(startX + 150, y + 2).stroke();
+        doc.strokeOpacity(1);
+        y += 5;
+      }
+    });
+    
+    // Final border
+    doc.moveTo(startX - 5, y + 5).lineTo(startX + 150, y + 5).stroke();
+    
+    // Draw bottom reference squares now that we know the final position
+    const finalY = y + 10;
+    doc.rect(startX - 20, finalY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    doc.rect(endX - cornerSize, finalY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    
+    return y + 20;
+  }
+
+  /**
+   * Add visual answer grid in table format with question numbers vertically and alternatives horizontally
+   * This creates BLANK circles for students to fill in their answers
    */
   addVisualAnswerGrid(doc, examQuestions) {
     let y = doc.y;
     
     doc.fontSize(10).font(this.fonts.bold);
-    doc.text('GABARITO - Preencha completamente o círculo da alternativa correta:', 50, y);
+    doc.text('GABARITO', 50, y);
     
-    y += 20;
+    y += 15;
+    doc.fontSize(8).font(this.fonts.regular);
+    doc.text('Preencha completamente o círculo correspondente à sua resposta', 50, y);
     
-    const questionsPerRow = 5;
-    const questionWidth = 100;
-    const rowHeight = 45;
+    y += 25;
+    
+    // Store initial Y position and calculate estimated final position
+    const initialY = y - 10;
+    const estimatedRows = examQuestions.length + Math.floor(examQuestions.length / 5); // Add separator lines
+    const estimatedFinalY = y + (estimatedRows * 15) + 30;
+    
+    // Draw top reference squares immediately
+    const cornerSize = 8;
+    const startX = 30;
+    const endX = 220;
+    
+    // Top-left and top-right corners
+    doc.rect(startX, initialY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    doc.rect(endX - cornerSize, initialY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    
+    // Table header
+    doc.fontSize(9).font(this.fonts.bold);
+    doc.text('Q', 50, y); // Question column header
+    doc.text('A', 80, y);
+    doc.text('B', 105, y);
+    doc.text('C', 130, y);
+    doc.text('D', 155, y);
+    doc.text('E', 180, y);
+    
+    y += 15;
+    
+    // Removed header separator line
+    y += 10;
+    
+    const rowHeight = 15;
+    const questionColumn = 50;
+    const alternativeColumns = [80, 105, 130, 155, 180]; // A, B, C, D, E positions
     
     examQuestions.forEach((examQuestion, index) => {
       const questionNum = index + 1;
-      const row = Math.floor(index / questionsPerRow);
-      const col = index % questionsPerRow;
-      
-      const x = 50 + (col * questionWidth);
-      const questionY = y + (row * rowHeight);
       
       // Check if we need a new page
-      if (questionY > 700) {
+      if (y > 720) {
         doc.addPage();
         y = 50;
-        const newRow = Math.floor(index / questionsPerRow) - Math.floor(examQuestions.length / questionsPerRow);
-        const questionY = y + (newRow * rowHeight);
+        
+        // Repeat header on new page
+        doc.fontSize(10).font(this.fonts.bold);
+        doc.text('GABARITO (continuação)', 50, y);
+        y += 25;
+        
+        doc.fontSize(9).font(this.fonts.bold);
+        doc.text('Q', 50, y);
+        doc.text('A', 80, y);
+        doc.text('B', 105, y);
+        doc.text('C', 130, y);
+        doc.text('D', 155, y);
+        doc.text('E', 180, y);
+        y += 15;
+        
+        doc.moveTo(45, y).lineTo(200, y).stroke();
+        y += 10;
       }
       
       // Question number
-      doc.fontSize(9).font(this.fonts.bold);
-      doc.text(`${questionNum}.`, x + 20, questionY);
+      doc.fontSize(9).font(this.fonts.regular);
+      doc.text(`${questionNum}`, questionColumn, y);
       
-      // Answer options with circles (A, B, C, D, E)
+      // Draw EMPTY circles for each alternative (A, B, C, D, E) for student to fill
       const options = ['A', 'B', 'C', 'D', 'E'];
       options.forEach((option, optIndex) => {
-        const optX = x + 5 + (optIndex * 15);
-        const optY = questionY + 15;
+        const optX = alternativeColumns[optIndex];
+        const optY = y + 3;
         
-        // Draw circle for answer
+        // Always draw empty circles - student will fill them in
         doc.circle(optX, optY, 4).stroke();
-        
-        // Option letter below circle
-        doc.fontSize(7).font(this.fonts.regular);
-        doc.text(option, optX - 2, optY + 6);
       });
+      
+      y += rowHeight;
+      
+      // Add a light separator line every 5 questions for better readability
+      if ((index + 1) % 5 === 0) {
+        doc.strokeOpacity(0.3);
+        doc.moveTo(45, y + 2).lineTo(200, y + 2).stroke();
+        doc.strokeOpacity(1);
+        y += 5;
+      }
     });
     
-    const totalRows = Math.ceil(examQuestions.length / questionsPerRow);
-    return y + (totalRows * rowHeight) + 20;
+    // Final border
+    doc.moveTo(45, y + 5).lineTo(200, y + 5).stroke();
+    
+    // Draw bottom reference squares now that we know the final position
+    const finalY = y + 10;
+    doc.rect(startX, finalY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    doc.rect(endX - cornerSize, finalY, cornerSize, cornerSize).fillAndStroke('black', 'black');
+    
+    return y + 20;
   }
+
 
   /**
    * Add QR code and visual answer key section with shuffled alternatives support
    */
   async addQRCodeAndAnswerKey(doc, exam, variation, examQuestions) {
     let y = doc.y || 200;
+    const startY = y;
+    
+    // Add separator line before QR code and answer grid section
+    doc.lineWidth(1);
+    doc.moveTo(50, y - 10)
+       .lineTo(550, y - 10)
+       .stroke();
+    
+    // Add some spacing after the separator line
+    y += 15;
     
     // Generate QR code with answer key (including shuffled alternatives)
     const qrResult = await qrService.generateAnswerKeyQR(exam, variation, examQuestions);
     const qrBuffer = await qrService.generateQRBuffer(JSON.stringify(qrResult.qrData), { width: 120 });
     
-    // Generate visual answer key with correct answers for shuffled alternatives
-    const visualAnswerKey = qrService.generateVisualAnswerKeyFromExamQuestions(examQuestions);
+    // QR Code section - LEFT SIDE
+    // (removed "GABARITO DO PROFESSOR" text as requested)
     
-    // QR Code section title
-    doc.fontSize(10).font(this.fonts.bold);
-    doc.text('Gabarito para Correção:', 50, y);
-    
-    y += 20;
-    
-    // Add QR code image
+    // Add QR code image on the left
     doc.image(qrBuffer, 50, y, { width: 80, height: 80 });
     
-    // Instructions next to QR code
+    // Instructions below QR code
     doc.fontSize(8).font(this.fonts.regular);
-    doc.text('Escaneie para correção', 50, y + 85);
-    doc.text(`Variação: ${variation.variationNumber}`, 50, y + 95);
+    doc.text('Professor: Escaneie este', 50, y + 85);
+    doc.text('QR Code para correção', 50, y + 95);
+    doc.text('automática', 50, y + 105);
+    doc.text(`Variação: ${variation.variationNumber}`, 50, y + 115);
     
-    // Add visual answer grid with circles
-    doc.y = y + 110;
-    doc.y = this.addVisualAnswerGrid(doc, examQuestions);
-    y = doc.y;
+    // FOLHA DE RESPOSTAS section - RIGHT SIDE
+    const answersStartX = 180; // Position with proper spacing from QR code
+    const answersStartY = startY;
     
-    // Separator line
-    y += 25;
-    doc.moveTo(50, y)
-       .lineTo(550, y)
+    // Call modified addVisualAnswerGrid that will handle positioning
+    const finalY = this.addVisualAnswerGridSideways(doc, examQuestions, answersStartX, answersStartY);
+    
+    // Calculate final Y position (max between QR section and answer grid)
+    const qrFinalY = y + 130;
+    const maxY = Math.max(qrFinalY, finalY);
+    
+    // Add extra spacing to separate from questions section
+    const separatedY = maxY + 45;
+    
+    // Stronger separator line with more visual emphasis
+    doc.lineWidth(1.5);
+    doc.moveTo(50, separatedY)
+       .lineTo(550, separatedY)
        .stroke();
+    doc.lineWidth(1); // Reset line width
     
-    return y + 10;
+    // Clean separator without decorative elements
+    
+    // Set doc.y to ensure questions start below this section with more space
+    doc.y = separatedY + 25;
+    
+    return separatedY + 15;
   }
 
   /**
-   * Add exam questions section with support for shuffled alternatives
+   * Add exam questions section with support for shuffled alternatives and column layout
    */
-  async addExamQuestions(doc, examQuestions) {
-    let y = doc.y || 300;
+  async addExamQuestions(doc, examQuestions, layout = 'single') {
+    // Use the current doc.y position set by previous sections
+    let y = doc.y;
     
-    doc.fontSize(12).font(this.fonts.bold);
+    // Ensure we have a minimum Y position (fallback)
+    if (!y || y < 350) {
+      y = 350;
+    }
+    
+    // Section title with more visual emphasis
+    doc.fontSize(14).font(this.fonts.bold);
     doc.text('QUESTÕES:', 50, y);
     
-    y += 25;
+    // Add underline for QUESTÕES title
+    doc.lineWidth(1);
+    doc.moveTo(50, y + 16)
+       .lineTo(130, y + 16)
+       .stroke();
     
+    y += 45; // More spacing between header and first question
+    
+    if (layout === 'double') {
+      return this.addExamQuestionsDoubleColumn(doc, examQuestions, y);
+    }
+    
+    // Single column layout (original)
     examQuestions.forEach((examQuestion, index) => {
-      // Get question data - either from examQuestion.question or directly
-      const question = examQuestion.question || examQuestion;
+      // Get question data - examQuestion is now the flattened question with all properties
+      const question = examQuestion;
       
-      // Use shuffled alternatives if available
+      // Use shuffled alternatives if available, otherwise use original
       let alternatives = question.alternatives;
-      if (examQuestion.shuffledAlternatives && examQuestion.shuffledAlternatives.alternatives) {
-        alternatives = examQuestion.shuffledAlternatives.alternatives;
+      if (question.shuffledAlternatives && question.shuffledAlternatives.alternatives) {
+        alternatives = question.shuffledAlternatives.alternatives;
         console.log(`🔀 Using shuffled alternatives for question ${question.id}`);
       }
       
-      // Estimate space needed for this question
-      const questionLines = (question.text || question.title || '').split('\n');
-      const alternativesCount = alternatives ? alternatives.filter(alt => alt && alt.trim()).length : 0;
-      const estimatedLines = questionLines.length + alternativesCount + 6; // Header + spaces
-      const estimatedHeight = estimatedLines * 12;
+      console.log(`🔍 Questão ${index + 1}:`, {
+        id: question.id,
+        title: question.title,
+        text: question.text,
+        hasAlternatives: alternatives && alternatives.length > 0,
+        alternativesCount: alternatives ? alternatives.length : 0
+      });
       
-      // Check if we need a new page
-      if (y + estimatedHeight > 750) {
+      // Simple space check - if we're too close to bottom, start new page
+      const pageBottomMargin = 100; // Leave space at bottom
+      if (y > 800 - pageBottomMargin) {
         doc.addPage();
         y = 50;
         
         // Add header again on new page
         doc.fontSize(12).font(this.fonts.bold);
-        doc.text('QUESTÕES (continuação):', 50, y);
-        y += 25;
+        doc.text('QUESTÕES:', 50, y);
+        y += 25; // Reduced spacing
       }
       
       // Question number and title
@@ -1157,59 +1420,79 @@ class PDFService {
       const questionHeader = `${index + 1}. ${question.title || `Questão ${index + 1}`}`;
       doc.text(questionHeader, 50, y);
       
-      // Points - use exam-specific points if available
-      const points = examQuestion.points || question.points;
-      if (points) {
-        doc.text(`(${points} pts)`, 450, y);
-      }
+      // Points removed from student PDF - only shown in teacher's answer key
+      // const points = examQuestion.points || question.points;
+      // Points will be visible only in the teacher's answer key section
       
-      y += 15;
+      y += 12; // Reduced spacing from 20 to 12
       
       // Question text - garantir que o enunciado apareça
       doc.fontSize(9).font(this.fonts.regular);
       let text = '';
       
+      // Debug: log question properties
+      console.log(`🔍 Debug Questão ${index + 1}:`, {
+        hasText: !!question.text,
+        textValue: question.text,
+        hasTitle: !!question.title,
+        titleValue: question.title,
+        hasStatement: !!question.statement,
+        questionKeys: Object.keys(question)
+      });
+      
       // Priorizar question.text, depois question.statement, depois question.title
-      if (question.text && question.text.trim()) {
+      if (question.text && typeof question.text === 'string' && question.text.trim()) {
         text = question.text.trim();
-      } else if (question.statement && question.statement.trim()) {
+      } else if (question.statement && typeof question.statement === 'string' && question.statement.trim()) {
         text = question.statement.trim();
-      } else if (question.title && question.title.trim()) {
+      } else if (question.title && typeof question.title === 'string' && question.title.trim()) {
         text = question.title.trim();
       } else {
         text = 'Texto da questão não disponível';
+        console.error(`❌ Questão ${index + 1} sem texto válido:`, {
+          text: question.text,
+          statement: question.statement,  
+          title: question.title,
+          id: question.id
+        });
       }
       
-      console.log(`📝 Questão ${index + 1}: ${text.substring(0, 50)}...`);
+      console.log(`📝 Questão ${index + 1}: "${text.substring(0, 50)}..." (${text.length} chars)`);
       
-      const textLines = text.split('\n');
-      textLines.forEach(line => {
-        // Check for line wrap
-        if (line.length > 80) {
-          const words = line.split(' ');
-          let currentLine = '';
-          
-          words.forEach(word => {
-            if (currentLine.length + word.length > 75) {
-              doc.text(currentLine, 50, y);
-              y += 12;
-              currentLine = word + ' ';
-            } else {
-              currentLine += word + ' ';
-            }
-          });
-          
-          if (currentLine.trim()) {
-            doc.text(currentLine, 50, y);
-            y += 12;
-          }
-        } else {
-          doc.text(line, 50, y);
-          y += 12;
-        }
-      });
+      // Render text using PDFKit's automatic text wrapping
+      const maxTextWidth = 500;
+      const textOptions = {
+        width: maxTextWidth,
+        align: 'left',
+        lineGap: 2
+      };
       
-      y += 8;
+      // Check if we need a new page before rendering text
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+        doc.fontSize(12).font(this.fonts.bold);
+        doc.text('QUESTÕES (continuação):', 50, y);
+        y += 25;
+        doc.fontSize(9).font(this.fonts.regular);
+      }
+      
+      // Render the complete text in one call - let PDFKit handle wrapping
+      const textHeight = doc.heightOfString(text, textOptions);
+      
+      // Final check if text will fit on current page
+      if (y + textHeight > 750) {
+        doc.addPage();
+        y = 50;
+        doc.fontSize(12).font(this.fonts.bold);
+        doc.text('QUESTÕES (continuação):', 50, y);
+        y += 25;
+        doc.fontSize(9).font(this.fonts.regular);
+      }
+      
+      // Render the text
+      doc.text(text, 50, y, textOptions);
+      y += textHeight + 8; // Add gap after text
       
       // Question type specific content - garantir que alternativas apareçam
       if (question.type === 'multiple_choice') {
@@ -1230,37 +1513,40 @@ class PDFService {
           const letters = ['A', 'B', 'C', 'D', 'E'];
           validAlternatives.forEach((alternative, altIndex) => {
             if (altIndex < 5) { // Máximo 5 alternativas (A-E)
-              // Check if we need a new page for alternatives
+              const altText = `${letters[altIndex]}) ${alternative.trim()}`;
+              
+              // Check if we need a new page before each alternative
               if (y > 720) {
                 doc.addPage();
                 y = 50;
+                doc.fontSize(12).font(this.fonts.bold);
+                doc.text('QUESTÕES (continuação):', 50, y);
+                y += 25;
+                doc.fontSize(9).font(this.fonts.regular);
               }
               
-              const altText = `${letters[altIndex]}) ${alternative.trim()}`;
+              // Render alternative using PDFKit's automatic wrapping
+              const altOptions = {
+                width: 480,
+                align: 'left',
+                indent: 10
+              };
               
-              // Handle long alternatives
-              if (altText.length > 75) {
-                const words = altText.split(' ');
-                let currentLine = words[0] + ' '; // Start with A), B), etc.
-                
-                for (let i = 1; i < words.length; i++) {
-                  if (currentLine.length + words[i].length > 70) {
-                    doc.text(currentLine, 60, y);
-                    y += 12;
-                    currentLine = '   ' + words[i] + ' '; // Indent continuation
-                  } else {
-                    currentLine += words[i] + ' ';
-                  }
-                }
-                
-                if (currentLine.trim()) {
-                  doc.text(currentLine, 60, y);
-                  y += 12;
-                }
-              } else {
-                doc.text(altText, 60, y);
-                y += 12;
+              const altHeight = doc.heightOfString(altText, altOptions);
+              
+              // Final check if alternative will fit
+              if (y + altHeight > 750) {
+                doc.addPage();
+                y = 50;
+                doc.fontSize(12).font(this.fonts.bold);
+                doc.text('QUESTÕES (continuação):', 50, y);
+                y += 25;
+                doc.fontSize(9).font(this.fonts.regular);
               }
+              
+              // Render the alternative
+              doc.text(altText, 60, y, altOptions);
+              y += altHeight + 3; // Small gap between alternatives
             }
           });
         } else {
@@ -1291,10 +1577,262 @@ class PDFService {
         }
       }
       
-      y += 15; // Space between questions
+      y += 8; // Reduced space between questions from 15 to 8
     });
     
     return y;
+  }
+
+  /**
+   * Add exam questions in double column layout
+   */
+  async addExamQuestionsDoubleColumn(doc, examQuestions, startY) {
+    let y = startY;
+    const leftColumnX = 50;
+    const rightColumnX = 310;
+    const columnWidth = 240;
+    
+    let currentColumn = 'left';
+    let leftColumnY = y;
+    let rightColumnY = y;
+    
+    examQuestions.forEach((examQuestion, index) => {
+      const question = examQuestion;
+      
+      // Use shuffled alternatives if available, otherwise use original
+      let alternatives = question.alternatives;
+      if (question.shuffledAlternatives && question.shuffledAlternatives.alternatives) {
+        alternatives = question.shuffledAlternatives.alternatives;
+      }
+      
+      // Simple space check for double column
+      const pageBottomMargin = 120; // More margin for double column
+      
+      // Determine which column to use and current Y position
+      let currentX, currentY;
+      if (currentColumn === 'left') {
+        currentX = leftColumnX;
+        currentY = leftColumnY;
+        
+        // Check if question fits in current page for left column  
+        if (currentY > 800 - pageBottomMargin) {
+          doc.addPage();
+          leftColumnY = 50;
+          rightColumnY = 50;
+          currentY = leftColumnY;
+          
+          // Add header again on new page
+          doc.fontSize(12).font(this.fonts.bold);
+          doc.text('QUESTÕES:', 50, 50);
+          leftColumnY += 35;
+          rightColumnY += 35;
+          currentY = leftColumnY;
+        }
+      } else {
+        currentX = rightColumnX;
+        currentY = rightColumnY;
+        
+        // Check if question fits in current page for right column
+        if (currentY > 800 - pageBottomMargin) {
+          // Move to left column of next page
+          doc.addPage();
+          leftColumnY = 50;
+          rightColumnY = 50;
+          currentColumn = 'left';
+          currentX = leftColumnX;
+          currentY = leftColumnY;
+          
+          // Add header again on new page
+          doc.fontSize(12).font(this.fonts.bold);
+          doc.text('QUESTÕES:', 50, 50);
+          leftColumnY += 35;
+          rightColumnY += 35;
+          currentY = leftColumnY;
+        }
+      }
+      
+      // Question number and title
+      doc.fontSize(10).font(this.fonts.bold);
+      const questionHeader = `${index + 1}. ${question.title || `Questão ${index + 1}`}`;
+      
+      // Wrap text to fit column width
+      const wrappedHeader = this.wrapText(doc, questionHeader, columnWidth - 10); // Maximum width - no points needed
+      doc.text(wrappedHeader, currentX, currentY);
+      
+      // Points removed from student PDF - only shown in teacher's answer key
+      // const points = examQuestion.points || question.points;
+      // Points will be visible only in the teacher's answer key section
+      
+      currentY += 12; // Reduced from 20 to 12
+      
+      // Question text
+      doc.fontSize(9).font(this.fonts.regular);
+      let text = '';
+      
+      if (question.text && typeof question.text === 'string' && question.text.trim()) {
+        text = question.text.trim();
+      } else if (question.statement && typeof question.statement === 'string' && question.statement.trim()) {
+        text = question.statement.trim();
+      } else if (question.title && typeof question.title === 'string' && question.title.trim()) {
+        text = question.title.trim();
+      } else {
+        text = 'Texto da questão não disponível';
+      }
+      
+      // Render text using PDFKit's automatic wrapping for double column
+      const textOptions = {
+        width: columnWidth - 10,
+        align: 'left',
+        lineGap: 2
+      };
+      
+      // Check if text will fit in current column
+      const textHeight = doc.heightOfString(text, textOptions);
+      if (currentY + textHeight > 700) {
+        if (currentColumn === 'left') {
+          // Move to right column
+          currentColumn = 'right';
+          currentX = rightColumnX;
+          currentY = rightColumnY;
+        } else {
+          // Move to next page
+          doc.addPage();
+          leftColumnY = 50;
+          rightColumnY = 50;
+          currentColumn = 'left';
+          currentX = leftColumnX;
+          currentY = leftColumnY;
+          
+          // Add header on new page
+          doc.fontSize(12).font(this.fonts.bold);
+          doc.text('QUESTÕES:', 50, 50);
+          leftColumnY += 35;
+          rightColumnY += 35;
+          currentY = leftColumnY;
+          doc.fontSize(9).font(this.fonts.regular);
+        }
+      }
+      
+      // Render the text
+      doc.text(text, currentX, currentY, textOptions);
+      currentY += textHeight + 8;
+      
+      // Question alternatives
+      if (question.type === 'multiple_choice') {
+        const validAlternatives = alternatives?.filter(alt => alt && alt.trim && alt.trim() !== '') || [];
+        
+        if (validAlternatives.length > 0) {
+          const letters = ['A', 'B', 'C', 'D', 'E'];
+          validAlternatives.forEach((alternative, altIndex) => {
+            if (altIndex < 5) {
+              const altText = `${letters[altIndex]}) ${alternative.trim()}`;
+              
+              const altOptions = {
+                width: columnWidth - 20,
+                align: 'left',
+                indent: 10
+              };
+              
+              const altHeight = doc.heightOfString(altText, altOptions);
+              
+              // Check if alternative will fit in current column
+              if (currentY + altHeight > 700) {
+                if (currentColumn === 'left') {
+                  // Move to right column
+                  currentColumn = 'right';
+                  currentX = rightColumnX;
+                  currentY = rightColumnY;
+                } else {
+                  // Move to next page
+                  doc.addPage();
+                  leftColumnY = 50;
+                  rightColumnY = 50;
+                  currentColumn = 'left';
+                  currentX = leftColumnX;
+                  currentY = leftColumnY;
+                  
+                  // Add header on new page
+                  doc.fontSize(12).font(this.fonts.bold);
+                  doc.text('QUESTÕES:', 50, 50);
+                  leftColumnY += 35;
+                  rightColumnY += 35;
+                  currentY = leftColumnY;
+                  doc.fontSize(9).font(this.fonts.regular);
+                }
+              }
+              
+              // Render the alternative
+              doc.text(altText, currentX + 10, currentY, altOptions);
+              currentY += altHeight + 3;
+            }
+          });
+        }
+      } else if (question.type === 'true_false') {
+        doc.text('A) Verdadeiro', currentX + 10, currentY);
+        currentY += 12;
+        doc.text('B) Falso', currentX + 10, currentY);
+        currentY += 12;
+      }
+      
+      currentY += 15; // Space between questions
+      
+      // Update column Y positions and switch columns
+      if (currentColumn === 'left') {
+        leftColumnY = currentY;
+        currentColumn = 'right';
+      } else {
+        rightColumnY = currentY;
+        currentColumn = 'left';
+      }
+    });
+    
+    // Return the maximum Y position
+    return Math.max(leftColumnY, rightColumnY);
+  }
+
+  /**
+   * Wrap text to fit within specified width
+   */
+  wrapText(doc, text, maxWidth) {
+    if (!text || !text.trim()) return '';
+    
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    words.forEach(word => {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const testWidth = doc.widthOfString(testLine);
+      
+      if (testWidth <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // Word is too long for one line, try to break it
+          if (word.length > 20) {
+            // Break very long words
+            const chunks = [];
+            for (let i = 0; i < word.length; i += 15) {
+              chunks.push(word.substring(i, i + 15));
+            }
+            lines.push(...chunks);
+            currentLine = '';
+          } else {
+            lines.push(word);
+            currentLine = '';
+          }
+        }
+      }
+    });
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines.join('\n');
   }
 
   /**

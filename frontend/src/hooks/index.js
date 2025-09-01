@@ -495,6 +495,40 @@ export function useGeneratePDFs() {
   });
 }
 
+export function useRegenerateVariations() {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: (id) => apiService.regenerateVariations(id),
+    onSuccess: (_, examId) => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      queryClient.invalidateQueries({ queryKey: ['exams', examId] });
+      success('Variações regeneradas com sucesso!');
+    },
+    onError: (err) => {
+      error('Erro ao regenerar variações: ' + err.message);
+    },
+  });
+}
+
+export function useUpdateExamQuestions() {
+  const queryClient = useQueryClient();
+  const { success, error } = useToast();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => apiService.updateExamQuestions(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      queryClient.invalidateQueries({ queryKey: ['exams', id] });
+      success('Questões da prova atualizadas com sucesso!');
+    },
+    onError: (err) => {
+      error('Erro ao atualizar questões: ' + err.message);
+    },
+  });
+}
+
 // ================================
 // DASHBOARD HOOKS
 // ================================

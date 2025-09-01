@@ -28,6 +28,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #f9fafb;
   line-height: 1.5;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+/* Dark mode styles */
+.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
 }
 
 /* Scrollbar styles */
@@ -48,6 +55,19 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 /* Custom animations */

@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useApp } from '../../contexts/AppContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
@@ -36,7 +37,7 @@ function Sidebar({ isOpen, onClose }) {
       
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r transform transition-transform duration-300 z-50
+        fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 z-50
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:relative lg:z-auto
       `}>
@@ -48,28 +49,28 @@ function Sidebar({ isOpen, onClose }) {
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-lg">ExamSystem</h1>
-                <p className="text-xs text-gray-500">Sistema de Provas</p>
+                <h1 className="font-bold text-lg text-gray-900 dark:text-white">ExamSystem</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Sistema de Provas</p>
               </div>
             </div>
             
             <button 
               onClick={onClose}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* User Info */}
-          <div className="p-4 border-b">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-3">
-              <div className="bg-primary-100 p-2 rounded-full">
-                <User className="w-5 h-5 text-primary-600" />
+              <div className="bg-primary-100 dark:bg-primary-900 p-2 rounded-full">
+                <User className="w-5 h-5 text-primary-600 dark:text-primary-300" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{user?.name}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{user?.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
               </div>
             </div>
           </div>
@@ -86,8 +87,8 @@ function Sidebar({ isOpen, onClose }) {
                   className={`
                     flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors
                     ${isActive(item.path) 
-                      ? 'bg-primary-100 text-primary-700 font-medium' 
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 font-medium' 
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }
                   `}
                 >
@@ -99,8 +100,8 @@ function Sidebar({ isOpen, onClose }) {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t">
-            <div className="text-xs text-gray-500 text-center">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
               v1.0.0 • Sistema de Provas
             </div>
           </div>
@@ -114,7 +115,8 @@ function Header({ onMenuClick }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAuth();
-  const { offline, theme, setTheme } = useApp();
+  const { offline } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const { success } = useToast();
   const navigate = useNavigate();
 
@@ -124,28 +126,25 @@ function Header({ onMenuClick }) {
     navigate('/login');
   };
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
 
   return (
-    <header className="bg-white border-b h-16 flex items-center justify-between px-4 lg:px-6">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 h-16 flex items-center justify-between px-4 lg:px-6">
       {/* Left side */}
       <div className="flex items-center space-x-4">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* Search */}
         <div className="hidden md:flex relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Buscar..."
-            className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -170,7 +169,7 @@ function Header({ onMenuClick }) {
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
           title={`Mudar para tema ${theme === 'light' ? 'escuro' : 'claro'}`}
         >
           {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
@@ -180,18 +179,18 @@ function Header({ onMenuClick }) {
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors relative text-gray-600 dark:text-gray-300"
           >
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-lg z-50">
-              <div className="p-4 border-b">
-                <h3 className="font-semibold">Notificações</h3>
+            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Notificações</h3>
               </div>
-              <div className="p-4 text-sm text-gray-500 text-center">
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
                 Nenhuma notificação nova
               </div>
             </div>
@@ -202,21 +201,21 @@ function Header({ onMenuClick }) {
         <div className="relative">
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
-            <div className="bg-primary-100 p-1 rounded-full">
-              <User className="w-4 h-4 text-primary-600" />
+            <div className="bg-primary-100 dark:bg-primary-900 p-1 rounded-full">
+              <User className="w-4 h-4 text-primary-600 dark:text-primary-300" />
             </div>
-            <span className="hidden sm:inline text-sm font-medium">{user?.name}</span>
-            <ChevronDown className="w-4 h-4" />
+            <span className="hidden sm:inline text-sm font-medium text-gray-900 dark:text-white">{user?.name}</span>
+            <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
 
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
               <div className="p-2">
                 <Link
                   to="/profile"
-                  className="flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg"
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   onClick={() => setShowProfileMenu(false)}
                 >
                   <User className="w-4 h-4" />
@@ -224,7 +223,7 @@ function Header({ onMenuClick }) {
                 </Link>
                 <Link
                   to="/settings"
-                  className="flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg"
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   onClick={() => setShowProfileMenu(false)}
                 >
                   <Settings className="w-4 h-4" />
@@ -235,18 +234,18 @@ function Header({ onMenuClick }) {
                     setShowProfileMenu(false);
                     // Show help modal or navigate to help
                   }}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg w-full text-left"
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-full text-left"
                 >
                   <HelpCircle className="w-4 h-4" />
                   <span>Ajuda</span>
                 </button>
-                <hr className="my-1" />
+                <hr className="my-1 border-gray-200 dark:border-gray-700" />
                 <button
                   onClick={() => {
                     setShowProfileMenu(false);
                     handleLogout();
                   }}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg w-full text-left text-red-600"
+                  className="flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg w-full text-left text-red-600 dark:text-red-400"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sair</span>
@@ -295,7 +294,7 @@ export default function Layout({ children, showFab = false, fabAction, fabIcon: 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
@@ -304,7 +303,7 @@ export default function Layout({ children, showFab = false, fabAction, fabIcon: 
       <div className="flex-1 flex flex-col">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 bg-gray-50 dark:bg-gray-900 transition-colors">
           {children}
         </main>
       </div>

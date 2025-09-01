@@ -240,8 +240,8 @@ const updateQuestion = catchAsync(async (req, res, next) => {
   const usageCount = await Question.sequelize.query(`
     SELECT COUNT(*) as count 
     FROM exam_questions eq 
-    JOIN exams e ON eq.exam_id = e.id 
-    WHERE eq.question_id = :questionId AND e.is_published = true
+    JOIN exams e ON eq."examId" = e.id 
+    WHERE eq."questionId" = :questionId AND e."isPublished" = true
   `, {
     replacements: { questionId: id },
     type: Question.sequelize.QueryTypes.SELECT

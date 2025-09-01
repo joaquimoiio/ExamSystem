@@ -6,10 +6,11 @@ import {
   CheckCircle, AlertCircle, MoreVertical, 
   Star, BarChart3, Award, Hash
 } from 'lucide-react';
-import { useQuestion, useDeleteQuestion, useUpdateQuestionPoints } from '../../hooks';
+import { useQuestion, useDeleteQuestion, useUpdateQuestionPoints, useUpdateQuestion } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
+import QuestionForm from '../../components/forms/QuestionForm';
 
 const difficultyConfig = {
   easy: { label: 'Fácil', color: 'bg-green-100 text-green-800', icon: '📗' },
@@ -39,6 +40,7 @@ export default function QuestionDetail() {
   const { data: questionData, isLoading, error } = useQuestion(id);
   const deleteQuestionMutation = useDeleteQuestion();
   const updatePointsMutation = useUpdateQuestionPoints();
+  const updateQuestionMutation = useUpdateQuestion();
   
   const question = questionData?.data?.question;
   
@@ -75,6 +77,20 @@ export default function QuestionDetail() {
     }
   };
 
+  const handleUpdateQuestion = async (data) => {
+    try {
+      await updateQuestionMutation.mutateAsync({ id, data });
+      success('Questão atualizada com sucesso!');
+      navigate(`/questions/${id}`); // Remove edit mode
+    } catch (error) {
+      showError(error.message || 'Erro ao atualizar questão');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    navigate(`/questions/${id}`); // Remove edit mode
+  };
+
   if (isLoading) {
     return <LoadingPage title="Carregando questão..." />;
   }
@@ -98,6 +114,32 @@ export default function QuestionDetail() {
   const difficultyInfo = difficultyConfig[question.difficulty] || difficultyConfig.medium;
   const typeInfo = typeConfig[question.type] || typeConfig.multiple_choice;
   const TypeIcon = typeInfo.icon;
+
+  // Render edit mode
+  if (isEditMode) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">Editar Questão</h1>
+          </div>
+        </div>
+        
+        <QuestionForm
+          question={question}
+          onSubmit={handleUpdateQuestion}
+          onCancel={handleCancelEdit}
+          loading={updateQuestionMutation.isPending}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 p-6">

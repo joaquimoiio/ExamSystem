@@ -53,6 +53,7 @@ router.get('/recent', authenticateToken, examController.getRecentExams);
 router.get('/:id', authenticateToken, examController.getExamById);
 router.post('/', authenticateToken, requireTeacher, examValidation, examController.createExam);
 router.put('/:id', authenticateToken, requireTeacher, examValidation, examController.updateExam);
+router.put('/:id/questions', authenticateToken, requireTeacher, examController.updateExamQuestions);
 router.delete('/:id', authenticateToken, requireTeacher, examController.deleteExam);
 
 // Exam management

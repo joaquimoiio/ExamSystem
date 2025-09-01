@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AppProvider } from './contexts/AppContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Layout
 import Layout from './components/common/Layout';
@@ -32,6 +33,7 @@ import QuestionCreate from './pages/questions/QuestionCreateSimple';
 import ExamList from './pages/exams/ExamList';
 import ExamDetail from './pages/exams/ExamDetail';
 import ExamCreate from './pages/exams/ExamCreate';
+import ExamQuestions from './pages/exams/ExamQuestions';
 import ExamCorrection from './pages/exams/ExamCorrection';
 
 // Cabeçalhos de Prova
@@ -201,6 +203,16 @@ function AppRoutes() {
         } 
       />
       <Route 
+        path="/exams/:id/questions" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamQuestions />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/exams/:id/correction" 
         element={
           <ProtectedRoute>
@@ -292,17 +304,19 @@ function AppRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AuthProvider>
-          <AppProvider>
-            <Router>
-              <div className="App">
-                <AppRoutes />
-              </div>
-            </Router>
-          </AppProvider>
-        </AuthProvider>
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <AppProvider>
+              <Router>
+                <div className="App">
+                  <AppRoutes />
+                </div>
+              </Router>
+            </AppProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

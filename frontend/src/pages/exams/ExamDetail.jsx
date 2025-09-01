@@ -6,7 +6,7 @@ import {
   FileText, Clock, Users, QrCode, CheckCircle,
   AlertTriangle, MoreVertical, Calculator, BookOpen
 } from 'lucide-react';
-import { useExam, useUpdateExam, useDeleteExam, usePublishExam, useGeneratePDFs } from '../../hooks';
+import { useExam, useUpdateExam, useDeleteExam, usePublishExam, useGeneratePDFs, useRegenerateVariations } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingPage } from '../../components/common/Loading';
 import apiService from '../../services/api';
@@ -49,6 +49,7 @@ export default function ExamDetail() {
   const deleteExamMutation = useDeleteExam();
   const publishExamMutation = usePublishExam();
   const generatePDFsMutation = useGeneratePDFs();
+  const regenerateVariationsMutation = useRegenerateVariations();
 
   const exam = examData?.data?.exam;
 
@@ -59,6 +60,14 @@ export default function ExamDetail() {
       navigate('/exams');
     } catch (error) {
       showError(error.message || 'Erro ao excluir prova');
+    }
+  };
+
+  const handleRegenerateVariations = async () => {
+    try {
+      await regenerateVariationsMutation.mutateAsync(id);
+    } catch (error) {
+      showError(error.message || 'Erro ao regenerar variações');
     }
   };
 
@@ -230,13 +239,6 @@ export default function ExamDetail() {
             </button>
           )}
           
-          <Link
-            to={`/exams/${id}/preview`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Preview
-          </Link>
 
           <Link
             to={`/exams/${id}/correction`}
@@ -318,8 +320,8 @@ export default function ExamDetail() {
         <div className="p-6">
           {activeTab === 'overview' && <OverviewTab exam={exam} />}
           {activeTab === 'questions' && <QuestionsTab exam={exam} />}
-          {activeTab === 'variations' && <VariationsTab exam={exam} />}
-          {activeTab === 'settings' && <SettingsTab exam={exam} />}
+          {activeTab === 'variations' && <VariationsTab exam={exam} onRegenerateVariations={handleRegenerateVariations} regenerateLoading={regenerateVariationsMutation.isPending} />}
+          {activeTab === 'settings' && <SettingsTab exam={exam} onRegenerateVariations={handleRegenerateVariations} regenerateLoading={regenerateVariationsMutation.isPending} />}
         </div>
       </div>
 
@@ -391,13 +393,13 @@ function OverviewTab({ exam }) {
             <div>
               <dt className="text-sm font-medium text-gray-500">Embaralhar questões</dt>
               <dd className="text-sm text-gray-900">
-                {exam.shuffleQuestions ? 'Sim' : 'Não'}
+                {exam.randomizeQuestions ? 'Ativado' : 'Desativado'}
               </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Embaralhar alternativas</dt>
               <dd className="text-sm text-gray-900">
-                {exam.shuffleAlternatives ? 'Sim' : 'Não'}
+                {exam.randomizeAlternatives ? 'Ativado' : 'Desativado'}
               </dd>
             </div>
             <div>
@@ -553,26 +555,27 @@ function QuestionsTab({ exam }) {
 
 
 
-function VariationsTab({ exam }) {
+function VariationsTab({ exam, onRegenerateVariations, regenerateLoading }) {
   const variations = exam.variations || [];
   const { success, error: showError } = useToast();
+  const [pdfLayout, setPdfLayout] = useState('single'); // Estado para controlar o layout do PDF
 
   const handleGenerateAllVariationsPDF = async () => {
     try {
-      const response = await apiService.generateAllVariationsPDF(exam.id);
+      const response = await apiService.generateAllVariationsPDF(exam.id, pdfLayout);
       
       // Criar download do arquivo
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `prova_${exam.title}_todas_variacoes.pdf`;
+      a.download = `prova_${exam.title}_todas_variacoes_${pdfLayout}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      success('PDF com todas as variações gerado com sucesso!');
+      success(`PDF com todas as variações gerado com sucesso! Layout: ${pdfLayout === 'single' ? '1 coluna' : '2 colunas'}`);
     } catch (error) {
       showError(error.message || 'Erro ao gerar PDF das variações');
     }
@@ -607,16 +610,49 @@ function VariationsTab({ exam }) {
         </h3>
         <div className="flex items-center space-x-3">
           {variations.length > 0 && (
-            <button
-              onClick={handleGenerateAllVariationsPDF}
-              className="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              PDF Todas
-            </button>
+            <>
+              {/* Layout Selector */}
+              <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-2">
+                <span className="text-sm font-medium text-gray-700">Layout:</span>
+                <label className="flex items-center space-x-1">
+                  <input
+                    type="radio"
+                    name="pdfLayout"
+                    value="single"
+                    checked={pdfLayout === 'single'}
+                    onChange={(e) => setPdfLayout(e.target.value)}
+                    className="w-3 h-3 text-primary-600"
+                  />
+                  <span className="text-sm text-gray-700">Coluna Única</span>
+                </label>
+                <label className="flex items-center space-x-1">
+                  <input
+                    type="radio"
+                    name="pdfLayout"
+                    value="double"
+                    checked={pdfLayout === 'double'}
+                    onChange={(e) => setPdfLayout(e.target.value)}
+                    className="w-3 h-3 text-primary-600"
+                  />
+                  <span className="text-sm text-gray-700">2 Colunas</span>
+                </label>
+              </div>
+              
+              <button
+                onClick={handleGenerateAllVariationsPDF}
+                className="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                PDF Todas
+              </button>
+            </>
           )}
-          <button className="text-primary-600 hover:text-primary-700 font-medium text-sm">
-            Regenerar variações
+          <button 
+            onClick={onRegenerateVariations}
+            disabled={regenerateLoading}
+            className="text-primary-600 hover:text-primary-700 font-medium text-sm disabled:opacity-50"
+          >
+            {regenerateLoading ? 'Regenerando...' : 'Regenerar variações'}
           </button>
         </div>
       </div>
@@ -661,7 +697,7 @@ function VariationsTab({ exam }) {
   );
 }
 
-function SettingsTab({ exam }) {
+function SettingsTab({ exam, onRegenerateVariations, regenerateLoading }) {
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -711,13 +747,13 @@ function SettingsTab({ exam }) {
             <div>
               <dt className="text-sm font-medium text-gray-500">Embaralhar questões</dt>
               <dd className="text-sm text-gray-900">
-                {exam.shuffleQuestions ? 'Ativado' : 'Desativado'}
+                {exam.randomizeQuestions ? 'Ativado' : 'Desativado'}
               </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Embaralhar alternativas</dt>
               <dd className="text-sm text-gray-900">
-                {exam.shuffleAlternatives ? 'Ativado' : 'Desativado'}
+                {exam.randomizeAlternatives ? 'Ativado' : 'Desativado'}
               </dd>
             </div>
             <div>
@@ -739,10 +775,16 @@ function SettingsTab({ exam }) {
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Avançadas</h3>
         <div className="space-y-3">
-          <button className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={onRegenerateVariations}
+            disabled={regenerateLoading}
+            className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium text-gray-900">Regenerar Variações</h4>
+                <h4 className="font-medium text-gray-900">
+                  {regenerateLoading ? 'Regenerando Variações...' : 'Regenerar Variações'}
+                </h4>
                 <p className="text-sm text-gray-500">Criar novas variações com embaralhamento diferente</p>
               </div>
               <ArrowLeft className="w-5 h-5 text-gray-400 transform rotate-180" />
@@ -805,7 +847,7 @@ function SettingsTab({ exam }) {
             <div>
               <h4 className="font-medium text-red-800">Excluir Prova</h4>
               <p className="text-sm text-red-600 mt-1">
-                Esta ação não pode ser desfeita. A prova e todas as respostas serão permanentemente removidas.
+                Esta ação não pode ser desfeita. A prova será permanentemente removidas.
               </p>
             </div>
             <button

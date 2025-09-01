@@ -397,14 +397,6 @@ const getExamById = catchAsync(async (req, res, next) => {
         as: 'variations',
         attributes: ['id', 'variationNumber']
       },
-      {
-        model: Question,
-        as: 'questions',
-        attributes: ['id', 'title', 'text', 'type', 'difficulty', 'points', 'alternatives', 'correctAnswer'],
-        through: {
-          attributes: ['points', 'questionOrder'] // Incluir pontos da tabela ExamQuestion
-        }
-      }
     ],
     attributes: {
       include: [
@@ -430,6 +422,37 @@ const getExamById = catchAsync(async (req, res, next) => {
 
   if (!exam) {
     return next(new AppError('Exam not found', 404));
+  }
+
+  // Get questions from the first variation (to avoid duplicates)
+  const firstVariation = await ExamVariation.findOne({
+    where: { examId: id }
+  });
+
+  if (firstVariation) {
+    const questions = await Question.findAll({
+      include: [
+        {
+          model: ExamQuestion,
+          as: 'examQuestions',
+          where: { 
+            examId: id,
+            variationId: firstVariation.id
+          },
+          attributes: ['points', 'questionOrder']
+        }
+      ],
+      attributes: ['id', 'title', 'text', 'type', 'difficulty', 'points', 'alternatives', 'correctAnswer'],
+      order: [[{ model: ExamQuestion, as: 'examQuestions' }, 'questionOrder', 'ASC']]
+    });
+
+    // Format questions with ExamQuestion data
+    exam.dataValues.questions = questions.map(q => ({
+      ...q.dataValues,
+      ExamQuestion: q.examQuestions[0]?.dataValues
+    }));
+  } else {
+    exam.dataValues.questions = [];
   }
 
   res.json({
@@ -981,13 +1004,18 @@ const generateAllVariationsPDF = catchAsync(async (req, res, next) => {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
+    // Get layout parameter from query (default to 'single')
+    const layout = req.query.layout === 'double' ? 'double' : 'single';
+    console.log(`📊 Layout selecionado: ${layout}`);
+
     // Generate PDF with all variations
     console.log('🔄 Iniciando geração do PDF...');
     await pdfService.generateAllVariationsPDF(
       exam,
       variationsWithQuestions, // Use only variations that have questions
       exam.examHeader,
-      outputPath
+      outputPath,
+      layout
     );
     console.log('✅ PDF gerado com sucesso');
 
@@ -1486,12 +1514,31 @@ const regenerateVariations = catchAsync(async (req, res, next) => {
   await ExamVariation.destroy({ where: { examId: id } });
   await ExamQuestion.destroy({ where: { examId: id } });
 
-  // Generate new variations
-  await generateExamVariations(exam);
+  // Check if exam has selected questions in metadata
+  if (!exam.metadata || !exam.metadata.selectedQuestions || exam.metadata.selectedQuestions.length === 0) {
+    return next(new AppError('No selected questions found in exam. Please update the exam first.', 400));
+  }
+
+  // Get the selected questions from the database
+  const selectedQuestions = await Question.findAll({
+    where: {
+      id: exam.metadata.selectedQuestions.map(q => q.id)
+    }
+  });
+
+  if (selectedQuestions.length === 0) {
+    return next(new AppError('Selected questions not found in database.', 400));
+  }
+
+  console.log(`🔄 Regenerating variations for exam ${id} with ${selectedQuestions.length} questions`);
+
+  // Generate new variations using the selected questions
+  await generateExamVariationsWithSelectedQuestions(exam, selectedQuestions);
 
   res.json({
     success: true,
-    message: 'Exam variations regenerated successfully'
+    message: 'Exam variations regenerated successfully',
+    data: { questionsCount: selectedQuestions.length }
   });
 });
 
@@ -1662,6 +1709,148 @@ const correctExamManually = catchAsync(async (req, res, next) => {
   });
 });
 
+// Update exam questions
+const updateExamQuestions = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { questions } = req.body;
+
+  console.log(`📝 Updating questions for exam ${id}:`, questions);
+
+  // Verify exam exists and belongs to user
+  const exam = await Exam.findByPk(id);
+  if (!exam) {
+    return next(new AppError('Exam not found', 404));
+  }
+
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Unauthorized to update this exam', 403));
+  }
+
+  try {
+    // Get existing variations for this exam
+    const variations = await ExamVariation.findAll({
+      where: { examId: id }
+    });
+
+    if (variations.length === 0) {
+      return next(new AppError('No exam variations found. Please generate variations first.', 400));
+    }
+
+    // Remove all existing questions for this exam
+    await ExamQuestion.destroy({
+      where: { examId: id }
+    });
+
+    // Add new questions to ALL variations
+    if (questions && questions.length > 0) {
+      const examQuestionsToCreate = [];
+      
+      for (const variation of variations) {
+        for (const q of questions) {
+          examQuestionsToCreate.push({
+            examId: id,
+            variationId: variation.id,
+            questionId: q.questionId,
+            questionOrder: q.questionOrder || 0,
+            points: q.points || 1
+          });
+        }
+      }
+
+      await ExamQuestion.bulkCreate(examQuestionsToCreate);
+    }
+
+    // Calculate difficulty distribution from actual questions
+    let easyCount = 0;
+    let mediumCount = 0; 
+    let hardCount = 0;
+    
+    if (questions && questions.length > 0) {
+      // Get question details to calculate difficulty distribution
+      const questionIds = questions.map(q => q.questionId);
+      const questionDetails = await Question.findAll({
+        where: { id: questionIds },
+        attributes: ['id', 'difficulty']
+      });
+      
+      const difficultyMap = {};
+      questionDetails.forEach(q => {
+        difficultyMap[q.id] = q.difficulty;
+      });
+      
+      // Count questions by difficulty
+      questions.forEach(q => {
+        const difficulty = difficultyMap[q.questionId];
+        switch (difficulty) {
+          case 'Easy':
+          case 'easy':
+            easyCount++;
+            break;
+          case 'Medium':  
+          case 'medium':
+            mediumCount++;
+            break;
+          case 'Hard':
+          case 'hard':
+            hardCount++;
+            break;
+          default:
+            // Default to easy if difficulty is not set
+            easyCount++;
+            break;
+        }
+      });
+    }
+
+    // Get full question details for metadata
+    const questionIds = questions?.map(q => q.questionId) || [];
+    const questionDetails = await Question.findAll({
+      where: { id: questionIds },
+      attributes: ['id', 'title', 'text', 'difficulty', 'type', 'points']
+    });
+
+    // Create selectedQuestions metadata
+    const selectedQuestionsMetadata = questions?.map(q => {
+      const questionDetail = questionDetails.find(qd => qd.id === q.questionId);
+      return {
+        id: q.questionId,
+        title: questionDetail?.title || questionDetail?.text?.substring(0, 50) + '...',
+        difficulty: questionDetail?.difficulty || 'medium',
+        type: questionDetail?.type || 'multiple_choice',
+        points: q.points || questionDetail?.points || 1,
+        questionOrder: q.questionOrder || 0
+      };
+    }) || [];
+
+    // Update exam with correct totals, distribution, and metadata
+    await exam.update({
+      totalQuestions: questions?.length || 0,
+      easyQuestions: easyCount,
+      mediumQuestions: mediumCount,
+      hardQuestions: hardCount,
+      metadata: {
+        ...exam.metadata,
+        selectedQuestions: selectedQuestionsMetadata
+      }
+    });
+
+    console.log(`✅ Successfully updated ${questions?.length || 0} questions for exam ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Exam questions updated successfully',
+      data: {
+        examId: id,
+        questionsCount: questions?.length || 0
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating exam questions:', error);
+    return next(new AppError('Failed to update exam questions', 500));
+  }
+});
+
 module.exports = {
   getPublicExams,
   getExamByAccessCode,
@@ -1690,5 +1879,6 @@ module.exports = {
   validateQRAnswers,
   generateAllVariationsPDF,
   generateSingleVariationPDF,
-  correctExamManually
+  correctExamManually,
+  updateExamQuestions
 };

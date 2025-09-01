@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { 
-  ArrowLeft, Save, Eye, AlertCircle, CheckCircle, 
+  ArrowLeft, Save, AlertCircle, 
   Settings, FileText, Clock, Shuffle, BarChart3,
-  X, EyeOff, Award, Hash, BookOpen
+  X
 } from 'lucide-react';
 import { useSubjects, useQuestions, useCreateExam, useUpdateExam, useExam, useExamHeaders } from '../../hooks';
 import { useToast } from '../../contexts/ToastContext';
@@ -20,10 +20,7 @@ export default function ExamCreate({ mode = 'create' }) {
     medium: 0,
     hard: 0,
   });
-  const [previewMode, setPreviewMode] = useState(false);
   const [showQuestionSelector, setShowQuestionSelector] = useState(false);
-  const [previewQuestion, setPreviewQuestion] = useState(null);
-  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
 
   const navigate = useNavigate();
   const { id } = useParams();
@@ -263,23 +260,9 @@ export default function ExamCreate({ mode = 'create' }) {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setPreviewMode(!previewMode)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            {previewMode ? 'Editar' : 'Preview'}
-          </button>
         </div>
       </div>
 
-      {previewMode ? (
-        <ExamPreview 
-          formData={watch()}
-          selectedQuestions={selectedQuestions}
-          onBack={() => setPreviewMode(false)}
-        />
-      ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Information */}
           <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
@@ -477,7 +460,6 @@ export default function ExamCreate({ mode = 'create' }) {
                   questions={questions}
                   selectedQuestions={selectedQuestions}
                   onQuestionToggle={handleQuestionToggle}
-                  onQuestionPreview={setPreviewQuestion}
                   onQuestionPointsChange={handleQuestionPointsChange}
                 />
               )}
@@ -625,18 +607,6 @@ export default function ExamCreate({ mode = 'create' }) {
         </form>
       )}
 
-      {/* Question Preview Modal */}
-      {previewQuestion && (
-        <QuestionPreviewModal
-          question={previewQuestion}
-          onClose={() => {
-            setPreviewQuestion(null);
-            setShowCorrectAnswers(false);
-          }}
-          showCorrectAnswers={showCorrectAnswers}
-          onToggleAnswers={() => setShowCorrectAnswers(!showCorrectAnswers)}
-        />
-      )}
     </div>
   );
 }
@@ -671,7 +641,7 @@ function SimpleCheckbox({ checked, questionId, question, onToggle }) {
 }
 
 // Component for Question Selector
-function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQuestionPreview, onQuestionPointsChange }) {
+function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQuestionPointsChange }) {
   console.log('QuestionSelector rendered with:', {
     questionsCount: questions?.length || 0,
     selectedQuestionsCount: selectedQuestions?.length || 0,
@@ -737,10 +707,7 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
                 </div>
                 
                 {/* Conteúdo da questão */}
-                <div 
-                  className="flex-1 cursor-pointer"
-                  onClick={() => onQuestionPreview(question)}
-                >
+                <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-medium">Questão {index + 1}</span>
@@ -826,382 +793,3 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
   );
 }
 
-// Preview Component
-function ExamPreview({ formData, selectedQuestions, onBack }) {
-  const totalQuestions = selectedQuestions.length;
-  const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.examPoints || 1.0), 0);
-  
-  const difficultyCount = {
-    easy: selectedQuestions.filter(q => q.difficulty === 'easy').length,
-    medium: selectedQuestions.filter(q => q.difficulty === 'medium').length,
-    hard: selectedQuestions.filter(q => q.difficulty === 'hard').length,
-  };
-
-  return (
-    <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">Preview da Prova</h2>
-        <button
-          onClick={onBack}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Voltar para Edição
-        </button>
-      </div>
-
-      <div className="space-y-6">
-        {/* Basic Info */}
-        <div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">{formData.title || 'Título da Prova'}</h3>
-          {formData.description && (
-            <p className="text-gray-600 mb-4">{formData.description}</p>
-          )}
-          
-          <div className="flex items-center space-x-6 text-sm text-gray-600">
-            <div className="flex items-center">
-              <FileText className="w-4 h-4 mr-1" />
-              {totalQuestions} questões • {totalPoints.toFixed(1)} pontos
-            </div>
-            <div className="flex items-center">
-              <Shuffle className="w-4 h-4 mr-1" />
-              {formData.variations} variações
-            </div>
-            <div className="flex items-center">
-              <BookOpen className="w-4 h-4 mr-1" />
-              {formData.subjectId ? subjects.find(s => s.id === formData.subjectId)?.name || 'Disciplina' : 'Disciplina'}
-            </div>
-          </div>
-        </div>
-
-        {/* Question Distribution */}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-3">Distribuição por Dificuldade</h4>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-green-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-green-800">{difficultyCount.easy}</div>
-              <div className="text-sm text-green-600">Fácil</div>
-            </div>
-            <div className="bg-yellow-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-yellow-800">{difficultyCount.medium}</div>
-              <div className="text-sm text-yellow-600">Médio</div>
-            </div>
-            <div className="bg-red-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-red-800">{difficultyCount.hard}</div>
-              <div className="text-sm text-red-600">Difícil</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Settings */}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-3">Configurações</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span>Embaralhar questões</span>
-              <span className={formData.shuffleQuestions ? 'text-green-600' : 'text-red-600'}>
-                {formData.shuffleQuestions ? 'Sim' : 'Não'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span>Embaralhar alternativas</span>
-              <span className={formData.shuffleAlternatives ? 'text-green-600' : 'text-red-600'}>
-                {formData.shuffleAlternatives ? 'Sim' : 'Não'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span>Mostrar resultados</span>
-              <span className={formData.showResults ? 'text-green-600' : 'text-red-600'}>
-                {formData.showResults ? 'Sim' : 'Não'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span>Permitir revisão</span>
-              <span className={formData.allowReview ? 'text-green-600' : 'text-red-600'}>
-                {formData.allowReview ? 'Sim' : 'Não'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Selected Questions with Points */}
-        {selectedQuestions.length > 0 && (
-          <div>
-            <h4 className="font-medium text-gray-900 mb-3">Questões Selecionadas</h4>
-            <div className="space-y-4">
-              {selectedQuestions.slice(0, 3).map((question, index) => (
-                <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900">
-                        Questão {index + 1}
-                      </span>
-                      <span className="text-sm font-bold text-primary-600">
-                        {question.examPoints || 1.0} pts
-                      </span>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                      question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {question.difficulty === 'easy' ? 'Fácil' :
-                       question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
-                    </span>
-                  </div>
-                  <p className="text-gray-700 mb-3">{question.text}</p>
-                  <div className="space-y-2">
-                    {question.alternatives?.slice(0, 2).map((alt, altIndex) => (
-                      <div key={altIndex} className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border border-gray-300 rounded" />
-                        <span className="text-sm text-gray-600">{alt}</span>
-                      </div>
-                    ))}
-                    {question.alternatives?.length > 2 && (
-                      <div className="text-xs text-gray-500">
-                        +{question.alternatives.length - 2} alternativas...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {selectedQuestions.length > 3 && (
-                <div className="text-center text-sm text-gray-500">
-                  +{selectedQuestions.length - 3} questões adicionais...
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Question Preview Modal Component
-function QuestionPreviewModal({ question, onClose, showCorrectAnswers, onToggleAnswers }) {
-  const difficultyConfig = {
-    easy: { label: 'Fácil', color: 'bg-green-100 text-green-800', icon: '📗' },
-    medium: { label: 'Médio', color: 'bg-yellow-100 text-yellow-800', icon: '📙' },
-    hard: { label: 'Difícil', color: 'bg-red-100 text-red-800', icon: '📕' },
-  };
-
-  const typeConfig = {
-    multiple_choice: { label: 'Múltipla Escolha', icon: CheckCircle },
-    true_false: { label: 'Verdadeiro/Falso', icon: AlertCircle },
-    essay: { label: 'Dissertativa', icon: FileText },
-  };
-
-  const difficultyInfo = difficultyConfig[question.difficulty] || difficultyConfig.medium;
-  const typeInfo = typeConfig[question.type] || typeConfig.multiple_choice;
-  const TypeIcon = typeInfo.icon;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <h2 className="text-2xl font-bold text-gray-900">Preview da Questão</h2>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${difficultyInfo.color}`}>
-                {difficultyInfo.icon} {difficultyInfo.label}
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={onToggleAnswers}
-                className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors text-sm ${
-                  showCorrectAnswers 
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {showCorrectAnswers ? (
-                  <>
-                    <EyeOff className="w-4 h-4 mr-2" />
-                    Ocultar Respostas
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Mostrar Respostas
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-
-          {/* Question Info */}
-          <div className="flex items-center space-x-4 mt-4 text-sm text-gray-600">
-            <div className="flex items-center">
-              <TypeIcon className="w-4 h-4 mr-1" />
-              {typeInfo.label}
-            </div>
-            <div className="flex items-center">
-              <Award className="w-4 h-4 mr-1" />
-              {question.points || 1} ponto{(question.points || 1) !== 1 ? 's' : ''}
-            </div>
-            <div className="flex items-center">
-              <Hash className="w-4 h-4 mr-1" />
-              ID: {question.id.slice(-8)}
-            </div>
-          </div>
-        </div>
-
-        {/* Question Content */}
-        <div className="p-6">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              {question.title || 'Questão'}
-            </h3>
-            
-            <div className="prose max-w-none">
-              <p className="text-gray-900 leading-relaxed text-base">
-                {question.text || question.title || 'Enunciado da questão não disponível'}
-              </p>
-            </div>
-
-            {/* Question Image */}
-            {question.image && (
-              <div className="mt-4">
-                <img 
-                  src={question.image} 
-                  alt="Imagem da questão" 
-                  className="max-w-full h-auto rounded-lg shadow-sm border"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Alternatives */}
-          {question.type === 'multiple_choice' && question.alternatives && (
-            <div className="space-y-3">
-              <h4 className="text-md font-semibold text-gray-800 mb-4">Alternativas:</h4>
-              {question.alternatives.map((alternative, index) => (
-                <div
-                  key={index}
-                  className={`flex items-start space-x-3 p-4 rounded-lg border transition-colors ${
-                    showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                    showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-200 text-green-800'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}>
-                    {String.fromCharCode(65 + index)}
-                  </div>
-                  <div className="flex-1 text-gray-900">
-                    {alternative}
-                  </div>
-                  {showCorrectAnswers && index === question.correctAnswer && (
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* True/False */}
-          {question.type === 'true_false' && (
-            <div className="space-y-3">
-              <h4 className="text-md font-semibold text-gray-800 mb-4">Alternativas:</h4>
-              {['Verdadeiro', 'Falso'].map((option, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${
-                    showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                    showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-200 text-green-800'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}>
-                    {index === 0 ? 'V' : 'F'}
-                  </div>
-                  <div className="flex-1 text-gray-900">{option}</div>
-                  {showCorrectAnswers && index === question.correctAnswer && (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Essay */}
-          {question.type === 'essay' && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-              <div className="flex items-center mb-3">
-                <FileText className="w-5 h-5 text-yellow-600 mr-2" />
-                <span className="text-yellow-800 font-medium">Questão Dissertativa</span>
-              </div>
-              <p className="text-yellow-700 text-sm">
-                Esta questão requer resposta escrita do aluno e será corrigida manualmente.
-              </p>
-            </div>
-          )}
-
-          {/* Explanation */}
-          {question.explanation && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
-                <BookOpen className="w-4 h-4 mr-2" />
-                Explicação
-              </h4>
-              <p className="text-blue-800 text-sm">{question.explanation}</p>
-            </div>
-          )}
-
-          {/* Tags */}
-          {question.tags && question.tags.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
-                <Hash className="w-4 h-4 mr-2" />
-                Tags
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {question.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Esta questão será incluída na prova com a pontuação definida pelo professor.
-            </div>
-            
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Fechar Preview
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
