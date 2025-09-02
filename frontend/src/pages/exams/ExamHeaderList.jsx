@@ -73,8 +73,8 @@ export default function ExamHeaderList() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cabeçalhos de Prova</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cabeçalhos de Prova</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Gerencie os cabeçalhos que aparecerão em suas provas
           </p>
         </div>
@@ -86,12 +86,12 @@ export default function ExamHeaderList() {
 
       {/* Headers Grid */}
       {headers.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 p-12 text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
+          <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Nenhum cabeçalho encontrado
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Crie seu primeiro cabeçalho de prova para começar a personalizar suas avaliações.
           </p>
           <Button onClick={() => navigate('/exam-headers/create')}>
@@ -104,26 +104,26 @@ export default function ExamHeaderList() {
           {headers.map((header) => (
             <div
               key={header.id}
-              className={`bg-white rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-shadow ${
-                header.isDefault ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+              className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-shadow ${
+                header.isDefault ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'
               }`}
             >
               {/* Header Info */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <School className="w-5 h-5 text-gray-500" />
-                    <h3 className="font-semibold text-gray-900 truncate">
+                    <School className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                       {header.schoolName}
                     </h3>
                     {header.isDefault && (
                       <Star className="w-4 h-4 text-yellow-500 fill-current" />
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                     <strong>Matéria:</strong> {header.subjectName}
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <Calendar className="w-4 h-4" />
                     <span>{header.year}</span>
                     {header.timeLimit && (
@@ -139,8 +139,8 @@ export default function ExamHeaderList() {
               {/* Evaluation Criteria Preview */}
               {header.evaluationCriteria && (
                 <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-1">Critérios de Avaliação:</p>
-                  <p className="text-sm text-gray-700 line-clamp-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Critérios de Avaliação:</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
                     {header.evaluationCriteria}
                   </p>
                 </div>
@@ -149,26 +149,26 @@ export default function ExamHeaderList() {
               {/* Instructions Preview */}
               {header.instructions && (
                 <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-1">Instruções:</p>
-                  <p className="text-sm text-gray-700 line-clamp-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Instruções:</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
                     {header.instructions}
                   </p>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => navigate(`/exam-headers/${header.id}/edit`)}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                     title="Editar"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(header)}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     title="Deletar"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -177,7 +177,7 @@ export default function ExamHeaderList() {
                 {!header.isDefault && (
                   <button
                     onClick={() => handleSetDefault(header.id)}
-                    className="flex items-center gap-1 px-3 py-1 text-xs text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-3 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors"
                     title="Definir como padrão"
                   >
                     <StarOff className="w-3 h-3" />
@@ -197,7 +197,7 @@ export default function ExamHeaderList() {
         title="Deletar Cabeçalho"
       >
         <div className="p-6">
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Tem certeza que deseja deletar o cabeçalho "{deleteModal.header?.schoolName}"?
             Esta ação não pode ser desfeita.
           </p>

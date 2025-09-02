@@ -247,15 +247,15 @@ export default function ExamCreate({ mode = 'create' }) {
         <div className="flex items-center space-x-4">
           <button
             onClick={() => navigate('/exams')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white dark:text-white">
               {isEditMode ? 'Editar Prova' : 'Nova Prova'}
             </h1>
-            <p className="text-gray-600">Configure sua prova com múltiplas variações</p>
+            <p className="text-gray-600 dark:text-gray-400">Configure sua prova com múltiplas variações</p>
           </div>
         </div>
         
@@ -265,10 +265,10 @@ export default function ExamCreate({ mode = 'create' }) {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center mb-6">
               <FileText className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Informações Básicas</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Informações Básicas</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -335,7 +335,7 @@ export default function ExamCreate({ mode = 'create' }) {
                       />
                     )}
                   />
-                  <div className="flex items-center text-xs text-gray-500">
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                     <span>Não encontrou o cabeçalho que precisa?</span>
                     <button
                       type="button"
@@ -353,11 +353,11 @@ export default function ExamCreate({ mode = 'create' }) {
 
           {/* Question Selection */}
           {selectedSubject && (
-            <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <BarChart3 className="w-5 h-5 text-primary-600 mr-2" />
-                  <h2 className="text-lg font-semibold text-gray-900">Seleção de Questões</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Seleção de Questões</h2>
                 </div>
                 <div className="text-sm text-gray-600">
                   {totalQuestions} questões • {(totalPoints || 0).toFixed(1)} pontos
@@ -377,7 +377,7 @@ export default function ExamCreate({ mode = 'create' }) {
               {/* Selected Questions Summary */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-900">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">
                     Questões Selecionadas ({selectedQuestions.length})
                   </h3>
                   {selectedQuestions.length > 0 && (
@@ -401,10 +401,10 @@ export default function ExamCreate({ mode = 'create' }) {
                       }
                       
                       return (
-                        <div key={`selected-${question.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div key={`selected-${question.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
-                              <span className="text-sm font-medium text-gray-900">Questão {index + 1}</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">Questão {index + 1}</span>
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                                 question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
                                 question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -415,7 +415,7 @@ export default function ExamCreate({ mode = 'create' }) {
                                  question.difficulty === 'medium' ? 'Médio' : 
                                  question.difficulty === 'hard' ? 'Difícil' : 'N/A'}
                               </span>
-                              <span className="text-xs text-gray-500">ID: {question.id}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">ID: {question.id}</span>
                             </div>
                             <p className="text-sm text-gray-600 truncate" title={question.text}>
                               {question.text || question.title || 'Texto da questão não disponível'}
@@ -430,7 +430,7 @@ export default function ExamCreate({ mode = 'create' }) {
                               step="0.1"
                               value={question.examPoints || 1.0}
                               onChange={(e) => handleQuestionPointsChange(question.id, e.target.value)}
-                              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                              className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
                             />
                             <button
                               type="button"
@@ -446,7 +446,7 @@ export default function ExamCreate({ mode = 'create' }) {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
                     <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                     <p className="text-sm">Nenhuma questão selecionada</p>
                     <p className="text-xs text-gray-400">Clique no botão "Selecionar Questões" acima para começar</p>
@@ -483,10 +483,10 @@ export default function ExamCreate({ mode = 'create' }) {
           )}
 
           {/* Exam Settings */}
-          <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center mb-6">
               <Settings className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Configurações da Prova</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Configurações da Prova</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -587,7 +587,7 @@ export default function ExamCreate({ mode = 'create' }) {
               <button
                 type="button"
                 onClick={() => navigate('/exams')}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 transition-colors"
               >
                 Cancelar
               </button>
@@ -635,7 +635,7 @@ function SimpleCheckbox({ checked, questionId, question, onToggle }) {
       type="checkbox"
       checked={isChecked}
       onChange={handleClick}
-      className="w-6 h-6 text-primary-600 border-2 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
+      className="w-6 h-6 text-primary-600 border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
     />
   );
 }
@@ -677,8 +677,8 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-      <h3 className="text-sm font-medium text-gray-900 mb-3">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
+      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
         Selecione as questões ({questions.length} disponíveis):
       </h3>
       <div className="space-y-4">
@@ -692,7 +692,7 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
               className={`p-4 border rounded-lg transition-colors ${
                 isSelected
                   ? 'border-primary-300 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700'
               }`}
             >
               <div className="flex items-start space-x-4">
@@ -719,18 +719,18 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
                         {question.difficulty === 'easy' ? 'Fácil' :
                          question.difficulty === 'medium' ? 'Médio' : 'Difícil'}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {question.points || 1} pts padrão
                       </span>
                     </div>
                     
                   </div>
                   
-                  <p className="text-sm text-gray-700 line-clamp-2 mb-3">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-3">
                     {question.text || question.title}
                   </p>
                   
-                  <div className="flex items-center text-xs text-gray-500">
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                     <div>
                       {question.alternatives && (
                         <span>{question.alternatives.length} alternativas</span>
@@ -766,9 +766,9 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
                           }
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-20 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-20 px-2 py-1 text-sm text-center border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                       />
-                      <span className="text-xs text-gray-500">pontos</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">pontos</span>
                     </div>
                   </div>
                 )}
@@ -777,7 +777,7 @@ function QuestionSelector({ questions, selectedQuestions, onQuestionToggle, onQu
               {/* Linha adicional para mostrar pontos quando não selecionada */}
               {!isSelected && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                     <span>Marque a caixa acima para selecionar esta questão</span>
                     <span className="bg-gray-100 px-2 py-1 rounded">
                       {question.points || 1} pts (padrão)

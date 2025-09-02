@@ -126,11 +126,11 @@ export default function ExamHeaderForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* School Name */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <School className="w-4 h-4 inline mr-1" />
                 Nome da Escola *
               </label>
@@ -145,7 +145,7 @@ export default function ExamHeaderForm() {
 
             {/* Subject Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <BookOpen className="w-4 h-4 inline mr-1" />
                 Nome da Matéria *
               </label>
@@ -160,7 +160,7 @@ export default function ExamHeaderForm() {
 
             {/* Year */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Ano *
               </label>
@@ -177,7 +177,7 @@ export default function ExamHeaderForm() {
 
             {/* Time Limit */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
                 Tempo Limite (minutos)
               </label>
@@ -190,14 +190,14 @@ export default function ExamHeaderForm() {
                 min="15"
                 max="480"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Deixe em branco se não houver limite de tempo
               </p>
             </div>
 
             {/* Evaluation Criteria */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <FileText className="w-4 h-4 inline mr-1" />
                 Critérios de Avaliação
               </label>
@@ -206,14 +206,14 @@ export default function ExamHeaderForm() {
                 value={formData.evaluationCriteria}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ex: Questões de múltipla escolha valem 1,0 ponto cada. Questões dissertativas valem 2,0 pontos cada..."
               />
             </div>
 
             {/* Instructions */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <FileText className="w-4 h-4 inline mr-1" />
                 Instruções Gerais
               </label>
@@ -222,7 +222,7 @@ export default function ExamHeaderForm() {
                 value={formData.instructions}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ex: Leia atentamente todas as questões antes de começar. Use caneta azul ou preta. Não é permitido uso de calculadora..."
               />
             </div>
@@ -252,24 +252,24 @@ export default function ExamHeaderForm() {
         </div>
 
         {/* Preview */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4">Pré-visualização</h3>
-          <div className="border-2 border-dashed border-gray-300 p-6 rounded-lg bg-gray-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pré-visualização</h3>
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 rounded-lg bg-gray-50 dark:bg-gray-700">
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {formData.schoolName || '[Nome da Escola]'}
               </h2>
-              <p className="text-lg">
+              <p className="text-lg text-gray-900 dark:text-white">
                 Prova de {formData.subjectName || '[Matéria]'} - {formData.year}
               </p>
               {formData.timeLimit && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Tempo: {formData.timeLimit} minutos
                 </p>
               )}
             </div>
             
-            <div className="mt-6 space-y-4 text-sm">
+            <div className="mt-6 space-y-4 text-sm text-gray-900 dark:text-white">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <strong>Nome:</strong> ___________________________
@@ -285,14 +285,14 @@ export default function ExamHeaderForm() {
               {formData.evaluationCriteria && (
                 <div>
                   <strong>Critérios de Avaliação:</strong>
-                  <p className="mt-1 text-gray-700">{formData.evaluationCriteria}</p>
+                  <p className="mt-1 text-gray-700 dark:text-gray-300">{formData.evaluationCriteria}</p>
                 </div>
               )}
 
               {formData.instructions && (
                 <div>
                   <strong>Instruções:</strong>
-                  <p className="mt-1 text-gray-700">{formData.instructions}</p>
+                  <p className="mt-1 text-gray-700 dark:text-gray-300">{formData.instructions}</p>
                 </div>
               )}
             </div>

@@ -141,17 +141,17 @@ export default function QRScanner() {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
-        <QrCode className="w-12 h-12 text-primary-600 mx-auto mb-4" />
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Scanner de QR Code</h1>
-        <p className="text-gray-600">Escaneie o QR code da folha de respostas para correção automática</p>
+        <QrCode className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto mb-4" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Scanner de QR Code</h1>
+        <p className="text-gray-600 dark:text-gray-400">Escaneie o QR code da folha de respostas para correção automática</p>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
           <div className="flex items-center">
-            <XCircle className="w-5 h-5 text-red-600 mr-2" />
-            <span className="text-red-800">{error}</span>
+            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+            <span className="text-red-800 dark:text-red-400">{error}</span>
           </div>
         </div>
       )}
@@ -160,15 +160,15 @@ export default function QRScanner() {
       {!scanResult && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Camera Scanner */}
-          <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
               <Camera className="w-5 h-5 mr-2" />
               Escanear com Câmera
             </h3>
             
             {!isScanning ? (
               <div className="text-center">
-                <p className="text-gray-600 mb-4">Use a câmera para escanear o QR code</p>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Use a câmera para escanear o QR code</p>
                 <button
                   onClick={startCamera}
                   className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -194,7 +194,7 @@ export default function QRScanner() {
                   </button>
                   <button
                     onClick={stopCamera}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Parar
                   </button>
@@ -204,14 +204,14 @@ export default function QRScanner() {
           </div>
 
           {/* File Upload */}
-          <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
               <Upload className="w-5 h-5 mr-2" />
               Upload de Imagem
             </h3>
             
             <div className="text-center">
-              <p className="text-gray-600 mb-4">Faça upload de uma foto do QR code</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Faça upload de uma foto do QR code</p>
               <label className="cursor-pointer">
                 <input
                   type="file"
@@ -219,21 +219,21 @@ export default function QRScanner() {
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <div className="px-6 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-400 transition-colors">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <span className="text-gray-600">Clique para selecionar</span>
+                <div className="px-6 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-400 dark:hover:border-primary-500 transition-colors">
+                  <Upload className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                  <span className="text-gray-600 dark:text-gray-400">Clique para selecionar</span>
                 </div>
               </label>
               
               {selectedFile && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-700">
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
                     Arquivo: {selectedFile.name}
                   </p>
                   {loading && (
                     <div className="mt-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mx-auto"></div>
-                      <p className="text-xs text-gray-500 mt-1">Processando...</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Processando...</p>
                     </div>
                   )}
                 </div>
@@ -253,29 +253,29 @@ export default function QRScanner() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="font-medium text-gray-900 mb-3">Dados Escaneados</h4>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-3">Dados Escaneados</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">ID da Prova:</span>
-                  <span className="font-mono">{scanResult.examId}</span>
+                  <span className="text-gray-600 dark:text-gray-400">ID da Prova:</span>
+                  <span className="font-mono text-gray-900 dark:text-white">{scanResult.examId}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">ID do Aluno:</span>
-                  <span className="font-mono">{scanResult.studentId}</span>
+                  <span className="text-gray-600 dark:text-gray-400">ID do Aluno:</span>
+                  <span className="font-mono text-gray-900 dark:text-white">{scanResult.studentId}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Respostas:</span>
-                  <span className="font-mono">[{scanResult.answers.join(', ')}]</span>
+                  <span className="text-gray-600 dark:text-gray-400">Respostas:</span>
+                  <span className="font-mono text-gray-900 dark:text-white">[{scanResult.answers.join(', ')}]</span>
                 </div>
               </div>
             </div>
             
             {answerData && (
               <div>
-                <h4 className="font-medium text-gray-900 mb-3">Resultado da Correção</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Resultado da Correção</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Nota:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Nota:</span>
                     <span className={`font-semibold ${
                       answerData.score >= 7 ? 'text-green-600' : 
                       answerData.score >= 5 ? 'text-yellow-600' : 'text-red-600'
@@ -284,12 +284,12 @@ export default function QRScanner() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Acertos:</span>
-                    <span>{answerData.correctAnswers}/{answerData.totalQuestions}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Acertos:</span>
+                    <span className="text-gray-900 dark:text-white">{answerData.correctAnswers}/{answerData.totalQuestions}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Percentual:</span>
-                    <span>{answerData.percentage}%</span>
+                    <span className="text-gray-600 dark:text-gray-400">Percentual:</span>
+                    <span className="text-gray-900 dark:text-white">{answerData.percentage}%</span>
                   </div>
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default function QRScanner() {
               Escanear Outro
             </button>
             {answerData && (
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 Salvar Resultado
               </button>
             )}
@@ -313,12 +313,12 @@ export default function QRScanner() {
       )}
 
       {/* Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
+        <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-3 flex items-center">
           <AlertTriangle className="w-5 h-5 mr-2" />
           Instruções
         </h4>
-        <ul className="text-sm text-blue-800 space-y-1">
+        <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
           <li>• Certifique-se de que o QR code está bem visível e focado</li>
           <li>• Use boa iluminação para melhor leitura</li>
           <li>• O QR code deve estar completo e sem distorções</li>

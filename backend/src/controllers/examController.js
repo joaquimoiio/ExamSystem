@@ -1814,7 +1814,7 @@ const updateExamQuestions = catchAsync(async (req, res, next) => {
       const questionDetail = questionDetails.find(qd => qd.id === q.questionId);
       return {
         id: q.questionId,
-        title: questionDetail?.title || questionDetail?.text?.substring(0, 50) + '...',
+        title: questionDetail?.title || (questionDetail?.text?.substring(0, 50) ? questionDetail.text.substring(0, 50) + '...' : 'Questão sem título'),
         difficulty: questionDetail?.difficulty || 'medium',
         type: questionDetail?.type || 'multiple_choice',
         points: q.points || questionDetail?.points || 1,

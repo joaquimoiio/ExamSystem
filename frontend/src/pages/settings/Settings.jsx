@@ -6,12 +6,15 @@ import {
   RefreshCw, Save, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Input, Select, Switch, Textarea } from '../../components/ui/Input';
 import { LoadingButton } from '../../components/common/Loading';
 import { ConfirmationModal } from '../../components/ui/Modal';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
 export default function Settings() {
   const { success, error: showError } = useToast();
+  const { theme, toggleTheme, isDark } = useTheme();
   
   const [activeTab, setActiveTab] = useState('general');
   const [showResetModal, setShowResetModal] = useState(false);
@@ -61,6 +64,7 @@ export default function Settings() {
 
   const tabs = [
     { id: 'general', label: 'Geral', icon: SettingsIcon },
+    { id: 'appearance', label: 'Aparência', icon: Palette },
     { id: 'security', label: 'Segurança', icon: Shield },
     { id: 'email', label: 'Email', icon: Bell },
     { id: 'backup', label: 'Backup', icon: Database },
@@ -115,21 +119,21 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Configurações do Sistema</h1>
-          <p className="text-gray-600">Gerencie as configurações globais do sistema</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Configurações do Sistema</h1>
+          <p className="text-gray-600 dark:text-gray-400">Gerencie as configurações globais do sistema</p>
         </div>
         
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowExportModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
           >
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </button>
           <button
             onClick={() => setShowResetModal(true)}
-            className="inline-flex items-center px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Resetar
@@ -138,9 +142,9 @@ export default function Settings() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700">
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8 px-6 overflow-x-auto">
             {tabs.map((tab) => {
               const TabIcon = tab.icon;
@@ -150,8 +154,8 @@ export default function Settings() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <TabIcon className="w-4 h-4" />
@@ -184,12 +188,16 @@ export default function Settings() {
             <PerformanceTab register={register} errors={errors} />
           )}
 
+          {activeTab === 'appearance' && (
+            <AppearanceTab />
+          )}
+
           {activeTab === 'maintenance' && (
             <MaintenanceTab />
           )}
 
           {/* Save Button */}
-          <div className="flex justify-end pt-6 border-t border-gray-200 mt-8">
+          <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700 mt-8">
             <LoadingButton
               type="submit"
               loading={isSubmitting}
@@ -569,6 +577,145 @@ function PerformanceTab({ register, errors }) {
               <p>• Tempo de resposta médio: 124ms</p>
               <p>• Uso de memória: 68%</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Appearance Settings Tab
+function AppearanceTab() {
+  const { theme, setTheme, isDark } = useTheme();
+  const [systemTheme, setSystemTheme] = useState('light');
+
+  // Detect system theme
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
+    
+    const handleChange = (e) => setSystemTheme(e.matches ? 'dark' : 'light');
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  const themeOptions = [
+    {
+      id: 'light',
+      name: 'Claro',
+      description: 'Tema claro para uso durante o dia',
+      icon: '☀️',
+      preview: 'bg-white text-gray-900 border-gray-200'
+    },
+    {
+      id: 'dark', 
+      name: 'Escuro',
+      description: 'Tema escuro para reduzir fadiga ocular',
+      icon: '🌙',
+      preview: 'bg-gray-800 text-white border-gray-600'
+    },
+    {
+      id: 'system',
+      name: 'Sistema',
+      description: `Segue a preferência do sistema (${systemTheme === 'dark' ? 'escuro' : 'claro'})`,
+      icon: '⚙️',
+      preview: systemTheme === 'dark' ? 'bg-gray-800 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-200'
+    }
+  ];
+
+  const handleThemeChange = (selectedTheme) => {
+    if (selectedTheme === 'system') {
+      // Remove from localStorage to use system preference
+      localStorage.removeItem('exam-system-theme');
+      setTheme(systemTheme);
+    } else {
+      setTheme(selectedTheme);
+    }
+  };
+
+  const currentThemeSelection = (() => {
+    const savedTheme = localStorage.getItem('exam-system-theme');
+    return savedTheme || 'system';
+  })();
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center mb-6">
+        <Palette className="w-5 h-5 text-primary-600 dark:text-primary-400 mr-2" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Configurações de Aparência</h2>
+      </div>
+
+      {/* Theme Selection */}
+      <div>
+        <h3 className="text-base font-medium text-gray-900 dark:text-white mb-4">Tema do Sistema</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {themeOptions.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => handleThemeChange(option.id)}
+              className={`relative p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                currentThemeSelection === option.id
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-400'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
+              }`}
+            >
+              {/* Selection indicator */}
+              {currentThemeSelection === option.id && (
+                <div className="absolute top-2 right-2">
+                  <CheckCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                </div>
+              )}
+              
+              {/* Theme preview */}
+              <div className={`w-full h-12 rounded border mb-3 ${option.preview}`}>
+                <div className="p-2 text-xs font-medium">
+                  <div className="w-8 h-2 bg-current opacity-70 rounded mb-1"></div>
+                  <div className="w-6 h-1 bg-current opacity-50 rounded"></div>
+                </div>
+              </div>
+              
+              {/* Theme info */}
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">{option.icon}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{option.name}</span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{option.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Current theme info */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+        <div className="flex items-start">
+          <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-2" />
+          <div>
+            <h3 className="font-medium text-blue-800 dark:text-blue-200">Tema Atual</h3>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+              Você está usando o tema <strong>{isDark ? 'escuro' : 'claro'}</strong>. 
+              {currentThemeSelection === 'system' && ' O tema está sendo definido automaticamente pelo sistema.'}
+            </p>
+            <div className="mt-2 flex items-center space-x-4">
+              <ThemeToggle />
+              <span className="text-xs text-blue-600 dark:text-blue-400">Alternar rapidamente</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Accessibility options */}
+      <div>
+        <h3 className="text-base font-medium text-gray-900 dark:text-white mb-4">Acessibilidade</h3>
+        <div className="space-y-4">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              💡 <strong>Dica:</strong> O tema escuro pode ajudar a reduzir a fadiga ocular, especialmente em ambientes com pouca luz.
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              🔄 Use a opção "Sistema" para que o tema mude automaticamente baseado nas configurações do seu dispositivo.
+            </p>
           </div>
         </div>
       </div>

@@ -13,6 +13,8 @@ const Button = React.forwardRef(({
   className = '',
   ...props
 }, ref) => {
+  // Remove loading from props to prevent it from being passed to DOM
+  const { loading: loadingProp, ...domProps } = props;
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
@@ -63,7 +65,7 @@ const Button = React.forwardRef(({
       ref={ref}
       disabled={disabled || loading}
       className={classes}
-      {...props}
+      {...domProps}
     >
       {loading && (
         <Loader2 className={`${iconSize} mr-2 animate-spin`} />
@@ -267,7 +269,7 @@ export function SplitButton({
       </Button>
 
       {isOpen && dropdownItems.length > 0 && (
-        <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+        <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
           {dropdownItems.map((item, index) => (
             <button
               key={index}
@@ -276,7 +278,7 @@ export function SplitButton({
                 setIsOpen(false);
               }}
               disabled={item.disabled}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {item.icon && (
                 <span className="inline-flex items-center mr-2">

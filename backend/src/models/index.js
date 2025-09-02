@@ -252,6 +252,18 @@ try {
     });
   }
 
+  if (db.Exam && db.Answer) {
+    // Exam has many Answers
+    db.Exam.hasMany(db.Answer, {
+      foreignKey: 'examId',
+      as: 'answers'
+    });
+    db.Answer.belongsTo(db.Exam, {
+      foreignKey: 'examId',
+      as: 'exam'
+    });
+  }
+
   console.log('✅ Associações dos modelos configuradas');
 } catch (error) {
   console.warn('⚠️ Erro ao configurar associações:', error.message);

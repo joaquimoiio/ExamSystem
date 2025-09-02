@@ -159,13 +159,13 @@ export default function ExamForm({
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {mode === 'create' ? 'Nova Prova' : 'Editar Prova'}
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               Configure as informações da prova e selecione as questões
             </p>
           </div>
@@ -194,17 +194,17 @@ export default function ExamForm({
 
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
         {/* Basic Information */}
-        <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center mb-6">
             <FileText className="w-5 h-5 text-primary-600 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Informações Básicas
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Título da Prova *
               </label>
               <input
@@ -225,7 +225,7 @@ export default function ExamForm({
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Descrição
               </label>
               <textarea
@@ -237,7 +237,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Disciplina *
               </label>
               <Controller
@@ -264,7 +264,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Status
               </label>
               <Controller
@@ -285,17 +285,17 @@ export default function ExamForm({
         </div>
 
         {/* Exam Configuration */}
-        <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center mb-6">
             <Settings className="w-5 h-5 text-primary-600 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Configurações da Prova
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Duração (minutos) *
               </label>
               <input
@@ -315,7 +315,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Total de Questões *
               </label>
               <input
@@ -335,7 +335,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Variações
               </label>
               <input
@@ -351,7 +351,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nota de Aprovação (%)
               </label>
               <input
@@ -364,7 +364,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Tentativas Máximas
               </label>
               <input
@@ -385,7 +385,7 @@ export default function ExamForm({
                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 {...register('shuffleQuestions')}
               />
-              <span className="ml-2 text-sm text-gray-700">Embaralhar questões</span>
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Embaralhar questões</span>
             </label>
 
             <label className="flex items-center">
@@ -394,7 +394,7 @@ export default function ExamForm({
                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 {...register('shuffleAlternatives')}
               />
-              <span className="ml-2 text-sm text-gray-700">Embaralhar alternativas</span>
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Embaralhar alternativas</span>
             </label>
 
             <label className="flex items-center">
@@ -403,7 +403,7 @@ export default function ExamForm({
                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 {...register('showResults')}
               />
-              <span className="ml-2 text-sm text-gray-700">Mostrar resultados após envio</span>
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Mostrar resultados após envio</span>
             </label>
 
             <label className="flex items-center">
@@ -412,16 +412,16 @@ export default function ExamForm({
                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 {...register('allowReview')}
               />
-              <span className="ml-2 text-sm text-gray-700">Permitir revisão das respostas</span>
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Permitir revisão das respostas</span>
             </label>
           </div>
         </div>
 
         {/* Difficulty Distribution */}
-        <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center mb-6">
             <Hash className="w-5 h-5 text-primary-600 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Distribuição por Dificuldade
             </h2>
           </div>
@@ -435,10 +435,10 @@ export default function ExamForm({
               return (
                 <div key={level.value} className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {level.label}
                     </label>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {available} disponíveis
                     </span>
                   </div>
@@ -463,8 +463,8 @@ export default function ExamForm({
             })}
           </div>
 
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center text-sm text-gray-600">
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
               <Info className="w-4 h-4 mr-2" />
               Total configurado: {Object.values(difficultyConfig).reduce((sum, val) => sum + val, 0)} questões
             </div>
@@ -472,17 +472,17 @@ export default function ExamForm({
         </div>
 
         {/* Schedule */}
-        <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center mb-6">
             <Calendar className="w-5 h-5 text-primary-600 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Agendamento (Opcional)
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Disponível a partir de
               </label>
               <input
@@ -493,7 +493,7 @@ export default function ExamForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Disponível até
               </label>
               <input
@@ -506,10 +506,10 @@ export default function ExamForm({
         </div>
 
         {/* Instructions */}
-        <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center mb-6">
             <FileText className="w-5 h-5 text-primary-600 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Instruções para os Alunos
             </h2>
           </div>
@@ -524,7 +524,7 @@ export default function ExamForm({
 
         {/* Submit */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             {!canGenerateExam() && (
               <div className="flex items-center text-red-600">
                 <AlertCircle className="w-4 h-4 mr-1" />
@@ -562,9 +562,9 @@ export default function ExamForm({
 function ExamPreview({ examData, onBack }) {
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Preview da Prova</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Preview da Prova</h1>
           <button
             onClick={onBack}
             className="btn btn-outline"
@@ -576,49 +576,49 @@ function ExamPreview({ examData, onBack }) {
 
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               {examData.title}
             </h2>
             {examData.description && (
-              <p className="text-gray-600">{examData.description}</p>
+              <p className="text-gray-600 dark:text-gray-400">{examData.description}</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {examData.totalQuestions}
               </div>
-              <div className="text-sm text-gray-600">Questões</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Questões</div>
             </div>
             
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {examData.duration}
               </div>
-              <div className="text-sm text-gray-600">Minutos</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Minutos</div>
             </div>
             
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {examData.variations}
               </div>
-              <div className="text-sm text-gray-600">Variações</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Variações</div>
             </div>
             
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {examData.passingScore}%
               </div>
-              <div className="text-sm text-gray-600">Nota Mínima</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Nota Mínima</div>
             </div>
           </div>
 
           {examData.instructions && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Instruções</h3>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-gray-700">{examData.instructions}</p>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Instruções</h3>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                <p className="text-gray-700 dark:text-gray-300">{examData.instructions}</p>
               </div>
             </div>
           )}

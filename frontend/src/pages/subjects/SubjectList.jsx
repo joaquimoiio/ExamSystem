@@ -14,7 +14,7 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
   const [showActions, setShowActions] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl shadow-soft border border-gray-100 hover:shadow-medium transition-all duration-200 group">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 hover:shadow-medium transition-all duration-200 group">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
@@ -24,10 +24,10 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
               style={{ backgroundColor: subject.color }}
             />
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                 {subject.name}
               </h3>
-              <p className="text-sm text-gray-500 line-clamp-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
                 {subject.description || 'Sem descrição'}
               </p>
             </div>
@@ -37,7 +37,7 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
           <div className="relative">
             <button
               onClick={() => setShowActions(!showActions)}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -48,13 +48,13 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
                   className="fixed inset-0 z-10" 
                   onClick={() => setShowActions(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                   <button
                     onClick={() => {
                       onView(subject);
                       setShowActions(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Ver detalhes
@@ -64,7 +64,7 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
                       onEdit(subject);
                       setShowActions(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Editar
@@ -75,7 +75,7 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
                       onDelete(subject);
                       setShowActions(false);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Excluir
@@ -89,16 +89,16 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center">
-            <div className="text-lg font-semibold text-gray-900">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {subject.questionsCount || 0}
             </div>
-            <div className="text-xs text-gray-500">Questões</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Questões</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-semibold text-gray-900">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {subject.examsCount || 0}
             </div>
-            <div className="text-xs text-gray-500">Provas</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Provas</div>
           </div>
         </div>
 
@@ -107,31 +107,31 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
           <span className={`
             inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
             ${subject.isActive 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-gray-100 text-gray-800'
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' 
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
             }
           `}>
             {subject.isActive ? 'Ativa' : 'Inativa'}
           </span>
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             Criada em {new Date(subject.createdAt).toLocaleDateString('pt-BR')}
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="border-t border-gray-100 px-6 py-3">
+      <div className="border-t border-gray-100 dark:border-gray-700 px-6 py-3">
         <div className="flex items-center justify-between">
           <Link
             to={`/questions?subject=${subject.id}`}
-            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
           >
             Ver questões
           </Link>
           <Link
             to={`/subjects/${subject.id}`}
-            className="text-sm text-gray-600 hover:text-gray-700"
+            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             Gerenciar →
           </Link>
@@ -144,13 +144,13 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
 function EmptyState({ onCreateSubject }) {
   return (
     <div className="text-center py-12">
-      <div className="bg-gray-100 p-4 rounded-full inline-block mb-4">
-        <BookOpen className="w-12 h-12 text-gray-400" />
+      <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full inline-block mb-4">
+        <BookOpen className="w-12 h-12 text-gray-400 dark:text-gray-500" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
         Nenhuma disciplina encontrada
       </h3>
-      <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
         Comece criando sua primeira disciplina para organizar suas questões e provas.
       </p>
       <button
@@ -241,13 +241,13 @@ export default function SubjectList() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="bg-red-100 p-4 rounded-full inline-block mb-4">
-          <AlertCircle className="w-12 h-12 text-red-500" />
+        <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full inline-block mb-4">
+          <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           Erro ao carregar disciplinas
         </h3>
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
           {error.message || 'Ocorreu um erro inesperado'}
         </p>
         <button
@@ -265,8 +265,8 @@ export default function SubjectList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Disciplinas</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Disciplinas</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Gerencie suas disciplinas e organize o conteúdo por matéria
           </p>
         </div>
@@ -282,7 +282,7 @@ export default function SubjectList() {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search */}
           <div className="md:col-span-2">
@@ -298,7 +298,7 @@ export default function SubjectList() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="all">Todos os status</option>
               <option value="active">Apenas ativas</option>
@@ -311,7 +311,7 @@ export default function SubjectList() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="name">Ordenar por nome</option>
               <option value="created">Mais recentes</option>
@@ -322,7 +322,7 @@ export default function SubjectList() {
         </div>
 
         {/* Results Info */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <span>
             {isLoading ? 'Carregando...' : `${filteredSubjects.length} disciplina${filteredSubjects.length !== 1 ? 's' : ''} encontrada${filteredSubjects.length !== 1 ? 's' : ''}`}
           </span>
@@ -344,13 +344,13 @@ export default function SubjectList() {
       ) : filteredSubjects.length === 0 ? (
         searchTerm || filterStatus !== 'all' ? (
           <div className="text-center py-12">
-            <div className="bg-gray-100 p-4 rounded-full inline-block mb-4">
-              <Search className="w-12 h-12 text-gray-400" />
+            <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full inline-block mb-4">
+              <Search className="w-12 h-12 text-gray-400 dark:text-gray-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Nenhuma disciplina encontrada
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               Tente ajustar os filtros ou termo de busca.
             </p>
             <button

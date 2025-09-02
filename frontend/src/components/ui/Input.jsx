@@ -24,7 +24,7 @@ const Input = React.forwardRef(({
   const isPassword = type === 'password';
   const inputType = isPassword && showPassword ? 'text' : type;
   
-  const baseClasses = 'block border rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0';
+  const baseClasses = 'block border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0';
   
   const sizeClasses = {
     small: 'px-3 py-1.5 text-sm',
@@ -33,15 +33,15 @@ const Input = React.forwardRef(({
   };
 
   const variantClasses = {
-    default: 'border-gray-300 focus:ring-primary-500 focus:border-primary-500',
-    filled: 'border-transparent bg-gray-100 focus:ring-primary-500 focus:bg-white',
-    outlined: 'border-2 border-gray-300 focus:ring-primary-500 focus:border-primary-500',
+    default: 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500',
+    filled: 'border-transparent bg-gray-100 dark:bg-gray-700 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-800',
+    outlined: 'border-2 border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500',
   };
 
   const stateClasses = error 
-    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+    ? 'border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500' 
     : success 
-    ? 'border-green-300 focus:ring-green-500 focus:border-green-500'
+    ? 'border-green-300 dark:border-green-600 focus:ring-green-500 focus:border-green-500'
     : variantClasses[variant];
 
   const inputClasses = [
@@ -51,7 +51,7 @@ const Input = React.forwardRef(({
     fullWidth ? 'w-full' : '',
     leftIcon ? 'pl-10' : '',
     rightIcon || isPassword ? 'pr-10' : '',
-    disabled ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : '',
+    disabled ? 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : '',
     className,
   ].filter(Boolean).join(' ');
 
@@ -60,7 +60,7 @@ const Input = React.forwardRef(({
   return (
     <div className={fullWidth ? 'w-full' : ''}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -70,7 +70,7 @@ const Input = React.forwardRef(({
         {leftIcon && (
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             {React.cloneElement(leftIcon, {
-              className: `${iconSize} text-gray-400`,
+              className: `${iconSize} text-gray-400 dark:text-gray-500`,
             })}
           </div>
         )}
@@ -92,7 +92,7 @@ const Input = React.forwardRef(({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
                 tabIndex={-1}
               >
                 {showPassword ? (
@@ -113,7 +113,7 @@ const Input = React.forwardRef(({
             
             {!isPassword && !error && !success && rightIcon && (
               React.cloneElement(rightIcon, {
-                className: `${iconSize} text-gray-400`,
+                className: `${iconSize} text-gray-400 dark:text-gray-500`,
               })
             )}
           </div>
@@ -135,7 +135,7 @@ const Input = React.forwardRef(({
             </p>
           )}
           {!error && !success && helperText && (
-            <p className="text-sm text-gray-500">{helperText}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
           )}
         </div>
       )}
@@ -160,12 +160,12 @@ export const Textarea = React.forwardRef(({
   className = '',
   ...props
 }, ref) => {
-  const baseClasses = 'block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
+  const baseClasses = 'block w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
   
   const stateClasses = error 
-    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+    ? 'border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500' 
     : success 
-    ? 'border-green-300 focus:ring-green-500 focus:border-green-500'
+    ? 'border-green-300 dark:border-green-600 focus:ring-green-500 focus:border-green-500'
     : '';
 
   const resizeClasses = {
@@ -179,14 +179,14 @@ export const Textarea = React.forwardRef(({
     baseClasses,
     stateClasses,
     resizeClasses[resize],
-    disabled ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : '',
+    disabled ? 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : '',
     className,
   ].filter(Boolean).join(' ');
 
   return (
     <div className={fullWidth ? 'w-full' : ''}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -216,7 +216,7 @@ export const Textarea = React.forwardRef(({
             </p>
           )}
           {!error && !success && helperText && (
-            <p className="text-sm text-gray-500">{helperText}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
           )}
         </div>
       )}
@@ -241,7 +241,7 @@ export const Select = React.forwardRef(({
   className = '',
   ...props
 }, ref) => {
-  const baseClasses = 'block border border-gray-300 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white';
+  const baseClasses = 'block border border-gray-300 dark:border-gray-600 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white';
   
   const sizeClasses = {
     small: 'px-3 py-1.5 text-sm',
@@ -250,9 +250,9 @@ export const Select = React.forwardRef(({
   };
 
   const stateClasses = error 
-    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+    ? 'border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500' 
     : success 
-    ? 'border-green-300 focus:ring-green-500 focus:border-green-500'
+    ? 'border-green-300 dark:border-green-600 focus:ring-green-500 focus:border-green-500'
     : '';
 
   const selectClasses = [
@@ -260,14 +260,14 @@ export const Select = React.forwardRef(({
     sizeClasses[size],
     stateClasses,
     fullWidth ? 'w-full' : '',
-    disabled ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : '',
+    disabled ? 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' : '',
     className,
   ].filter(Boolean).join(' ');
 
   return (
     <div className={fullWidth ? 'w-full' : ''}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -308,7 +308,7 @@ export const Select = React.forwardRef(({
             </p>
           )}
           {!error && !success && helperText && (
-            <p className="text-sm text-gray-500">{helperText}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
           )}
         </div>
       )}
@@ -373,7 +373,7 @@ export function SearchInput({
             <button
               type="button"
               onClick={handleClear}
-              className="text-gray-400 hover:text-gray-600 focus:outline-none"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
             >
               <X className="w-4 h-4" />
             </button>
@@ -410,9 +410,9 @@ export const Checkbox = React.forwardRef(({
 
   const checkboxClasses = [
     sizeClasses[size],
-    'text-primary-600 focus:ring-primary-500 border-gray-300 rounded',
+    'text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded',
     disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-    error ? 'border-red-300' : '',
+    error ? 'border-red-300 dark:border-red-600' : '',
     className,
   ].filter(Boolean).join(' ');
 
@@ -429,12 +429,12 @@ export const Checkbox = React.forwardRef(({
       {(label || description) && (
         <div className="ml-3">
           {label && (
-            <label className={`text-sm font-medium ${disabled ? 'text-gray-400' : 'text-gray-700'} cursor-pointer`}>
+            <label className={`text-sm font-medium ${disabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'} cursor-pointer`}>
               {label}
             </label>
           )}
           {description && (
-            <p className={`text-xs ${disabled ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-xs ${disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>
               {description}
             </p>
           )}
@@ -467,9 +467,9 @@ export const Radio = React.forwardRef(({
 
   const radioClasses = [
     sizeClasses[size],
-    'text-primary-600 focus:ring-primary-500 border-gray-300',
+    'text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800',
     disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-    error ? 'border-red-300' : '',
+    error ? 'border-red-300 dark:border-red-600' : '',
     className,
   ].filter(Boolean).join(' ');
 
@@ -486,12 +486,12 @@ export const Radio = React.forwardRef(({
       {(label || description) && (
         <div className="ml-3">
           {label && (
-            <label className={`text-sm font-medium ${disabled ? 'text-gray-400' : 'text-gray-700'} cursor-pointer`}>
+            <label className={`text-sm font-medium ${disabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'} cursor-pointer`}>
               {label}
             </label>
           )}
           {description && (
-            <p className={`text-xs ${disabled ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-xs ${disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>
               {description}
             </p>
           )}
@@ -549,12 +549,12 @@ export const Switch = React.forwardRef(({
       {(label || description) && (
         <div className="flex-1 min-w-0">
           {label && (
-            <label className={`block text-sm font-medium ${disabled ? 'text-gray-400' : 'text-gray-900'}`}>
+            <label className={`block text-sm font-medium ${disabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
               {label}
             </label>
           )}
           {description && (
-            <p className={`text-xs ${disabled ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-xs ${disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>
               {description}
             </p>
           )}
@@ -584,7 +584,7 @@ export const ColorPicker = React.forwardRef(({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {label}
         </label>
       )}
@@ -597,8 +597,8 @@ export const ColorPicker = React.forwardRef(({
             className={`
               w-8 h-8 rounded-lg border-2 transition-all
               ${value === color 
-                ? 'border-gray-900 ring-2 ring-gray-900 ring-offset-2' 
-                : 'border-gray-300 hover:border-gray-400'
+                ? 'border-gray-900 dark:border-gray-100 ring-2 ring-gray-900 dark:ring-gray-100 ring-offset-2' 
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }
             `}
             style={{ backgroundColor: color }}

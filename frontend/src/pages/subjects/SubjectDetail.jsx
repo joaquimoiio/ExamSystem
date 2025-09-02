@@ -156,7 +156,7 @@ export default function SubjectDetail() {
         <div className="flex items-center space-x-4">
           <button
             onClick={() => navigate('/subjects')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -168,10 +168,10 @@ export default function SubjectDetail() {
               />
             )}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {isNewSubject ? 'Nova Disciplina' : (isEditing ? 'Editar Disciplina' : subject?.name)}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 {isNewSubject 
                   ? 'Crie uma nova disciplina para organizar suas questões'
                   : isEditing 
@@ -188,7 +188,7 @@ export default function SubjectDetail() {
             <>
               <button
                 onClick={handleEdit}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
@@ -233,14 +233,14 @@ export default function SubjectDetail() {
 
       {/* Tabs (only for existing subjects not in edit mode) */}
       {!isNewSubject && !isEditing && subject && (
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('info')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'info'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
               }`}
             >
               <BookOpen className="w-4 h-4 inline mr-2" />
@@ -251,7 +251,7 @@ export default function SubjectDetail() {
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'questions'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
               }`}
             >
               <FileText className="w-4 h-4 inline mr-2" />
@@ -262,13 +262,13 @@ export default function SubjectDetail() {
       )}
 
       {/* Main Content */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700">
         {isEditing ? (
           // Edit Form
           <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
             <div className="flex items-center mb-6">
               <BookOpen className="w-5 h-5 text-primary-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {isNewSubject ? 'Informações da Nova Disciplina' : 'Editar Informações'}
               </h2>
             </div>
@@ -324,7 +324,7 @@ export default function SubjectDetail() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Cor da Disciplina
               </label>
               <div className="flex items-center space-x-4">
@@ -342,7 +342,7 @@ export default function SubjectDetail() {
                         className={`w-8 h-8 rounded-lg border-2 transition-all ${
                           watchedColor === color 
                             ? 'border-gray-400 scale-110' 
-                            : 'border-gray-200 hover:scale-105'
+                            : 'border-gray-200 dark:border-gray-700 hover:scale-105'
                         }`}
                         style={{ backgroundColor: color }}
                       />
@@ -353,7 +353,7 @@ export default function SubjectDetail() {
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-600">
                 {isDirty && (
                   <div className="flex items-center text-yellow-600">
@@ -367,7 +367,7 @@ export default function SubjectDetail() {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -393,24 +393,24 @@ export default function SubjectDetail() {
               <div>
                 <div className="flex items-center mb-6">
                   <BookOpen className="w-5 h-5 text-primary-600 mr-2" />
-                  <h2 className="text-lg font-semibold text-gray-900">Informações da Disciplina</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Informações da Disciplina</h2>
                 </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Nome</label>
-                <p className="text-lg font-medium text-gray-900">{subject?.name}</p>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Nome</label>
+                <p className="text-lg font-medium text-gray-900 dark:text-white">{subject?.name}</p>
               </div>
 
               {subject?.code && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Código</label>
-                  <p className="text-lg font-medium text-gray-900">{subject.code}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Código</label>
+                  <p className="text-lg font-medium text-gray-900 dark:text-white">{subject.code}</p>
                 </div>
               )}
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-500 mb-1">Cor</label>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Cor</label>
                 <div className="flex items-center space-x-3">
                   <div 
                     className="w-8 h-8 rounded-lg border-2 border-white shadow-md"
@@ -422,19 +422,19 @@ export default function SubjectDetail() {
 
               {subject?.description && (
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Descrição</label>
-                  <p className="text-gray-700">{subject.description}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Descrição</label>
+                  <p className="text-gray-700 dark:text-gray-300">{subject.description}</p>
                 </div>
               )}
             </div>
 
             {/* Quick Actions */}
-            <div className="pt-6 border-t border-gray-200">
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-medium text-gray-900 mb-4">Ações Rápidas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => navigate(`/questions/new?subjectId=${subject?.id}`)}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                  className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-green-100 rounded-lg">
@@ -442,14 +442,14 @@ export default function SubjectDetail() {
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Nova Questão</h4>
-                      <p className="text-sm text-gray-500">Adicionar questão a esta disciplina</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Adicionar questão a esta disciplina</p>
                     </div>
                   </div>
                 </button>
 
                 <button
                   onClick={() => navigate(`/questions?subjectId=${subject?.id}`)}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                  className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
@@ -457,7 +457,7 @@ export default function SubjectDetail() {
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Ver Questões</h4>
-                      <p className="text-sm text-gray-500">Listar todas as questões desta disciplina</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Listar todas as questões desta disciplina</p>
                     </div>
                   </div>
                 </button>
@@ -465,7 +465,7 @@ export default function SubjectDetail() {
             </div>
 
                 {/* Metadata */}
-                <div className="pt-6 border-t border-gray-200 text-sm text-gray-500">
+                <div className="pt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <span className="font-medium">Criado em:</span> {' '}
@@ -583,12 +583,12 @@ function QuestionsTab({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <FileText className="w-5 h-5 text-primary-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Questões da Disciplina</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Questões da Disciplina</h2>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             title={`Alterar para visualização ${viewMode === 'grid' ? 'em lista' : 'em grade'}`}
           >
             {viewMode === 'grid' ? <List className="w-5 h-5" /> : <Grid className="w-5 h-5" />}
@@ -604,7 +604,7 @@ function QuestionsTab({
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-50 rounded-lg p-4">
+      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search */}
           <div className="md:col-span-2">
@@ -615,7 +615,7 @@ function QuestionsTab({
                 placeholder="Buscar questões..."
                 value={searchTerm || ''}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -625,7 +625,7 @@ function QuestionsTab({
             <select
               value={difficultyFilter || 'all'}
               onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full py-2 px-3 border border-gray-300 dark:border-gray-600 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="all">Todas as dificuldades</option>
               <option value="easy">Fácil</option>
@@ -639,7 +639,7 @@ function QuestionsTab({
             <select
               value={typeFilter || 'all'}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full py-2 px-3 border border-gray-300 dark:border-gray-600 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="all">Todos os tipos</option>
               <option value="multiple_choice">Múltipla Escolha</option>
@@ -672,7 +672,7 @@ function QuestionsTab({
           "space-y-3"
         }>
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+            <div key={i} className="bg-white rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
               <div className="h-4 bg-gray-200 rounded mb-2"></div>
               <div className="h-4 bg-gray-200 rounded mb-2"></div>
               <div className="h-8 bg-gray-200 rounded"></div>
@@ -752,12 +752,12 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
 
   if (viewMode === 'list') {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 group">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 group">
         <div className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {question.title || question.text || 'Sem título'}
                 </p>
                 <div className="flex items-center space-x-4 mt-1">
@@ -823,7 +823,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
          onClick={() => onView(question.id)}>
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
@@ -853,7 +853,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
               </span>
             </div>
             
-            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-primary-600 transition-colors">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
               {question.title || question.text || 'Sem título'}
             </h3>
           </div>
@@ -908,15 +908,15 @@ function StatCard({ title, value, icon: Icon, color, description }) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
           <Icon className="w-5 h-5" />
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        <p className="text-sm font-medium text-gray-900">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
         <p className="text-xs text-gray-500">{description}</p>
       </div>
     </div>

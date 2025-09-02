@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  BookOpen, FileText, BarChart3, Users, Clock, 
+import {
+  BookOpen, FileText, BarChart3, Users, Clock,
   TrendingUp, CheckCircle, AlertCircle, Plus,
   ArrowRight, Calendar, Target, Award, LogOut
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboardStats, useRecentActivity } from '../../hooks';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -47,13 +48,6 @@ export default function Dashboard() {
       color: 'warning',
       to: '/exams/new'
     },
-    {
-      title: 'Ver Relatórios',
-      description: 'Analisar estatísticas e desempenho',
-      icon: TrendingUp,
-      color: 'info',
-      to: '/reports'
-    },
   ];
 
   return (
@@ -69,6 +63,7 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <Link
                 to="/exams/new"
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

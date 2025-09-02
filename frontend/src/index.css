@@ -196,6 +196,13 @@ select:focus {
 @media print {
   body {
     background: white !important;
+    color: black !important;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+    border-color: black !important;
   }
   
   .no-print {

@@ -99,13 +99,13 @@ const Modal = ({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in"
+      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center p-4 z-50 animate-fade-in"
       onClick={handleBackdropClick}
     >
       <div
         ref={modalRef}
         className={`
-          bg-white rounded-xl shadow-xl max-h-screen overflow-y-auto w-full
+          bg-white dark:bg-gray-800 rounded-xl shadow-xl max-h-screen overflow-y-auto w-full
           ${sizeClasses[size]} ${className}
           animate-bounce-in focus:outline-none
         `}
@@ -118,7 +118,7 @@ const Modal = ({
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             {title && (
-              <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
+              <h2 id="modal-title" className="text-xl font-semibold text-gray-900 dark:text-white">
                 {title}
               </h2>
             )}
@@ -164,10 +164,10 @@ export function ConfirmationModal({
   };
 
   const iconColors = {
-    warning: 'text-yellow-600 bg-yellow-100',
-    error: 'text-red-600 bg-red-100',
-    success: 'text-green-600 bg-green-100',
-    info: 'text-blue-600 bg-blue-100',
+    warning: 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30',
+    error: 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30',
+    success: 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
+    info: 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
   };
 
   const buttonVariants = {
@@ -186,8 +186,8 @@ export function ConfirmationModal({
           <Icon className="h-6 w-6" />
         </div>
         
-        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-500 mb-6">{message}</p>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{message}</p>
         
         <div className="flex space-x-3 justify-center">
           <Button
@@ -227,10 +227,10 @@ export function AlertModal({
   };
 
   const iconColors = {
-    warning: 'text-yellow-600 bg-yellow-100',
-    error: 'text-red-600 bg-red-100',
-    success: 'text-green-600 bg-green-100',
-    info: 'text-blue-600 bg-blue-100',
+    warning: 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30',
+    error: 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30',
+    success: 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
+    info: 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
   };
 
   const Icon = icons[variant];
@@ -281,7 +281,7 @@ export function FormModal({
           {children}
         </div>
         
-        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
           <Button
             type="button"
             variant="outline"
@@ -340,7 +340,7 @@ export function DrawerModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 animate-fade-in">
       <div
         className={`
-          fixed bg-white shadow-xl overflow-y-auto
+          fixed bg-white dark:bg-gray-800 shadow-xl overflow-y-auto
           ${positionClasses[position]}
           ${sizeClasses[size]}
           ${animationClasses[position]}
@@ -398,7 +398,7 @@ export function BottomSheetModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end animate-fade-in">
       <div
         className={`
-          w-full bg-white rounded-t-xl shadow-xl overflow-y-auto
+          w-full bg-white dark:bg-gray-800 rounded-t-xl shadow-xl overflow-y-auto
           ${heightClasses[height]}
           ${className}
           animate-slide-in-bottom
@@ -406,7 +406,7 @@ export function BottomSheetModal({
       >
         {/* Handle */}
         <div className="flex justify-center p-2">
-          <div className="w-8 h-1 bg-gray-300 rounded-full" />
+          <div className="w-8 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
         </div>
         
         {title && (

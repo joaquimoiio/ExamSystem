@@ -48,15 +48,15 @@ export default function SubjectForm({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           {isEditing ? 'Editar Disciplina' : 'Nova Disciplina'}
         </h2>
         {onCancel && (
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -66,7 +66,7 @@ export default function SubjectForm({
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
         {/* Subject Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Nome da Disciplina *
           </label>
           <input
@@ -84,8 +84,8 @@ export default function SubjectForm({
               },
             })}
             className={`
-              w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-              ${errors.name ? 'border-red-300' : 'border-gray-300'}
+              w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+              ${errors.name ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'}
             `}
             placeholder="Ex: Matemática, Física, Química..."
           />
@@ -96,7 +96,7 @@ export default function SubjectForm({
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Descrição
           </label>
           <textarea
@@ -109,8 +109,8 @@ export default function SubjectForm({
               },
             })}
             className={`
-              w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-              ${errors.description ? 'border-red-300' : 'border-gray-300'}
+              w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+              ${errors.description ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'}
             `}
             placeholder="Descrição opcional da disciplina..."
           />
@@ -133,7 +133,7 @@ export default function SubjectForm({
                   border-2 transition-all duration-200
                   ${selectedColor === color.value 
                     ? 'border-gray-400 scale-110' 
-                    : 'border-gray-200 hover:border-gray-300'
+                    : 'border-gray-200 hover:border-gray-300 dark:border-gray-600'
                   }
                 `}
               >
@@ -152,7 +152,7 @@ export default function SubjectForm({
               </label>
             ))}
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             A cor será usada para identificar a disciplina visualmente
           </p>
         </div>
@@ -164,9 +164,9 @@ export default function SubjectForm({
             id="isActive"
             type="checkbox"
             {...register('isActive')}
-            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded"
           />
-          <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
+          <label htmlFor="isActive" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
             Disciplina ativa
           </label>
           <p className="ml-2 text-xs text-gray-500">
@@ -175,18 +175,18 @@ export default function SubjectForm({
         </div>
 
         {/* Preview */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Preview:</h3>
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Preview:</h3>
           <div className="flex items-center space-x-3">
             <div 
               className="w-4 h-4 rounded-full"
               style={{ backgroundColor: selectedColor }}
             />
             <div>
-              <p className="font-medium text-gray-900">
+              <p className="font-medium text-gray-900 dark:text-white">
                 {watch('name') || 'Nome da disciplina'}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {watch('description') || 'Sem descrição'}
               </p>
             </div>
@@ -200,7 +200,7 @@ export default function SubjectForm({
               type="button"
               onClick={onCancel}
               disabled={isSubmitting || loading}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
