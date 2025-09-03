@@ -246,7 +246,7 @@ export default function QRScanner() {
       {/* Scan Result */}
       {scanResult && (
         <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
             <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
             QR Code Detectado
           </h3>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Eye, Edit, Trash2, MoreVertical,
   BarChart3, BookOpen, Users, Clock, Download, Share2,
@@ -243,15 +243,12 @@ function EmptyState({ onCreateExam, hasFilters }) {
 }
 
 export default function ExamList() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [deleteExamId, setDeleteExamId] = useState(null);
   const [publishExamId, setPublishExamId] = useState(null);
-
-  // Get filter values from URL params
-  const searchTerm = searchParams.get('search') || '';
-  const subjectFilter = searchParams.get('subject') || 'all';
-  const statusFilter = searchParams.get('status') || 'all';
-  const sortBy = searchParams.get('sort') || 'created';
+  const [searchTerm, setSearchTerm] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('created');
 
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
@@ -276,15 +273,17 @@ export default function ExamList() {
 
   const hasFilters = searchTerm || subjectFilter !== 'all' || statusFilter !== 'all';
 
-  // Update URL params when filters change
-  const updateFilter = (key, value) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value && value !== 'all') {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    setSearchParams(newParams);
+  // Filter handlers
+  const handleSubjectFilterChange = (value) => {
+    setSubjectFilter(value);
+  };
+
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
+  };
+
+  const handleSortChange = (value) => {
+    setSortBy(value);
   };
 
   const handleCreateExam = () => {
@@ -347,15 +346,18 @@ export default function ExamList() {
   };
 
   const handleSearch = (term) => {
-    updateFilter('search', term);
+    setSearchTerm(term);
   };
 
   const handleClearSearch = () => {
-    updateFilter('search', '');
+    setSearchTerm('');
   };
 
   const clearAllFilters = () => {
-    setSearchParams(new URLSearchParams());
+    setSearchTerm('');
+    setSubjectFilter('all');
+    setStatusFilter('all');
+    setSortBy('created');
   };
 
   if (error) {
@@ -418,7 +420,7 @@ export default function ExamList() {
           <div>
             <Select
               value={subjectFilter}
-              onChange={(e) => updateFilter('subject', e.target.value)}
+              onChange={(e) => handleSubjectFilterChange(e.target.value)}
               options={[
                 { value: 'all', label: 'Todas as disciplinas' },
                 ...subjects.map(subject => ({
@@ -433,7 +435,7 @@ export default function ExamList() {
           <div>
             <Select
               value={statusFilter}
-              onChange={(e) => updateFilter('status', e.target.value)}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
               options={[
                 { value: 'all', label: 'Todos os status' },
                 { value: 'draft', label: 'Rascunhos' },
@@ -447,7 +449,7 @@ export default function ExamList() {
           <div>
             <Select
               value={sortBy}
-              onChange={(e) => updateFilter('sort', e.target.value)}
+              onChange={(e) => handleSortChange(e.target.value)}
               options={[
                 { value: 'created', label: 'Mais recentes' },
                 { value: 'title', label: 'Alfabética' },

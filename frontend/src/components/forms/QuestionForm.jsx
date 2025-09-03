@@ -190,9 +190,9 @@ export default function QuestionForm({
 
 
   return (
-    <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           {isEditing ? 'Editar Questão' : 'Nova Questão'}
         </h2>
         <div className="flex items-center space-x-2">
@@ -211,7 +211,7 @@ export default function QuestionForm({
         {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label htmlFor="statement" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="statement" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Enunciado da Questão *
             </label>
             <textarea
@@ -242,7 +242,7 @@ export default function QuestionForm({
           {/* Images Section */}
           <div className="md:col-span-2">
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Imagens (Opcional)
               </label>
               <button
@@ -260,7 +260,7 @@ export default function QuestionForm({
                 {imageFields.map((field, index) => (
                   <div key={field.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-700">Imagem {index + 1}</h4>
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Imagem {index + 1}</h4>
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
@@ -271,7 +271,7 @@ export default function QuestionForm({
                     </div>
                     
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">URL da Imagem</label>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">URL da Imagem</label>
                       <input
                         type="url"
                         {...register(`images.${index}.url`)}
@@ -281,7 +281,7 @@ export default function QuestionForm({
                     </div>
                     
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Descrição (Alt text)</label>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição (Alt text)</label>
                       <input
                         type="text"
                         {...register(`images.${index}.description`)}
@@ -314,7 +314,7 @@ export default function QuestionForm({
           </div>
 
           <div>
-            <label htmlFor="subjectId" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="subjectId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Disciplina *
             </label>
             <select
@@ -338,7 +338,7 @@ export default function QuestionForm({
           </div>
 
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tipo de Questão
             </label>
             <select
@@ -355,7 +355,7 @@ export default function QuestionForm({
           </div>
 
           <div>
-            <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Dificuldade
             </label>
             <select
@@ -380,7 +380,7 @@ export default function QuestionForm({
         {watchedType === 'multiple_choice' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Alternativas *
               </label>
               {alternativeFields.length < 6 && (
@@ -448,7 +448,7 @@ export default function QuestionForm({
               ))}
             </div>
 
-            <div className="mt-2 flex items-start space-x-2 text-sm text-gray-600">
+            <div className="mt-2 flex items-start space-x-2 text-sm text-gray-600 dark:text-gray-400">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p>
                 Clique no círculo ao lado da alternativa para marcá-la como correta. 
@@ -460,7 +460,7 @@ export default function QuestionForm({
 
         {watchedType === 'essay' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tipo de Questão: Dissertativa
             </label>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -480,7 +480,7 @@ export default function QuestionForm({
 
         {/* Explanation */}
         <div>
-          <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Explicação (Opcional)
           </label>
           <textarea
@@ -510,7 +510,7 @@ export default function QuestionForm({
               type="button"
               onClick={onCancel}
               disabled={isSubmitting || loading}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>

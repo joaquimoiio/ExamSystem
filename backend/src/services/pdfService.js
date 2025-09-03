@@ -1459,12 +1459,16 @@ class PDFService {
       
       console.log(`📝 Questão ${index + 1}: "${text.substring(0, 50)}..." (${text.length} chars)`);
       
-      // Render text using PDFKit's automatic text wrapping
-      const maxTextWidth = 500;
+      // Render text using improved text wrapping
+      const maxTextWidth = 480; // Reduced width to ensure better wrapping
       const textOptions = {
         width: maxTextWidth,
         align: 'left',
-        lineGap: 2
+        lineGap: 3,
+        indent: 0,
+        paragraphGap: 2,
+        ellipsis: false,
+        features: ['liga']
       };
       
       // Check if we need a new page before rendering text
@@ -1490,9 +1494,15 @@ class PDFService {
         doc.fontSize(9).font(this.fonts.regular);
       }
       
+      // Apply additional text wrapping before PDFKit rendering
+      const wrappedText = this.wrapText(doc, text, maxTextWidth);
+      
+      // Recalculate height with wrapped text
+      const wrappedTextHeight = doc.heightOfString(wrappedText, textOptions);
+      
       // Render the text
-      doc.text(text, 50, y, textOptions);
-      y += textHeight + 8; // Add gap after text
+      doc.text(wrappedText, 50, y, textOptions);
+      y += wrappedTextHeight + 8; // Add gap after text
       
       // Question type specific content - garantir que alternativas apareçam
       if (question.type === 'multiple_choice') {
@@ -1544,9 +1554,15 @@ class PDFService {
                 doc.fontSize(9).font(this.fonts.regular);
               }
               
+              // Apply text wrapping to alternative
+              const wrappedAltText = this.wrapText(doc, altText, 460);
+              
+              // Recalculate height with wrapped text
+              const wrappedAltHeight = doc.heightOfString(wrappedAltText, altOptions);
+              
               // Render the alternative
-              doc.text(altText, 60, y, altOptions);
-              y += altHeight + 3; // Small gap between alternatives
+              doc.text(wrappedAltText, 60, y, altOptions);
+              y += wrappedAltHeight + 4; // Small gap between alternatives
             }
           });
         } else {
@@ -1679,15 +1695,19 @@ class PDFService {
         text = 'Texto da questão não disponível';
       }
       
+      // Apply text wrapping for double column
+      const wrappedText = this.wrapText(doc, text, columnWidth - 15);
+      
       // Render text using PDFKit's automatic wrapping for double column
       const textOptions = {
-        width: columnWidth - 10,
+        width: columnWidth - 15,
         align: 'left',
-        lineGap: 2
+        lineGap: 3,
+        paragraphGap: 2
       };
       
       // Check if text will fit in current column
-      const textHeight = doc.heightOfString(text, textOptions);
+      const textHeight = doc.heightOfString(wrappedText, textOptions);
       if (currentY + textHeight > 700) {
         if (currentColumn === 'left') {
           // Move to right column
@@ -1714,7 +1734,7 @@ class PDFService {
       }
       
       // Render the text
-      doc.text(text, currentX, currentY, textOptions);
+      doc.text(wrappedText, currentX, currentY, textOptions);
       currentY += textHeight + 8;
       
       // Question alternatives
@@ -1796,43 +1816,56 @@ class PDFService {
   wrapText(doc, text, maxWidth) {
     if (!text || !text.trim()) return '';
     
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = '';
+    // Handle existing line breaks first
+    const paragraphs = text.split('\n');
+    const allLines = [];
     
-    words.forEach(word => {
-      const testLine = currentLine + (currentLine ? ' ' : '') + word;
-      const testWidth = doc.widthOfString(testLine);
+    paragraphs.forEach(paragraph => {
+      if (!paragraph.trim()) {
+        allLines.push(''); // Preserve empty lines
+        return;
+      }
       
-      if (testWidth <= maxWidth) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
+      const words = paragraph.split(' ');
+      const lines = [];
+      let currentLine = '';
+      
+      words.forEach(word => {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const testWidth = doc.widthOfString(testLine);
+        
+        if (testWidth <= maxWidth) {
+          currentLine = testLine;
         } else {
-          // Word is too long for one line, try to break it
-          if (word.length > 20) {
-            // Break very long words
-            const chunks = [];
-            for (let i = 0; i < word.length; i += 15) {
-              chunks.push(word.substring(i, i + 15));
-            }
-            lines.push(...chunks);
-            currentLine = '';
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
           } else {
-            lines.push(word);
-            currentLine = '';
+            // Word is too long for one line, break it more aggressively
+            if (word.length > 25) {
+              // Break very long words at reasonable points
+              const chunks = [];
+              for (let i = 0; i < word.length; i += 20) {
+                chunks.push(word.substring(i, i + 20) + (i + 20 < word.length ? '-' : ''));
+              }
+              lines.push(...chunks);
+              currentLine = '';
+            } else {
+              lines.push(word);
+              currentLine = '';
+            }
           }
         }
+      });
+      
+      if (currentLine) {
+        lines.push(currentLine);
       }
+      
+      allLines.push(...lines);
     });
     
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    
-    return lines.join('\n');
+    return allLines.join('\n');
   }
 
   /**

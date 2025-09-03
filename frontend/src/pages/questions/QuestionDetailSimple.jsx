@@ -13,9 +13,9 @@ import { ConfirmationModal } from '../../components/ui/Modal';
 import QuestionForm from '../../components/forms/QuestionForm';
 
 const difficultyConfig = {
-  easy: { label: 'Fácil', color: 'bg-green-100 text-green-800', icon: '📗' },
-  medium: { label: 'Médio', color: 'bg-yellow-100 text-yellow-800', icon: '📙' },
-  hard: { label: 'Difícil', color: 'bg-red-100 text-red-800', icon: '📕' },
+  easy: { label: 'Fácil', color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300', icon: '📗' },
+  medium: { label: 'Médio', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300', icon: '📙' },
+  hard: { label: 'Difícil', color: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300', icon: '📕' },
 };
 
 const typeConfig = {

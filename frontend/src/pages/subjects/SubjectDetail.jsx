@@ -137,8 +137,8 @@ export default function SubjectDetail() {
     return (
       <div className="text-center py-12">
         <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar disciplina</h3>
-        <p className="text-gray-600 mb-4">A disciplina não foi encontrada ou ocorreu um erro.</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Erro ao carregar disciplina</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">A disciplina não foi encontrada ou ocorreu um erro.</p>
         <button
           onClick={() => navigate('/subjects')}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -233,14 +233,14 @@ export default function SubjectDetail() {
 
       {/* Tabs (only for existing subjects not in edit mode) */}
       {!isNewSubject && !isEditing && subject && (
-        <div className="border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab('info')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'info'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
               <BookOpen className="w-4 h-4 inline mr-2" />
@@ -251,7 +251,7 @@ export default function SubjectDetail() {
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'questions'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
               <FileText className="w-4 h-4 inline mr-2" />
@@ -430,18 +430,18 @@ export default function SubjectDetail() {
 
             {/* Quick Actions */}
             <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">Ações Rápidas</h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Ações Rápidas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => navigate(`/questions/new?subjectId=${subject?.id}`)}
                   className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Plus className="w-5 h-5 text-green-600" />
+                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                      <Plus className="w-5 h-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">Nova Questão</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-white">Nova Questão</h4>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Adicionar questão a esta disciplina</p>
                     </div>
                   </div>
@@ -452,11 +452,11 @@ export default function SubjectDetail() {
                   className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Eye className="w-5 h-5 text-blue-600" />
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Eye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">Ver Questões</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-white">Ver Questões</h4>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Listar todas as questões desta disciplina</p>
                     </div>
                   </div>
@@ -465,7 +465,7 @@ export default function SubjectDetail() {
             </div>
 
                 {/* Metadata */}
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500">
+                <div className="pt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <span className="font-medium">Criado em:</span> {' '}
@@ -650,7 +650,7 @@ function QuestionsTab({
         </div>
 
         {/* Results Info */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <span>
             {isLoading ? 'Carregando...' : `${filteredQuestions.length} questão${filteredQuestions.length !== 1 ? 'ões' : ''} encontrada${filteredQuestions.length !== 1 ? 's' : ''}`}
           </span>
@@ -672,22 +672,22 @@ function QuestionsTab({
           "space-y-3"
         }>
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded"></div>
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
             </div>
           ))}
         </div>
       ) : filteredQuestions.length === 0 ? (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <FileText className="w-12 h-12 text-gray-400" />
+          <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+            <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             {hasFilters ? 'Nenhuma questão encontrada' : 'Nenhuma questão criada'}
           </h3>
-          <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+          <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
             {hasFilters 
               ? 'Tente ajustar os filtros para encontrar questões.'
               : `Comece criando questões para a disciplina ${subject?.name}.`
@@ -752,7 +752,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
 
   if (viewMode === 'list') {
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 group">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 group">
         <div className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -761,7 +761,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
                   {question.title || question.text || 'Sem título'}
                 </p>
                 <div className="flex items-center space-x-4 mt-1">
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     Criada em {new Date(question.createdAt).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
@@ -770,24 +770,24 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
               <div className="flex items-center space-x-2">
                 <span className={`
                   inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                  ${difficultyStyle.color === 'green' ? 'bg-green-100 text-green-800' :
-                    difficultyStyle.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'}
+                  ${difficultyStyle.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
+                    difficultyStyle.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' :
+                    'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'}
                 `}>
                   {difficultyStyle.icon} {difficultyStyle.label}
                 </span>
                 
                 <span className={`
                   inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                  ${typeInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                    typeInfo.color === 'purple' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'}
+                  ${typeInfo.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' :
+                    typeInfo.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400' :
+                    'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200'}
                 `}>
                   <TypeIcon className="w-3 h-3 mr-1" />
                   {typeInfo?.label}
                 </span>
 
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                   {question.points || 1} pt{(question.points || 1) !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -860,12 +860,12 @@ function QuestionCard({ question, onEdit, onDelete, onView, viewMode = 'grid' })
         </div>
 
         <div className="mb-4">
-          <p className="text-sm text-gray-600 line-clamp-2">
+          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
             {question.text || 'Questão sem texto definido'}
           </p>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span className="flex items-center">
             <Clock className="w-3 h-3 mr-1" />
             {new Date(question.createdAt).toLocaleDateString('pt-BR')}
@@ -908,7 +908,7 @@ function StatCard({ title, value, icon: Icon, color, description }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
           <Icon className="w-5 h-5" />
@@ -917,7 +917,7 @@ function StatCard({ title, value, icon: Icon, color, description }) {
       <div className="space-y-1">
         <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
         <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
       </div>
     </div>
   );

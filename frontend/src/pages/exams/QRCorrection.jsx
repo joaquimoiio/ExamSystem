@@ -102,7 +102,7 @@ export default function QRCorrection() {
             Voltar para Provas
           </button>
           
-          <h1 className="text-3xl font-bold text-gray-900">Correção via QR Code</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Correção via QR Code</h1>
           <p className="text-gray-600 mt-2">
             Escaneie o QR Code da prova e insira as respostas do aluno para correção automática
           </p>
@@ -142,7 +142,7 @@ export default function QRCorrection() {
             <div className="space-y-6">
               <div className="text-center">
                 <QrCode className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Escaneie ou Cole o QR Code
                 </h2>
                 <p className="text-gray-600">
@@ -196,7 +196,7 @@ export default function QRCorrection() {
             <div className="space-y-6">
               <div className="text-center">
                 <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Respostas do Aluno
                 </h2>
                 <p className="text-gray-600">
@@ -235,7 +235,7 @@ export default function QRCorrection() {
           {step === 3 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Dados do Aluno (Opcional)
                 </h2>
                 <p className="text-gray-600">
@@ -309,7 +309,7 @@ export default function QRCorrection() {
                 ) : (
                   <XCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
                 )}
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Resultado da Correção
                 </h2>
                 <p className="text-gray-600">
@@ -321,19 +321,19 @@ export default function QRCorrection() {
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
                       {correctionResult.score}
                     </div>
                     <div className="text-sm text-gray-500">Nota</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
                       {correctionResult.results.filter(r => r.isCorrect).length}
                     </div>
                     <div className="text-sm text-gray-500">Acertos</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
                       {correctionResult.totalQuestions}
                     </div>
                     <div className="text-sm text-gray-500">Total</div>
@@ -351,7 +351,7 @@ export default function QRCorrection() {
 
               {/* Detailed Results */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900">Detalhamento por Questão:</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">Detalhamento por Questão:</h3>
                 {correctionResult.results.map((result, index) => (
                   <div 
                     key={index}

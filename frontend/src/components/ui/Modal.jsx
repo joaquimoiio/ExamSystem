@@ -243,7 +243,7 @@ export function AlertModal({
         </div>
         
         {title && (
-          <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{title}</h3>
         )}
         
         <p className="text-sm text-gray-500 mb-6">{message}</p>
@@ -349,7 +349,7 @@ export function DrawerModal({
       >
         {title && (
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -411,7 +411,7 @@ export function BottomSheetModal({
         
         {title && (
           <div className="flex items-center justify-between px-6 pb-4">
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

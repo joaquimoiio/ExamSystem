@@ -45,20 +45,20 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
 
   if (viewMode === 'list') {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 group">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 group">
         <div className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               {/* Question Preview */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {question.text || question.title || 'Sem enunciado'}
                 </p>
                 <div className="flex items-center space-x-4 mt-1">
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {question.subject?.name || 'Sem disciplina'}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     Criada em {new Date(question.createdAt).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
@@ -79,7 +79,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
                   inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                   ${typeInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
                     typeInfo.color === 'purple' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'}
+                    'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200'}
                 `}>
                   <TypeIcon className="w-3 h-3 mr-1" />
                   {typeInfo?.label}
@@ -91,28 +91,28 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
               <div className="flex items-center space-x-1">
                 <button
                   onClick={(e) => handleActionClick(e, () => onView(question.id))}
-                  className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                   title="Visualizar"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
                 <button
                   onClick={(e) => handleActionClick(e, () => onEdit(question.id))}
-                  className="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                   title="Editar"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={(e) => handleActionClick(e, () => onDuplicate(question.id))}
-                  className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                   title="Duplicar"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
                   onClick={(e) => handleActionClick(e, () => onDelete(question.id))}
-                  className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   title="Excluir"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -126,7 +126,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group cursor-pointer transform hover:-translate-y-1"
          onClick={() => onView(question.id)}>
       <div className="p-6">
         {/* Header */}
@@ -135,18 +135,18 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
             <div className="flex items-center space-x-2 mb-2">
               <span className={`
                 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                ${difficultyStyle.color === 'green' ? 'bg-green-100 text-green-800' :
-                  difficultyStyle.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'}
+                ${difficultyStyle.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                  difficultyStyle.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                  'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'}
               `}>
                 {difficultyStyle.icon} {difficultyStyle.label}
               </span>
               
               <span className={`
                 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                ${typeInfo.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                  typeInfo.color === 'purple' ? 'bg-purple-100 text-purple-800' :
-                  'bg-gray-100 text-gray-800'}
+                ${typeInfo.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
+                  typeInfo.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' :
+                  'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200'}
               `}>
                 <TypeIcon className="w-3 h-3 mr-1" />
                 {typeInfo?.label}
@@ -154,7 +154,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
 
             </div>
             
-            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {question.text || question.title || 'Sem enunciado'}
             </h3>
           </div>
@@ -171,24 +171,24 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
             </button>
 
             {showActions && (
-              <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+              <div className="absolute right-0 top-8 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-10">
                 <button
                   onClick={(e) => handleActionClick(e, () => onView(question.id))}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Visualizar
                 </button>
                 <button
                   onClick={(e) => handleActionClick(e, () => onEdit(question.id))}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </button>
                 <button
                   onClick={(e) => handleActionClick(e, () => onDuplicate(question.id))}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicar
@@ -208,7 +208,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
 
         {/* Content Preview */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600 line-clamp-2">
+          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
             {question.text || question.title || 'Questão sem enunciado definido'}
           </p>
         </div>
@@ -258,13 +258,13 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
 function EmptyState({ hasFilters, onCreateQuestion, onClearFilters }) {
   return (
     <div className="text-center py-12">
-      <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <FileText className="w-12 h-12 text-gray-400" />
+      <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+        <FileText className="w-12 h-12 text-gray-400 dark:text-gray-500" />
       </div>
-      <h3 className="text-lg font-medium text-gray-900 mb-2">
+      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
         {hasFilters ? 'Nenhuma questão encontrada' : 'Nenhuma questão criada'}
       </h3>
-      <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
         {hasFilters 
           ? 'Tente ajustar os filtros ou termo de busca para encontrar questões.'
           : 'Comece criando sua primeira questão para formar um banco de questões.'
@@ -298,9 +298,9 @@ function QuestionStats({ questions, isLoading }) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded"></div>
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+            <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
           </div>
         ))}
       </div>
@@ -319,40 +319,40 @@ function QuestionStats({ questions, isLoading }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
           </div>
           <FileText className="w-8 h-8 text-blue-500" />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600">Fáceis</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Fáceis</p>
             <p className="text-2xl font-bold text-green-600">{stats.easy}</p>
           </div>
           <div className="text-2xl">📗</div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600">Médias</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Médias</p>
             <p className="text-2xl font-bold text-yellow-600">{stats.medium}</p>
           </div>
           <div className="text-2xl">📙</div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center">
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-600">Difíceis</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Difíceis</p>
             <p className="text-2xl font-bold text-red-600">{stats.hard}</p>
           </div>
           <div className="text-2xl">📕</div>
@@ -365,18 +365,18 @@ function QuestionStats({ questions, isLoading }) {
 function SearchInput({ placeholder, value, onSearch, onClear }) {
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
       <input
         type="text"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onSearch(e.target.value)}
-        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       {value && (
         <button
           onClick={onClear}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
         >
           ×
         </button>
@@ -390,7 +390,7 @@ function Select({ value, onChange, options }) {
     <select
       value={value}
       onChange={onChange}
-      className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      className="w-full py-2 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -406,14 +406,14 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-        <p className="text-gray-600 mb-6">{message}</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -532,23 +532,23 @@ export default function QuestionList() {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {subjectId && (
             <button
               onClick={() => navigate('/subjects')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {currentSubject ? `Questões - ${currentSubject.name}` : 'Banco de Questões'}
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
               {currentSubject 
                 ? `Gerencie questões da disciplina ${currentSubject.name}`
                 : 'Gerencie suas questões e monte provas'
@@ -559,7 +559,7 @@ export default function QuestionList() {
         <div className="flex items-center space-x-3">
           <button
             onClick={toggleViewMode}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white transition-colors"
+            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             title={`Alterar para visualização ${viewMode === 'grid' ? 'em lista' : 'em grade'}`}
           >
             {viewMode === 'grid' ? <List className="w-5 h-5" /> : <Grid className="w-5 h-5" />}
@@ -578,7 +578,7 @@ export default function QuestionList() {
       <QuestionStats questions={sortedQuestions} isLoading={false} />
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
         <div className={`grid grid-cols-1 md:grid-cols-2 ${subjectId ? 'lg:grid-cols-5' : 'lg:grid-cols-6'} gap-4`}>
           {/* Search */}
           <div className="md:col-span-2">
@@ -651,7 +651,7 @@ export default function QuestionList() {
         </div>
 
         {/* Results Info and Clear Filters */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <span>
             {isLoading ? 'Carregando...' : `${sortedQuestions.length} questão${sortedQuestions.length !== 1 ? 'ões' : ''} encontrada${sortedQuestions.length !== 1 ? 's' : ''}`}
           </span>
@@ -680,10 +680,10 @@ export default function QuestionList() {
           "space-y-3"
         }>
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded"></div>
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
             </div>
           ))}
         </div>

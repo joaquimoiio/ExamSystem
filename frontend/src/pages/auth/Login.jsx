@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Mail, Lock, BookOpen, AlertCircle } from 'lucide-react';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useFormValidation, validationRules } from '../../hooks';
@@ -126,17 +127,21 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      {/* Theme Toggle */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
+          <Link to="/" className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
             <BookOpen className="h-7 w-7 text-white" />
-          </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          </Link>
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
             Entre na sua conta
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Ou{' '}
             <Link
               to="/register"
@@ -148,25 +153,25 @@ export default function Login() {
        </div>
 
        {/* Form */}
-       <form className="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg" onSubmit={handleSubmit}>
+       <form className="mt-8 space-y-6 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg" onSubmit={handleSubmit}>
          {/* Erro geral */}
          {errors.general && (
-           <div className="bg-red-50 border border-red-200 rounded-md p-4">
+           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
              <div className="flex items-center">
                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-               <p className="text-sm text-red-700">{errors.general}</p>
+               <p className="text-sm text-red-700 dark:text-red-300">{errors.general}</p>
              </div>
            </div>
          )}
 
          {/* Email */}
          <div>
-           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+           <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
              Email
            </label>
            <div className="mt-1 relative">
              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-               <Mail className="h-5 w-5 text-gray-400" />
+               <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
              </div>
              <input
                id="email"
@@ -177,7 +182,7 @@ export default function Login() {
                onChange={handleInputChange}
                className={`appearance-none relative block w-full pl-10 px-3 py-2 border ${
                  errors.email ? 'border-red-300' : 'border-gray-300'
-               } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+               } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
                placeholder="seu.email@exemplo.com"
              />
            </div>
@@ -188,12 +193,12 @@ export default function Login() {
 
          {/* Senha */}
          <div>
-           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+           <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
              Senha
            </label>
            <div className="mt-1 relative">
              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-               <Lock className="h-5 w-5 text-gray-400" />
+               <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
              </div>
              <input
                id="password"
@@ -204,7 +209,7 @@ export default function Login() {
                onChange={handleInputChange}
                className={`appearance-none relative block w-full pl-10 pr-10 px-3 py-2 border ${
                  errors.password ? 'border-red-300' : 'border-gray-300'
-               } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+               } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
                placeholder="Sua senha"
              />
              <button
@@ -213,9 +218,9 @@ export default function Login() {
                onClick={() => setShowPassword(!showPassword)}
              >
                {showPassword ? (
-                 <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                 <EyeOff className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400" />
                ) : (
-                 <Eye className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                 <Eye className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400" />
                )}
              </button>
            </div>
@@ -235,7 +240,7 @@ export default function Login() {
                onChange={handleInputChange}
                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
              />
-             <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+             <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
                Lembrar de mim
              </label>
            </div>

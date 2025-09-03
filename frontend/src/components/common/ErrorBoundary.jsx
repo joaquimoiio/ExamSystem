@@ -82,7 +82,7 @@ class ErrorBoundary extends React.Component {
             </div>
 
             {/* Error Title */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Ops! Algo deu errado
             </h1>
 

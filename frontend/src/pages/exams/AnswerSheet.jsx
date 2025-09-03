@@ -45,7 +45,7 @@ export default function AnswerSheet() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Erro ao Carregar</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Erro ao Carregar</h2>
           <p className="text-gray-600">{error}</p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function AnswerSheet() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Gabarito não encontrado</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Gabarito não encontrado</h2>
         </div>
       </div>
     );
@@ -70,7 +70,7 @@ export default function AnswerSheet() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <FileText className="w-6 h-6 text-primary-600" />
-            <h1 className="text-xl font-semibold text-gray-900">Gabarito - {gabarito.exam.title}</h1>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Gabarito - {gabarito.exam.title}</h1>
           </div>
           <div className="flex items-center space-x-3">
             <button
@@ -89,7 +89,7 @@ export default function AnswerSheet() {
         {/* Cabeçalho da prova */}
         {gabarito.examHeader && (
           <div className="text-center mb-8 pb-6 border-b-2 border-gray-300">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               {gabarito.examHeader.schoolName}
             </h1>
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -128,7 +128,7 @@ export default function AnswerSheet() {
 
         {/* Instruções */}
         <div className="mb-8 p-4 border border-gray-300 rounded-lg bg-blue-50">
-          <h4 className="font-semibold text-gray-900 mb-2">Instruções:</h4>
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Instruções:</h4>
           <ul className="text-sm text-gray-700 space-y-1">
             <li>• Preencha completamente o círculo correspondente à sua resposta</li>
             <li>• Use caneta esferográfica azul ou preta</li>
@@ -140,11 +140,11 @@ export default function AnswerSheet() {
 
         {/* Gabarito com círculos para marcar */}
         <div className="mb-8">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Gabarito de Respostas</h4>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Gabarito de Respostas</h4>
           <div className="grid grid-cols-5 gap-6 print:grid-cols-10 print:gap-2">
             {gabarito.questions.map((question, index) => (
               <div key={question.id} className="text-center">
-                <div className="text-sm font-medium text-gray-900 mb-2">
+                <div className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {question.number}
                 </div>
                 <div className="space-y-1">
@@ -171,7 +171,7 @@ export default function AnswerSheet() {
           <div className="flex items-center justify-center space-x-4">
             <QrCode className="w-8 h-8 text-gray-400" />
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
                 QR Code para Correção Automática
               </p>
               <p className="text-xs text-gray-500">
@@ -183,7 +183,7 @@ export default function AnswerSheet() {
 
         {/* Detalhes das questões (para referência do professor) */}
         <div className="mt-12 print:break-before-page">
-          <h4 className="text-lg font-semibold text-gray-900 mb-6">Questões da Prova (Referência do Professor)</h4>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Questões da Prova (Referência do Professor)</h4>
           <div className="space-y-6">
             {gabarito.questions.map((question, index) => (
               <div key={question.id} className="border border-gray-200 rounded-lg p-4">

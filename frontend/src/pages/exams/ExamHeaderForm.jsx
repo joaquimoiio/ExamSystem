@@ -110,15 +110,15 @@ export default function ExamHeaderForm() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/exam-headers')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {isEdit ? 'Editar Cabeçalho' : 'Novo Cabeçalho'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             {isEdit ? 'Altere as informações do cabeçalho' : 'Crie um novo cabeçalho para suas provas'}
           </p>
         </div>
@@ -239,12 +239,12 @@ export default function ExamHeaderForm() {
                 />
                 <div className="flex items-center gap-2">
                   <Star className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Definir como cabeçalho padrão
                   </span>
                 </div>
               </label>
-              <p className="text-xs text-gray-500 mt-1 ml-7">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
                 Este cabeçalho será usado automaticamente ao criar novas provas
               </p>
             </div>
@@ -300,7 +300,7 @@ export default function ExamHeaderForm() {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex justify-end gap-3 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <Button
             type="button"
             variant="outline"

@@ -194,7 +194,7 @@ export default function ExamQuestions() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Gerenciar Questões
             </h1>
             <p className="text-gray-600">
@@ -222,7 +222,7 @@ export default function ExamQuestions() {
         {/* Available Questions */}
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Questões Disponíveis
             </h2>
             
@@ -296,7 +296,7 @@ export default function ExamQuestions() {
                       </button>
                     </div>
                     
-                    <h3 className="font-medium text-gray-900 text-sm mb-1">
+                    <h3 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
                       {question.title || 'Sem título'}
                     </h3>
                     <p className="text-gray-600 text-xs line-clamp-2">
@@ -333,7 +333,7 @@ export default function ExamQuestions() {
 
         {/* Selected Questions */}
         <div className="space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Questões da Prova ({selectedQuestions.length})
           </h2>
 
@@ -349,7 +349,7 @@ export default function ExamQuestions() {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
                           #{question.questionOrder}
                         </span>
                         <span className={`px-2 py-1 rounded text-xs font-medium ${difficultyConfig[question.difficulty]?.color || 'bg-gray-100 text-gray-800'}`}>
@@ -389,7 +389,7 @@ export default function ExamQuestions() {
                       </div>
                     </div>
                     
-                    <h3 className="font-medium text-gray-900 text-sm mb-1">
+                    <h3 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
                       {question.title || 'Sem título'}
                     </h3>
                     <p className="text-gray-600 text-xs line-clamp-2 mb-3">
@@ -426,7 +426,7 @@ export default function ExamQuestions() {
           ) : (
             <div className="text-center py-12">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma questão selecionada</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhuma questão selecionada</h3>
               <p className="text-gray-500 text-sm">
                 Selecione questões da lista ao lado para adicionar à prova.
               </p>

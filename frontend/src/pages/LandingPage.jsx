@@ -8,6 +8,7 @@ import {
   Facebook, Instagram, Linkedin, Youtube, ChevronDown,
   AlertTriangle, Mail, Phone
 } from 'lucide-react';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,31 +39,36 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Theme Toggle */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-white/20">
+      <nav className="fixed top-0 w-full z-40 transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-white/20 dark:border-gray-800/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <div className="bg-blue-600 p-2 rounded-lg">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">ExamSystem</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">ExamSystem</span>
               <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">BETA</span>
             </div>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+              <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
                 Recursos
               </a>
-              <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+              <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
                 Preços
               </a>
-              <a href="#testimonials" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
                 Cases
               </a>
-              <Link to="/login" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
+              <Link to="/login" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
                 Entrar
               </Link>
               <Link to="/register" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg">
@@ -74,7 +80,7 @@ export default function LandingPage() {
             <div className="md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-gray-700 hover:text-blue-600"
+                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -83,18 +89,18 @@ export default function LandingPage() {
 
           {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden bg-white border-t border-gray-200 py-4">
+            <div className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4">
               <div className="flex flex-col space-y-4">
-                <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors px-4 font-medium">
+                <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 font-medium">
                   Recursos
                 </a>
-                <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors px-4 font-medium">
+                <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 font-medium">
                   Preços
                 </a>
-                <a href="#testimonials" className="text-gray-700 hover:text-blue-600 transition-colors px-4 font-medium">
+                <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 font-medium">
                   Cases
                 </a>
-                <Link to="/login" className="text-gray-700 hover:text-blue-600 transition-colors px-4 text-left font-medium">
+                <Link to="/login" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 text-left font-medium">
                   Entrar
                 </Link>
                 <Link to="/register" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mx-4 text-center font-medium">
@@ -107,23 +113,23 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-24 pb-12 lg:pt-32 lg:pb-20 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <section className="pt-24 pb-12 lg:pt-32 lg:pb-20 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
-              <div className="inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <div className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Novidade: Correção por IA disponível
               </div>
               
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
                 Crie provas profissionais em{' '}
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   minutos
                 </span>
               </h1>
               
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl">
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl">
                 Transforme a criação de provas de algo que demora horas em algo que leva minutos. 
                 Sistema completo para professores modernos.
               </p>
@@ -135,21 +141,21 @@ export default function LandingPage() {
                 >
                   🚀 Assine Agora
                 </Link>
-                <button className="border border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 transition-colors">
+                <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   📱 Ver Funções
                 </button>
               </div>
 
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-6">
-                <div className="flex items-center">
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                   Prático e fácil
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                   Suporte em português
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                   Cancele quando quiser
                 </div>
@@ -159,15 +165,15 @@ export default function LandingPage() {
             <div className="lg:pl-8">
               <div className="relative">
                 {/* Main dashboard mockup */}
-                <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100 transform hover:scale-105 transition-transform duration-300">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-transform duration-300">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
                       <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
                         <GraduationCap className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">Prova de Matemática</h3>
-                        <p className="text-sm text-gray-600">9º Ano - Ensino Fundamental</p>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Prova de Matemática</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">9º Ano - Ensino Fundamental</p>
                       </div>
                     </div>
                     <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -177,13 +183,13 @@ export default function LandingPage() {
 
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                      <div className="text-2xl font-bold text-blue-600">5</div>
-                      <div className="text-sm text-gray-600">Versões</div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">5</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Versões</div>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                      <div className="text-2xl font-bold text-green-600">85%</div>
-                      <div className="text-sm text-gray-600">Taxa de Acerto</div>
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">85%</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Taxa de Acerto</div>
                     </div>
                   </div>
 
@@ -193,7 +199,7 @@ export default function LandingPage() {
                       <Download className="w-4 h-4" />
                       <span>Gerar PDF</span>
                     </button>
-                    <button className="w-full border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+                    <button className="w-full border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
                       <QrCode className="w-4 h-4" />
                       <span>QR Code</span>
                     </button>
@@ -211,31 +217,31 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
+      <section id="features" className="py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Tudo que você precisa para criar{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 provas perfeitas
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Do banco de questões à correção automática, temos todas as ferramentas que você precisa
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-blue-100 p-3 rounded-xl inline-flex mb-6">
-                <Database className="w-8 h-8 text-blue-600" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl inline-flex mb-6">
+                <Database className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Banco de Questões Inteligente</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Banco de Questões Inteligente</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Organize suas questões por matéria, dificuldade e tema. Sistema de tags avançado para encontrar qualquer questão em segundos.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-green-500 mr-2" />
                   Questões ilimitadas
@@ -252,15 +258,15 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-purple-100 p-3 rounded-xl inline-flex mb-6">
-                <Shuffle className="w-8 h-8 text-purple-600" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-xl inline-flex mb-6">
+                <Shuffle className="w-8 h-8 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Múltiplas Versões Automáticas</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Múltiplas Versões Automáticas</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Gere até 50 versões diferentes da mesma prova automaticamente, embaralhando questões e alternativas.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-green-500 mr-2" />
                   Até 50 versões
@@ -277,15 +283,15 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-green-100 p-3 rounded-xl inline-flex mb-6">
-                <QrCode className="w-8 h-8 text-green-600" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl inline-flex mb-6">
+                <QrCode className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Correção por QR Code</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Correção por QR Code</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Facilitar a correções das diversas provas. Correção e nota instantâneas!
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-green-500 mr-2" />
                   Correção instantânea
@@ -302,15 +308,15 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-orange-100 p-3 rounded-xl inline-flex mb-6">
-                <FileText className="w-8 h-8 text-orange-600" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl inline-flex mb-6">
+                <FileText className="w-8 h-8 text-orange-600 dark:text-orange-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">PDFs Profissionais</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">PDFs Profissionais</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Provas em PDF com formatação perfeita, logotipo da escola, cabeçalho personalizado e layout otimizado para impressão.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-green-500 mr-2" />
                   Layout personalizável
@@ -327,15 +333,15 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 5 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-red-100 p-3 rounded-xl inline-flex mb-6">
-                <BarChart3 className="w-8 h-8 text-red-600" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-xl inline-flex mb-6">
+                <BarChart3 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Relatórios Detalhados</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Relatórios Detalhados</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Veja estatísticas completas: questões mais erradas, desempenho por aluno, comparação entre turmas e muito mais.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-green-500 mr-2" />
                   Análise por questão
@@ -352,15 +358,15 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 6 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-teal-100 p-3 rounded-xl inline-flex mb-6">
-                <Users className="w-8 h-8 text-teal-600" />
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div className="bg-teal-100 dark:bg-teal-900/30 p-3 rounded-xl inline-flex mb-6">
+                <Users className="w-8 h-8 text-teal-600 dark:text-teal-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Colaboração em Equipe</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Colaboração em Equipe</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Trabalhe com outros professores, compartilhe bancos de questões e crie provas em conjunto.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-center">
                   <Check className="w-4 h-4 text-green-500 mr-2" />
                   Equipes ilimitadas
@@ -380,54 +386,53 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      <section id="pricing" className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Planos que{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 cabem no seu bolso
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Comece grátis e evolua conforme sua necessidade. Sem pegadinhas, sem surpresas.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {/* Free Plan */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Gratuito</h3>
-                <div className="text-4xl font-bold mb-2">R$ 0</div>
-                <p className="text-gray-600">Para sempre</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Gratuito</h3>
+                <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">R$ 0</div>
+                <p className="text-gray-600 dark:text-gray-300">Para sempre</p>
               </div>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Até 30 alunos por mês</span>
+                  <span className="text-gray-700 dark:text-gray-300">Até 30 alunos por mês</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>3 versões por prova</span>
+                  <span className="text-gray-700 dark:text-gray-300">3 versões por prova</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Banco de 100 questões</span>
+                  <span className="text-gray-700 dark:text-gray-300">Banco de 100 questões</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Correção automática</span>
+                  <span className="text-gray-700 dark:text-gray-300">Correção automática</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Relatórios básicos</span>
+                  <span className="text-gray-700 dark:text-gray-300">Relatórios básicos</span>
                 </li>
               </ul>
               <Link 
                 to="/register" 
-                className="w-full block text-center bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium"
-              >
+                className="w-full block text-center bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors font-medium">
                 Começar Agora
               </Link>
             </div>
@@ -468,42 +473,41 @@ export default function LandingPage() {
               </ul>
               <Link 
                 to="/register" 
-                className="w-full block text-center bg-white text-blue-600 py-3 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-              >
+                className="w-full block text-center bg-white text-blue-600 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors font-medium">
                 Teste Grátis por 7 Dias
               </Link>
             </div>
 
             {/* Enterprise Plan */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Escola</h3>
-                <div className="text-4xl font-bold mb-2">R$ 197</div>
-                <p className="text-gray-600">por mês</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Escola</h3>
+                <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">R$ 197</div>
+                <p className="text-gray-600 dark:text-gray-300">por mês</p>
               </div>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Alunos ilimitados</span>
+                  <span className="text-gray-700 dark:text-gray-300">Alunos ilimitados</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Versões ilimitadas</span>
+                  <span className="text-gray-700 dark:text-gray-300">Versões ilimitadas</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Multi-professores</span>
+                  <span className="text-gray-700 dark:text-gray-300">Multi-professores</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>API personalizada</span>
+                  <span className="text-gray-700 dark:text-gray-300">API personalizada</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>Suporte dedicado</span>
+                  <span className="text-gray-700 dark:text-gray-300">Suporte dedicado</span>
                 </li>
               </ul>
-              <button className="w-full bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium">
+              <button className="w-full bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors font-medium">
                 Falar com Vendas
               </button>
             </div>
@@ -512,23 +516,23 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-gray-50">
+      <section id="testimonials" className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               O que dizem nossos{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 professores
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Mais de 15.000 professores já transformaram sua forma de avaliar
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Testimonial 1 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
               <div className="flex items-center mb-4">
                 <div className="flex text-yellow-400">
                   {[...Array(5)].map((_, i) => (
@@ -536,7 +540,7 @@ export default function LandingPage() {
                   ))}
                 </div>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 "Revolucionou minha forma de criar provas! O que levava 3 horas agora faço em 15 minutos. A correção por QR Code é fantástica!"
               </p>
               <div className="flex items-center">
@@ -546,14 +550,14 @@ export default function LandingPage() {
                   className="w-12 h-12 rounded-full mr-4"
                 />
                 <div>
-                  <div className="font-semibold text-gray-900">Maria Silva</div>
-                  <div className="text-sm text-gray-600">Professora de Matemática</div>
+                  <div className="font-semibold text-gray-900 dark:text-white">Maria Silva</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Professora de Matemática</div>
                 </div>
               </div>
             </div>
 
             {/* Testimonial 2 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
               <div className="flex items-center mb-4">
                 <div className="flex text-yellow-400">
                   {[...Array(5)].map((_, i) => (
@@ -561,7 +565,7 @@ export default function LandingPage() {
                   ))}
                 </div>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 "Os relatórios são incríveis! Consigo identificar exatamente onde meus alunos têm dificuldade e ajustar minha metodologia."
               </p>
               <div className="flex items-center">
@@ -571,14 +575,14 @@ export default function LandingPage() {
                   className="w-12 h-12 rounded-full mr-4"
                 />
                 <div>
-                  <div className="font-semibold text-gray-900">João Santos</div>
-                  <div className="text-sm text-gray-600">Professor de História</div>
+                  <div className="font-semibold text-gray-900 dark:text-white">João Santos</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Professor de História</div>
                 </div>
               </div>
             </div>
 
             {/* Testimonial 3 */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
               <div className="flex items-center mb-4">
                 <div className="flex text-yellow-400">
                   {[...Array(5)].map((_, i) => (
@@ -586,7 +590,7 @@ export default function LandingPage() {
                   ))}
                 </div>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 "Finalmente um sistema brasileiro que entende nossas necessidades! O suporte é excepcional e está sempre disponível."
               </p>
               <div className="flex items-center">
@@ -596,8 +600,8 @@ export default function LandingPage() {
                   className="w-12 h-12 rounded-full mr-4"
                 />
                 <div>
-                  <div className="font-semibold text-gray-900">Ana Costa</div>
-                  <div className="text-sm text-gray-600">Coordenadora Pedagógica</div>
+                  <div className="font-semibold text-gray-900 dark:text-white">Ana Costa</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Coordenadora Pedagógica</div>
                 </div>
               </div>
             </div>
@@ -606,126 +610,126 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Perguntas{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Frequentes
               </span>
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-600 dark:text-gray-300">
               Tire suas dúvidas sobre o ExamSystem
             </p>
           </div>
 
           <div className="space-y-6">
             {/* FAQ 1 */}
-            <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
               <button 
                 onClick={() => toggleFaq(1)} 
                 className="w-full flex items-center justify-between text-left"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Como funciona a correção por QR Code?
                 </h3>
                 <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
                     faqOpen[1] ? 'rotate-180' : ''
                   }`} 
                 />
               </button>
               {faqOpen[1] && (
-                <div className="mt-4 text-gray-600">
+                <div className="mt-4 text-gray-600 dark:text-gray-300">
                   O professor escaneia o QR Code na prova, ira analizar os quadrados preenchidos e recebera a nota.
                 </div>
               )}
             </div>
 
             {/* FAQ 2 */}
-            <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
               <button 
                 onClick={() => toggleFaq(2)} 
                 className="w-full flex items-center justify-between text-left"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Posso usar questões que já tenho?
                 </h3>
                 <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
                     faqOpen[2] ? 'rotate-180' : ''
                   }`} 
                 />
               </button>
               {faqOpen[2] && (
-                <div className="mt-4 text-gray-600">
+                <div className="mt-4 text-gray-600 dark:text-gray-300">
                   Sim! Você pode importar suas questões do Word, Excel ou digitar diretamente na plataforma. Também temos um banco com milhares de questões prontas.
                 </div>
               )}
             </div>
 
             {/* FAQ 3 */}
-            <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
               <button 
                 onClick={() => toggleFaq(3)} 
                 className="w-full flex items-center justify-between text-left"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   É difícil de usar?
                 </h3>
                 <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
                     faqOpen[3] ? 'rotate-180' : ''
                   }`} 
                 />
               </button>
               {faqOpen[3] && (
-                <div className="mt-4 text-gray-600">
+                <div className="mt-4 text-gray-600 dark:text-gray-300">
                   Em 10 minutos você já está criando sua primeira prova. Temos tutoriais em vídeo e suporte em português.
                 </div>
               )}
             </div>
 
             {/* FAQ 4 */}
-            <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
               <button 
                 onClick={() => toggleFaq(4)} 
                 className="w-full flex items-center justify-between text-left"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Posso cancelar a qualquer momento?
                 </h3>
                 <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
                     faqOpen[4] ? 'rotate-180' : ''
                   }`} 
                 />
               </button>
               {faqOpen[4] && (
-                <div className="mt-4 text-gray-600">
+                <div className="mt-4 text-gray-600 dark:text-gray-300">
                   Sim! Não há fidelidade ou multa por cancelamento. Cancele quando quiser com 1 clique. Seus dados ficam salvos por 30 dias caso mude de ideia.
                 </div>
               )}
             </div>
 
             {/* FAQ 5 */}
-            <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
               <button 
                 onClick={() => toggleFaq(5)} 
                 className="w-full flex items-center justify-between text-left"
               >
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Funciona para todas as matérias?
                 </h3>
                 <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 transition-transform ${
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
                     faqOpen[5] ? 'rotate-180' : ''
                   }`} 
                 />
               </button>
               {faqOpen[5] && (
-                <div className="mt-4 text-gray-600">
+                <div className="mt-4 text-gray-600 dark:text-gray-300">
                   Sim! Matemática, Português, História, Geografia, Ciências, Inglês... Qualquer matéria que use questões de múltipla escolha ou verdadeiro/falso.
                 </div>
               )}
