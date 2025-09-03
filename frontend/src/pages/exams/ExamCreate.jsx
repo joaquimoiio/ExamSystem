@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { 
-  ArrowLeft, Save, AlertCircle, 
+  ArrowLeft, Save, AlertCircle, CheckCircle,
   Settings, FileText, Clock, Shuffle, BarChart3,
   X
 } from 'lucide-react';
@@ -605,7 +605,6 @@ export default function ExamCreate({ mode = 'create' }) {
             </div>
           </div>
         </form>
-      )}
 
     </div>
   );
