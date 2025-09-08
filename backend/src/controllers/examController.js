@@ -1193,6 +1193,7 @@ const generateSingleVariationPDF = catchAsync(async (req, res, next) => {
 const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestions) => {
   console.log('🔄 Generating variations for exam:', exam.id);
   console.log('📋 Selected questions:', selectedQuestions.map(q => ({ id: q.id, difficulty: q.difficulty })));
+  console.log('📋 Exam metadata:', JSON.stringify(exam.metadata, null, 2));
 
   // Create variations
   for (let i = 0; i < exam.totalVariations; i++) {
@@ -1220,7 +1221,7 @@ const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestio
     
     for (let j = 0; j < questionsToAdd; j++) {
       const question = questionsForVariation[j];
-      const selectedQuestion = exam.metadata.selectedQuestions.find(q => q.id === question.id);
+      const selectedQuestion = exam.metadata?.selectedQuestions?.find(q => q.id === question.id);
       const points = selectedQuestion ? parseFloat(selectedQuestion.points) || 1.0 : 1.0;
       
       // Prepare shuffled alternatives for this question in this variation

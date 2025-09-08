@@ -35,7 +35,7 @@ async function testDatabaseConnection() {
     await sequelize.authenticate();
     logger.info('✅ Database connection established successfully');
     
-    // Skip sync in development to avoid cache issues
+    // Skip sync in development to avoid constraint issues
     // if (process.env.NODE_ENV === 'development') {
     //   await sequelize.sync({ alter: true });
     //   logger.info('✅ Database models synchronized');

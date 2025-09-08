@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const router = express.Router();
 const examController = require('../controllers/examController');
 const { authenticateToken, requireTeacher } = require('../middleware/auth');
+const { handleValidationErrors } = require('../middleware/validation');
 
 // Validation rules for exam creation/update
 const examValidation = [
@@ -11,11 +12,12 @@ const examValidation = [
     .isLength({ min: 3, max: 200 })
     .withMessage('Título deve ter entre 3 e 200 caracteres'),
   body('subjectId')
-    .isInt({ min: 1 })
+    .isUUID()
     .withMessage('ID da disciplina é obrigatório'),
   body('examHeaderId')
+    .optional({ nullable: true, checkFalsy: true })
     .isUUID()
-    .withMessage('ID do cabeçalho da prova é obrigatório'),
+    .withMessage('ID do cabeçalho da prova deve ser um UUID válido'),
   body('duration')
     .optional()
     .isInt({ min: 15, max: 480 })
@@ -44,6 +46,7 @@ const examValidation = [
     .optional()
     .isBoolean()
     .withMessage('Permitir revisão deve ser verdadeiro ou falso'),
+  handleValidationErrors
 ];
 
 // Routes básicas usando os controllers existentes

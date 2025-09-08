@@ -57,7 +57,7 @@ const handleSequelizeValidationError = (err) => {
 
 // Handle Sequelize unique constraint errors
 const handleSequelizeUniqueConstraintError = (err) => {
-  const field = err.errors[0].path;
+  const field = err.errors?.[0]?.path || err.errors?.[0]?.field || 'field';
   const message = `${field} already exists`;
   return new AppError(message, 400, true, { field, constraint: 'unique' });
 };

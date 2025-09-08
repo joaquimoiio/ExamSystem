@@ -105,7 +105,9 @@ export default function ExamCreate({ mode = 'create' }) {
 
   // Update selected subject and calculate available questions
   useEffect(() => {
-    setSelectedSubject(watchedSubject);
+    if (watchedSubject !== selectedSubject) {
+      setSelectedSubject(watchedSubject);
+    }
     
     if (watchedSubject && questions.length > 0) {
       const available = {
@@ -118,7 +120,7 @@ export default function ExamCreate({ mode = 'create' }) {
     } else {
       setQuestionsAvailable({ total: 0, easy: 0, medium: 0, hard: 0 });
     }
-  }, [watchedSubject, questions]);
+  }, [watchedSubject, questions, selectedSubject]);
 
   const onSubmit = async (data) => {
     if (selectedQuestions.length === 0) {
