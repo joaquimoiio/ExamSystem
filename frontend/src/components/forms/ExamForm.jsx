@@ -54,7 +54,7 @@ export default function ExamForm({
       subjectId: exam?.subjectId || '',
       duration: exam?.duration || 60,
       totalQuestions: exam?.totalQuestions || 10,
-      variations: exam?.variations || 5,
+      variations: exam?.variations || 1,
       status: exam?.status || 'draft',
       instructions: exam?.instructions || '',
       showResults: exam?.showResults ?? true,

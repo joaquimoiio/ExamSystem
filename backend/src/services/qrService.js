@@ -292,6 +292,99 @@ class QRService {
       throw new AppError(`Failed to generate variation answer keys: ${error.message}`, 500);
     }
   }
+
+  /**
+   * Process answers from camera-detected gabarito
+   * @param {Array} detectedAnswers - Array of detected answers [0,1,2,3,...] representing A,B,C,D,E
+   * @param {Object} answerKeyData - Answer key data from QR code
+   * @returns {Object} Correction result
+   */
+  processGabaritoAnswers(detectedAnswers, answerKeyData) {
+    if (!answerKeyData || !answerKeyData.answerKey) {
+      throw new Error('Invalid answer key data');
+    }
+
+    const results = [];
+    let totalPoints = 0;
+    let earnedPoints = 0;
+    let correctCount = 0;
+
+    answerKeyData.answerKey.forEach((keyItem, index) => {
+      const studentAnswer = detectedAnswers[index];
+      const maxPoints = parseFloat(keyItem.points) || 1;
+      totalPoints += maxPoints;
+
+      let isCorrect = false;
+      let points = 0;
+
+      if (keyItem.type === 'essay') {
+        // Essay questions need manual grading
+        isCorrect = null;
+        points = 0; 
+      } else if (studentAnswer !== undefined && studentAnswer !== null) {
+        // Multiple choice questions
+        isCorrect = parseInt(studentAnswer) === keyItem.correctAnswer;
+        points = isCorrect ? maxPoints : 0;
+        earnedPoints += points;
+        if (isCorrect) correctCount++;
+      }
+
+      results.push({
+        questionNumber: keyItem.questionNumber,
+        questionId: keyItem.questionId,
+        studentAnswer: studentAnswer,
+        correctAnswer: keyItem.correctAnswer,
+        studentAnswerLetter: studentAnswer !== undefined && studentAnswer !== null ? 
+          ['A', 'B', 'C', 'D', 'E'][studentAnswer] : null,
+        correctAnswerLetter: keyItem.correctAnswer !== undefined && keyItem.correctAnswer !== null ? 
+          ['A', 'B', 'C', 'D', 'E'][keyItem.correctAnswer] : null,
+        isCorrect,
+        points,
+        maxPoints,
+        type: keyItem.type,
+        difficulty: keyItem.difficulty
+      });
+    });
+
+    const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 10 : 0;
+
+    return {
+      examId: answerKeyData.examId,
+      examTitle: answerKeyData.examTitle,
+      variationId: answerKeyData.variationId,
+      variationNumber: answerKeyData.variationNumber,
+      totalQuestions: results.length,
+      totalPoints,
+      earnedPoints,
+      score: parseFloat(score.toFixed(2)),
+      correctAnswers: correctCount,
+      accuracy: results.length > 0 ? ((correctCount / results.length) * 100).toFixed(1) : 0,
+      results,
+      correctedAt: new Date().toISOString(),
+      correctionMethod: 'camera_detection'
+    };
+  }
+
+  /**
+   * Validate detected answers array
+   */
+  validateDetectedAnswers(answers) {
+    if (!Array.isArray(answers)) {
+      return { valid: false, message: 'Answers must be an array' };
+    }
+
+    for (let i = 0; i < answers.length; i++) {
+      const answer = answers[i];
+      if (answer !== null && answer !== undefined && (answer < 0 || answer > 4 || !Number.isInteger(answer))) {
+        return { 
+          valid: false, 
+          message: `Invalid answer at position ${i}: ${answer}. Must be null or integer 0-4 (A-E)` 
+        };
+      }
+    }
+
+    return { valid: true };
+  }
 }
 
 module.exports = new QRService();

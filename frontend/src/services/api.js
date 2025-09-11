@@ -444,6 +444,33 @@ class ApiService {
     console.log('📋 Buscando variação do exame:', examId, variationId);
     return this.get(`/exams/${examId}/variations/${variationId}`);
   }
+
+  // QR Code and Camera Correction API methods
+  
+  /**
+   * Validate QR code answers (existing method)
+   */
+  async validateQRAnswers(qrData, studentAnswers, studentInfo) {
+    console.log('🔍 Validando respostas via QR code');
+    return this.post('/exams/validate-qr', {
+      qrData,
+      studentAnswers,
+      studentInfo
+    });
+  }
+
+  /**
+   * Correct answers using camera detection
+   */
+  async correctAnswersFromCamera(qrData, detectedAnswers, studentInfo, confidence) {
+    console.log('📷 Corrigindo respostas via detecção de câmera');
+    return this.post('/exams/correct-camera', {
+      qrData,
+      detectedAnswers,
+      studentInfo,
+      confidence
+    });
+  }
 }
 
 // Instância única

@@ -915,6 +915,124 @@ const validateQRAnswers = catchAsync(async (req, res, next) => {
   }
 });
 
+// Process camera-detected answers from gabarito
+const correctAnswersFromCamera = catchAsync(async (req, res, next) => {
+  const { qrData, detectedAnswers, studentInfo, confidence } = req.body;
+
+  console.log('📷 Camera Correction - Received data:', {
+    qrDataType: typeof qrData,
+    detectedAnswersCount: detectedAnswers?.length,
+    hasStudentInfo: !!studentInfo,
+    confidence: confidence || 'not provided'
+  });
+
+  if (!qrData || !detectedAnswers || !Array.isArray(detectedAnswers)) {
+    return next(new AppError('Dados do QR code ou respostas detectadas inválidos', 400));
+  }
+
+  // Validate and parse QR code data
+  const qrService = require('../services/qrService');
+  const qrValidation = qrService.validateAnswerKeyQR(qrData);
+  
+  if (!qrValidation.valid) {
+    return next(new AppError(`QR Code inválido: ${qrValidation.message}`, 400));
+  }
+
+  // Validate detected answers
+  const answersValidation = qrService.validateDetectedAnswers(detectedAnswers);
+  if (!answersValidation.valid) {
+    return next(new AppError(`Respostas detectadas inválidas: ${answersValidation.message}`, 400));
+  }
+
+  const answerKeyData = qrValidation.data;
+  console.log('✅ QR Code and answers validated:', {
+    examId: answerKeyData.examId,
+    variationId: answerKeyData.variationId,
+    questionsCount: answerKeyData.answerKey?.length,
+    detectedCount: detectedAnswers.length
+  });
+
+  // Verify exam exists
+  const exam = await Exam.findByPk(answerKeyData.examId);
+  if (!exam) {
+    return next(new AppError('Prova não encontrada', 404));
+  }
+
+  // Check ownership
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Não autorizado para corrigir esta prova', 403));
+  }
+
+  // Process correction using camera-detected answers
+  try {
+    const correctionResult = qrService.processGabaritoAnswers(detectedAnswers, answerKeyData);
+    
+    console.log('✅ Camera correction completed:', {
+      score: correctionResult.score,
+      totalQuestions: correctionResult.totalQuestions,
+      correctAnswers: correctionResult.correctAnswers,
+      accuracy: correctionResult.accuracy
+    });
+
+    // Save correction result if student info provided
+    if (studentInfo && (studentInfo.name || studentInfo.email || studentInfo.studentId)) {
+      try {
+        const correctionRecord = await Answer.create({
+          examId: answerKeyData.examId,
+          variationId: answerKeyData.variationId,
+          studentName: studentInfo.name,
+          studentEmail: studentInfo.email,
+          studentId: studentInfo.studentId,
+          answers: JSON.stringify(detectedAnswers.map((answer, index) => ({
+            questionNumber: index + 1,
+            answer: answer !== null ? answer : null,
+            answerLetter: answer !== null ? ['A', 'B', 'C', 'D', 'E'][answer] : null
+          }))),
+          score: correctionResult.score,
+          earnedPoints: correctionResult.earnedPoints,
+          totalPoints: correctionResult.totalPoints,
+          isPassed: correctionResult.score >= (exam.passingScore || 6.0),
+          submittedAt: new Date(),
+          correctedAt: new Date(),
+          metadata: {
+            correctionMethod: 'camera_detection',
+            variationNumber: answerKeyData.variationNumber,
+            qrCodeVersion: answerKeyData.version,
+            correctedBy: req.user.id,
+            correctionData: correctionResult,
+            detectionConfidence: confidence || null,
+            detectedAnswers: detectedAnswers
+          }
+        });
+        
+        console.log('✅ Camera correction result saved:', correctionRecord.id);
+        correctionResult.savedRecord = {
+          id: correctionRecord.id,
+          studentName: correctionRecord.studentName
+        };
+      } catch (saveError) {
+        console.warn('⚠️ Could not save correction record:', saveError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Correção realizada com sucesso via detecção de câmera',
+      data: {
+        examTitle: exam.title,
+        variationNumber: answerKeyData.variationNumber,
+        studentInfo: studentInfo,
+        detectionConfidence: confidence,
+        ...correctionResult
+      }
+    });
+
+  } catch (correctionError) {
+    console.error('❌ Camera correction error:', correctionError);
+    return next(new AppError(`Erro na correção: ${correctionError.message}`, 500));
+  }
+});
+
 // Generate PDF with all exam variations
 const generateAllVariationsPDF = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -1878,6 +1996,7 @@ module.exports = {
   bulkGradeExam,
   generateAnswerSheet,
   validateQRAnswers,
+  correctAnswersFromCamera,
   generateAllVariationsPDF,
   generateSingleVariationPDF,
   correctExamManually,

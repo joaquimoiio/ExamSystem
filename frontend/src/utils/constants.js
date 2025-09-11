@@ -285,7 +285,7 @@ export const SUCCESS_MESSAGES = {
 // Default Exam Configuration
 export const DEFAULT_EXAM_CONFIG = {
   duration: 60, // minutes
-  variations: 5,
+  variations: 1,
   shuffleQuestions: true,
   shuffleAlternatives: true,
   showResults: true,

@@ -43,6 +43,7 @@ import ExamHeaderForm from './pages/exams/ExamHeaderForm';
 // Gabarito e QR Scanner
 import AnswerSheet from './pages/exams/AnswerSheet';
 import QRScanner from './pages/exams/QRScanner';
+import AutomaticCorrectionPage from './pages/correction/AutomaticCorrectionPage';
 
 // Outras páginas
 import Profile from './pages/profile/Profile';
@@ -236,6 +237,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <QRScanner />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/correction" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AutomaticCorrectionPage />
             </Layout>
           </ProtectedRoute>
         } 

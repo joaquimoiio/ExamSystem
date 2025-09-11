@@ -924,156 +924,198 @@ class PDFService {
    * Add exam header section with variation info
    */
   async addExamHeaderWithVariation(doc, examHeader, exam, variation) {
-    let y = 40; // Reduzido de 50 para 40
-
-    // Ensure examHeader is not null/undefined
+    let y = 40;
     const header = examHeader || {};
+    const marginLeft = 50;
+    const marginRight = 350;
+    
+    // Track if we have optional content to adjust spacing
+    const hasEvaluationCriteria = header.evaluationCriteria && header.evaluationCriteria.trim();
+    const hasInstructions = header.instructions && header.instructions.trim();
 
-    // School info
-    doc.fontSize(12).font(this.fonts.bold); // Reduzido de 16 para 12
-    doc.text(header.schoolName || 'Escola', 50, y, { align: 'center' });
-
-    y += 16; // Reduzido de 25 para 16
-    doc.fontSize(10).font(this.fonts.regular); // Reduzido de 12 para 10
-    // Garantir que a disciplina seja exibida corretamente
-    const subjectName = exam.subject?.name || header.subjectName || 'Disciplina não informada';
-    doc.text(`Disciplina: ${subjectName}`, 50, y);
-    doc.text(`Ano: ${header.year || new Date().getFullYear()}`, 350, y);
-
-    y += 14; // Reduzido de 20 para 14
-    doc.text(`Prova: ${exam.title}`, 50, y);
-    doc.text(`Variação: ${variation.variationNumber}`, 350, y);
-
-    y += 14; // Reduzido de 20 para 14
-    doc.text(`Data: ___/___/______`, 50, y);
-    // Removed time limit since it's a physical PDF exam
-
-    // Student info section
-    y += 18; // Reduzido de 30 para 18
-    doc.fontSize(9).font(this.fonts.regular); // Reduzido de 10 para 9
-    doc.text('Nome: _________________________________________________ Turma: _______', 50, y);
-
-
-    // Evaluation criteria
-    if (header.evaluationCriteria) {
-      y += 16; // Reduzido de 25 para 16
-      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
-      doc.text('Critérios de Avaliação:', 50, y);
-      y += 10; // Reduzido de 12 para 10
-      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
-      const lines = header.evaluationCriteria.split('\n');
-      lines.forEach(line => {
-        doc.text(line, 50, y);
-        y += 8; // Reduzido de 10 para 8
-      });
+    // School info - only if provided
+    if (header.schoolName && header.schoolName.trim()) {
+      doc.fontSize(12).font(this.fonts.bold);
+      doc.text(header.schoolName.trim(), marginLeft, y, { align: 'center' });
+      y += 16;
     }
 
-    // Instructions
-    if (header.instructions) {
-      y += 14; // Reduzido de 20 para 14
-      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
-      doc.text('Instruções:', 50, y);
-
-      // Removed separator line after instructions title
-      y += 10; // Reduzido de 12 para 10
-
-      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
-      const lines = header.instructions.split('\n');
-
-      lines.forEach(line => {
-        doc.text(line, 50, y);
-        y += 10; // Reduzido de 12 para 10
-      });
-
-      // Removed bottom separator line after instructions text
-      y += 10; // Reduzido de 15 para 10
+    // Basic exam info (always present)
+    doc.fontSize(10).font(this.fonts.regular);
+    
+    // Subject line - only if we have subject info
+    const subjectName = exam.subject?.name || header.subjectName;
+    if (subjectName && subjectName.trim()) {
+      doc.text(`Disciplina: ${subjectName}`, marginLeft, y);
+    }
+    
+    // Year - only if provided
+    const year = header.year || new Date().getFullYear();
+    if (year) {
+      doc.text(`Ano: ${year}`, marginRight, y);
+    }
+    
+    // Move down only if we had subject or year info
+    if (subjectName || year) {
+      y += 14;
     }
 
-    // Separator line
-    y += 10; // Reduzido de 15 para 10
+    // Exam title and variation (always present)
+    doc.text(`Prova: ${exam.title}`, marginLeft, y);
+    doc.text(`Variação: ${variation.variationNumber}`, marginRight, y);
+    y += 14;
+    
+    // Date field (always present)
+    doc.text(`Data: ___/___/______`, marginLeft, y);
+    y += 16; // Slightly more space before student info
+
+    // Student info section (always present)
+    doc.fontSize(9).font(this.fonts.regular);
+    doc.text('Nome: _________________________________________________ Turma: _______', marginLeft, y);
+    y += 16; // Base spacing after student info
+
+    // Evaluation criteria (optional - dynamic spacing)
+    if (hasEvaluationCriteria) {
+      y += 8; // Small gap before criteria
+      doc.fontSize(8).font(this.fonts.bold);
+      doc.text('Critérios de Avaliação:', marginLeft, y);
+      y += 10;
+      
+      doc.fontSize(7).font(this.fonts.regular);
+      const criteriaLines = header.evaluationCriteria.split('\n').filter(line => line.trim());
+      criteriaLines.forEach(line => {
+        if (line.trim()) {
+          doc.text(line.trim(), marginLeft, y);
+          y += 8;
+        }
+      });
+      y += 6; // Extra space after criteria
+    }
+
+    // Instructions (optional - dynamic spacing)
+    if (hasInstructions) {
+      y += 8; // Small gap before instructions
+      doc.fontSize(8).font(this.fonts.bold);
+      doc.text('Instruções:', marginLeft, y);
+      y += 10;
+
+      doc.fontSize(7).font(this.fonts.regular);
+      const instructionLines = header.instructions.split('\n').filter(line => line.trim());
+      instructionLines.forEach(line => {
+        if (line.trim()) {
+          doc.text(line.trim(), marginLeft, y);
+          y += 8;
+        }
+      });
+      y += 6; // Extra space after instructions
+    }
+
+    // Final separator - adaptive spacing
+    y += hasEvaluationCriteria || hasInstructions ? 10 : 16;
     doc.moveTo(50, y)
       .lineTo(550, y)
       .stroke();
 
-    return y + 8; // Reduzido de 10 para 8
+    return y + 8;
   }
 
   /**
    * Add exam header section
    */
   async addExamHeader(doc, examHeader, exam) {
-    let y = 40; // Reduzido de 50 para 40
-
-    // Ensure examHeader is not null/undefined
+    let y = 40;
     const header = examHeader || {};
+    const marginLeft = 50;
+    const marginRight = 350;
+    
+    // Track if we have optional content to adjust spacing
+    const hasEvaluationCriteria = header.evaluationCriteria && header.evaluationCriteria.trim();
+    const hasInstructions = header.instructions && header.instructions.trim();
 
-    // School info
-    doc.fontSize(12).font(this.fonts.bold); // Reduzido de 16 para 12
-    doc.text(header.schoolName || 'Escola', 50, y, { align: 'center' });
-
-    y += 16; // Reduzido de 25 para 16
-    doc.fontSize(10).font(this.fonts.regular); // Reduzido de 12 para 10
-    // Garantir que a disciplina seja exibida corretamente
-    const subjectName = exam.subject?.name || header.subjectName || 'Disciplina não informada';
-    doc.text(`Disciplina: ${subjectName}`, 50, y);
-    doc.text(`Ano: ${header.year || new Date().getFullYear()}`, 350, y);
-
-    y += 14; // Reduzido de 20 para 14
-    doc.text(`Prova: ${exam.title}`, 50, y);
-    doc.text(`Variação: ${exam.variationNumber || 'A'}`, 350, y);
-
-    y += 14; // Reduzido de 20 para 14
-    doc.text(`Data: ___/___/______`, 50, y);
-    // Removed time limit since it's a physical PDF exam
-
-    // Student info section
-    y += 18; // Reduzido de 30 para 18
-    doc.fontSize(9).font(this.fonts.regular); // Reduzido de 10 para 9
-    doc.text('Nome: _________________________________________________ Turma: _______', 50, y);
-
-
-    // Evaluation criteria
-    if (header.evaluationCriteria) {
-      y += 16; // Reduzido de 25 para 16
-      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
-      doc.text('Critérios de Avaliação:', 50, y);
-      y += 10; // Reduzido de 12 para 10
-      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
-      const lines = header.evaluationCriteria.split('\n');
-      lines.forEach(line => {
-        doc.text(line, 50, y);
-        y += 8; // Reduzido de 10 para 8
-      });
+    // School info - only if provided
+    if (header.schoolName && header.schoolName.trim()) {
+      doc.fontSize(12).font(this.fonts.bold);
+      doc.text(header.schoolName.trim(), marginLeft, y, { align: 'center' });
+      y += 16;
     }
 
-    // Instructions
-    if (header.instructions) {
-      y += 14; // Reduzido de 20 para 14
-      doc.fontSize(8).font(this.fonts.bold); // Reduzido de 9 para 8
-      doc.text('Instruções:', 50, y);
-
-      // Removed separator line after instructions title
-      y += 10; // Reduzido de 12 para 10
-
-      doc.fontSize(7).font(this.fonts.regular); // Reduzido de 8 para 7
-      const lines = header.instructions.split('\n');
-
-      lines.forEach(line => {
-        doc.text(line, 50, y);
-        y += 10; // Reduzido de 12 para 10
-      });
-
-      // Removed bottom separator line after instructions text
-      y += 10; // Reduzido de 15 para 10
+    // Basic exam info (always present)
+    doc.fontSize(10).font(this.fonts.regular);
+    
+    // Subject line - only if we have subject info
+    const subjectName = exam.subject?.name || header.subjectName;
+    if (subjectName && subjectName.trim()) {
+      doc.text(`Disciplina: ${subjectName}`, marginLeft, y);
+    }
+    
+    // Year - only if provided
+    const year = header.year || new Date().getFullYear();
+    if (year) {
+      doc.text(`Ano: ${year}`, marginRight, y);
+    }
+    
+    // Move down only if we had subject or year info
+    if (subjectName || year) {
+      y += 14;
     }
 
-    // Separator line
-    y += 10; // Reduzido de 15 para 10
+    // Exam title and variation (always present)
+    doc.text(`Prova: ${exam.title}`, marginLeft, y);
+    doc.text(`Variação: ${exam.variationNumber || 'A'}`, marginRight, y);
+    y += 14;
+    
+    // Date field (always present)
+    doc.text(`Data: ___/___/______`, marginLeft, y);
+    y += 16; // Slightly more space before student info
+
+    // Student info section (always present)
+    doc.fontSize(9).font(this.fonts.regular);
+    doc.text('Nome: _________________________________________________ Turma: _______', marginLeft, y);
+    y += 16; // Base spacing after student info
+
+    // Evaluation criteria (optional - dynamic spacing)
+    if (hasEvaluationCriteria) {
+      y += 8; // Small gap before criteria
+      doc.fontSize(8).font(this.fonts.bold);
+      doc.text('Critérios de Avaliação:', marginLeft, y);
+      y += 10;
+      
+      doc.fontSize(7).font(this.fonts.regular);
+      const criteriaLines = header.evaluationCriteria.split('\n').filter(line => line.trim());
+      criteriaLines.forEach(line => {
+        if (line.trim()) {
+          doc.text(line.trim(), marginLeft, y);
+          y += 8;
+        }
+      });
+      y += 6; // Extra space after criteria
+    }
+
+    // Instructions (optional - dynamic spacing)
+    if (hasInstructions) {
+      y += 8; // Small gap before instructions
+      doc.fontSize(8).font(this.fonts.bold);
+      doc.text('Instruções:', marginLeft, y);
+      y += 10;
+
+      doc.fontSize(7).font(this.fonts.regular);
+      const instructionLines = header.instructions.split('\n').filter(line => line.trim());
+      instructionLines.forEach(line => {
+        if (line.trim()) {
+          doc.text(line.trim(), marginLeft, y);
+          y += 8;
+        }
+      });
+      y += 6; // Extra space after instructions
+    }
+
+    // Final separator - adaptive spacing
+    y += hasEvaluationCriteria || hasInstructions ? 10 : 16;
     doc.moveTo(50, y)
       .lineTo(550, y)
       .stroke();
 
-    return y + 8; // Reduzido de 10 para 8
+    return y + 8;
   }
 
   /**
@@ -1083,13 +1125,13 @@ class PDFService {
   addVisualAnswerGridSideways(doc, examQuestions, startX, startY) {
     let y = startY;
 
-    doc.fontSize(9).font(this.fonts.bold); // Reduced from 10 to 9
+    doc.fontSize(9).font(this.fonts.bold);
     doc.text('GABARITO', startX, y);
 
-    y += 12; // Reduced from 15 to 12
-    doc.fontSize(7).font(this.fonts.regular); // Reduced from 8 to 7
+    y += 12; // Spacing after title
+    doc.fontSize(7).font(this.fonts.regular);
 
-    y += 22; // Reduced from 30 to 22
+    y += 16; // Reduced spacing before grid starts
 
     // Store initial Y position and calculate estimated final position
     const initialY = y - 10;
@@ -1298,20 +1340,18 @@ class PDFService {
 
     // Add separator line before QR code and answer grid section
     doc.lineWidth(1);
-    doc.moveTo(50, y - 10)
-      .lineTo(550, y - 10)
+    doc.moveTo(40, y - 5)
+      .lineTo(570, y - 5)
       .stroke();
 
     // Add some spacing after the separator line
-    y += 15;
+    y += 10;
 
     // Generate QR code with answer key (including shuffled alternatives)
     const qrResult = await qrService.generateAnswerKeyQR(exam, variation, examQuestions);
     const qrBuffer = await qrService.generateQRBuffer(JSON.stringify(qrResult.qrData), { width: 120 });
 
     // QR Code section - LEFT SIDE
-    // (removed "GABARITO DO PROFESSOR" text as requested)
-
     // Add QR code image on the left - more compact
     doc.image(qrBuffer, 40, y, { width: 60, height: 60 }); // Reduced size from 80x80 to 60x60
 
@@ -1332,8 +1372,9 @@ class PDFService {
     const qrFinalY = y + 100; // Reduced from 130 to 100
     const maxY = Math.max(qrFinalY, finalY);
 
-    // Add spacing to separate from questions section
-    const separatedY = maxY + 20; // Reduced from 45 to 20
+    // Dynamically adjust spacing based on content - more responsive
+    const baseSpacing = 15;
+    const separatedY = maxY + baseSpacing;
 
     // Separator line
     doc.lineWidth(1);
@@ -1341,10 +1382,10 @@ class PDFService {
       .lineTo(570, separatedY) // Full width separator
       .stroke();
 
-    // Set doc.y to ensure questions start below this section
-    doc.y = separatedY + 15; // Reduced from 25 to 15
+    // Set doc.y to ensure questions start below this section with minimal spacing
+    doc.y = separatedY + 8;
 
-    return separatedY + 15;
+    return separatedY + 8;
   }
 
   /**
@@ -1354,16 +1395,17 @@ class PDFService {
     // Use the current doc.y position set by previous sections
     let y = doc.y;
 
-    // Ensure we have a minimum Y position (fallback)
-    if (!y || y < 350) {
-      y = 350;
+    // Dynamic minimum Y position - more responsive to actual content above
+    // Only enforce minimum if we're too high up (indicating missing content above)
+    if (!y || y < 200) {
+      y = Math.max(y || 200, 200);
     }
 
     // Section title - traditional format
-    doc.fontSize(11).font(this.fonts.bold); // Reduced from 12 to 11
-    doc.text('QUESTÕES:', 40, y); // Moved from 20 to 40 for better margin
+    doc.fontSize(11).font(this.fonts.bold);
+    doc.text('QUESTÕES:', 40, y);
 
-    y += 20; // Reduced space after title from 30 to 20
+    y += 12; // Reduced space after title for more responsive layout
 
     if (layout === 'double') {
       return this.addExamQuestionsDoubleColumn(doc, examQuestions, y);
@@ -1380,9 +1422,9 @@ class PDFService {
         alternatives = question.shuffledAlternatives.alternatives;
       }
 
-      // Check if we need a new page
-      const estimatedQuestionHeight = 100; // Reduced estimate
-      if (y > 720 - estimatedQuestionHeight) {
+      // Dynamic page break calculation based on content
+      const minSpaceNeeded = this.estimateQuestionSpace(doc, question, alternatives);
+      if (y + minSpaceNeeded > 750) {
         doc.addPage();
         y = 40; // Start higher on new page
       }
@@ -1415,8 +1457,9 @@ class PDFService {
         align: 'justify'
       });
 
-      // Check if question will fit on current page
-      if (y + questionHeight + 60 > 750) { // Reduced buffer from 80 to 60
+      // Check if question will fit on current page - more precise calculation
+      const totalSpaceNeeded = questionHeight + (alternatives?.length || 0) * 12 + 30;
+      if (y + totalSpaceNeeded > 750) {
         doc.addPage();
         y = 40;
       }
@@ -1717,6 +1760,35 @@ class PDFService {
 
     // Return the maximum Y position
     return Math.max(leftColumnY, rightColumnY);
+  }
+
+  /**
+   * Estimate the space needed for a question
+   */
+  estimateQuestionSpace(doc, question, alternatives) {
+    let estimatedHeight = 0;
+    
+    // Question text height estimate
+    const questionText = question.text || question.statement || question.title || '';
+    if (questionText) {
+      const textHeight = doc.heightOfString(questionText, { width: 530 });
+      estimatedHeight += textHeight + 15;
+    }
+    
+    // Alternatives height estimate
+    if (question.type === 'multiple_choice' && alternatives) {
+      const validAlternatives = alternatives.filter(alt => alt && alt.trim && alt.trim() !== '');
+      estimatedHeight += validAlternatives.length * 15; // Estimate 15pt per alternative
+    } else if (question.type === 'essay') {
+      estimatedHeight += 120; // Space for essay lines
+    } else if (question.type === 'true_false') {
+      estimatedHeight += 30; // Space for true/false options
+    }
+    
+    // Add padding
+    estimatedHeight += 25;
+    
+    return estimatedHeight;
   }
 
   /**

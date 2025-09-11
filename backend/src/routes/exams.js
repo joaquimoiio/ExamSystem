@@ -85,8 +85,9 @@ router.get('/:id/variations/:variationId/generate-pdf', authenticateToken, requi
 // Answer sheet generation
 router.get('/:id/answer-sheet', authenticateToken, requireTeacher, examController.generateAnswerSheet);
 
-// QR Code validation
+// QR Code validation and correction
 router.post('/validate-qr', authenticateToken, examController.validateQRAnswers);
+router.post('/correct-camera', authenticateToken, requireTeacher, examController.correctAnswersFromCamera);
 
 // Manual correction
 router.post('/:id/correct-manual', authenticateToken, requireTeacher, examController.correctExamManually);

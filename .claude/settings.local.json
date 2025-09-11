@@ -7,7 +7,10 @@
       "Bash(taskkill:*)",
       "Bash(npx kill-port:*)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm test:*)",
+      "Bash(dir)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
