@@ -109,6 +109,154 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Recent Activity endpoint
+router.get('/activity/recent', async (req, res) => {
+  console.log('📋 Buscando atividade recente');
+  try {
+    const { Subject, Question, Exam, User } = require('../models');
+
+    // Buscar atividades recentes dos últimos 7 dias
+    const recentDate = new Date();
+    recentDate.setDate(recentDate.getDate() - 7);
+
+    const activities = [];
+
+    // Buscar disciplinas criadas recentemente
+    const recentSubjects = await Subject.findAll({
+      where: {
+        createdAt: {
+          [require('sequelize').Op.gte]: recentDate
+        }
+      },
+      include: [{
+        model: User,
+        attributes: ['name']
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    // Buscar questões criadas recentemente
+    const recentQuestions = await Question.findAll({
+      where: {
+        createdAt: {
+          [require('sequelize').Op.gte]: recentDate
+        }
+      },
+      include: [{
+        model: Subject,
+        attributes: ['name']
+      }, {
+        model: User,
+        attributes: ['name']
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    // Buscar provas criadas recentemente
+    const recentExams = await Exam.findAll({
+      where: {
+        createdAt: {
+          [require('sequelize').Op.gte]: recentDate
+        }
+      },
+      include: [{
+        model: Subject,
+        attributes: ['name']
+      }, {
+        model: User,
+        attributes: ['name']
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    // Processar disciplinas
+    recentSubjects.forEach(subject => {
+      activities.push({
+        id: `subject_${subject.id}`,
+        type: 'subject',
+        action: 'criou a disciplina',
+        item: subject.name,
+        user: subject.User?.name || 'Usuário',
+        time: subject.createdAt,
+        icon: 'BookOpen',
+        color: 'primary'
+      });
+    });
+
+    // Processar questões
+    recentQuestions.forEach(question => {
+      activities.push({
+        id: `question_${question.id}`,
+        type: 'question',
+        action: 'criou a questão',
+        item: `${question.title} (${question.Subject?.name})`,
+        user: question.User?.name || 'Usuário',
+        time: question.createdAt,
+        icon: 'FileText',
+        color: 'success'
+      });
+    });
+
+    // Processar provas
+    recentExams.forEach(exam => {
+      activities.push({
+        id: `exam_${exam.id}`,
+        type: 'exam',
+        action: 'criou a prova',
+        item: `${exam.title} (${exam.Subject?.name})`,
+        user: exam.User?.name || 'Usuário',
+        time: exam.createdAt,
+        icon: 'BarChart3',
+        color: 'warning'
+      });
+    });
+
+    // Ordenar por data mais recente e limitar a 10 itens
+    activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+    const limitedActivities = activities.slice(0, 10);
+
+    // Formatar tempo relativo
+    const formatRelativeTime = (date) => {
+      const now = new Date();
+      const diffInMinutes = Math.floor((now - new Date(date)) / (1000 * 60));
+
+      if (diffInMinutes < 1) return 'agora mesmo';
+      if (diffInMinutes < 60) return `${diffInMinutes} min atrás`;
+
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) return `${diffInHours}h atrás`;
+
+      const diffInDays = Math.floor(diffInHours / 24);
+      if (diffInDays < 7) return `${diffInDays}d atrás`;
+
+      return new Date(date).toLocaleDateString('pt-BR');
+    };
+
+    // Formatar atividades para o frontend
+    const formattedActivities = limitedActivities.map(activity => ({
+      ...activity,
+      time: formatRelativeTime(activity.time)
+    }));
+
+    console.log(`📋 Encontradas ${formattedActivities.length} atividades recentes`);
+
+    res.json({
+      success: true,
+      data: formattedActivities
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar atividade recente:', error);
+    res.json({
+      success: true,
+      data: []
+    });
+  }
+});
+
 // Mount auth routes
 router.use('/auth', authRoutes);
 

@@ -1,10 +1,10 @@
 // App Configuration
 export const APP_CONFIG = {
-  name: 'ExamSystem',
+  name: 'MontAí',
   version: '1.0.0',
   description: 'Sistema de Provas Online',
-  author: 'ExamSystem Team',
-  website: 'https://examsystem.com',
+  author: 'MontAí Team',
+  website: 'https://montai.com',
 };
 
 // API Configuration

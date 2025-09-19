@@ -35,10 +35,10 @@ function ExamCard({ exam, onEdit, onDelete, onView, onPublish, onGeneratePDFs, o
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 hover:shadow-medium transition-all duration-200 group">
-      <div className="p-6">
+    <div className="subject-card bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 hover:shadow-medium transition-all duration-200 group">
+      <div className="subject-card-content">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="subject-card-header">
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-2">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
@@ -47,12 +47,12 @@ function ExamCard({ exam, onEdit, onDelete, onView, onPublish, onGeneratePDFs, o
               </span>
             </div>
             
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 mb-2">
+            <h3 className="card-title card-title-lg line-clamp-2 mb-2">
               {exam.title}
             </h3>
-            
+
             {exam.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-2">
+              <p className="card-description mb-2">
                 {exam.description}
               </p>
             )}
@@ -69,7 +69,7 @@ function ExamCard({ exam, onEdit, onDelete, onView, onPublish, onGeneratePDFs, o
           </div>
 
           {/* Actions Menu */}
-          <div className="relative">
+          <div className="subject-card-actions">
             <button
               onClick={() => setShowActions(!showActions)}
               className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100"

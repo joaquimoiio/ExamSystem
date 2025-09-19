@@ -51,7 +51,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               {/* Question Preview */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <p className="card-title card-title-sm line-clamp-1">
                   {question.text || question.title || 'Sem enunciado'}
                 </p>
                 <div className="flex items-center space-x-4 mt-1">
@@ -154,7 +154,7 @@ function QuestionCard({ question, onEdit, onDelete, onView, onDuplicate, viewMod
 
             </div>
             
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <h3 className="card-title card-title-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
               {question.text || question.title || 'Sem enunciado'}
             </h3>
           </div>
@@ -443,8 +443,12 @@ export default function QuestionList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
 
+  // Hooks
+  const { success, error: showError } = useToast();
+
   // Real API hooks
   const queryParams = subjectId ? { subjectId } : {};
+  console.log('🔍 QuestionList queryParams:', queryParams, 'subjectId from URL:', subjectId);
   const { data: questionsData, isLoading, error } = useQuestions(queryParams);
   const { data: subjectsData } = useSubjects();
   const { data: currentSubjectData } = useSubject(subjectId);
@@ -456,15 +460,15 @@ export default function QuestionList() {
 
   // Filter questions based on current filters
   const filteredQuestions = questions.filter(question => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       (question.title && question.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (question.text && question.text.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (question.subject?.name && question.subject.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Se temos subjectId, não precisamos filtrar por disciplina (já está filtrado pela API)
-    const matchesSubject = subjectId || subjectFilter === 'all' || 
-      question.subject?.id.toString() === subjectFilter;
-    
+
+    // Se temos subjectId na URL, confiar na API (já filtrada). Caso contrário, aplicar filtro local
+    const matchesSubject = subjectId ? true : (subjectFilter === 'all' ||
+      question.subject?.id.toString() === subjectFilter);
+
     const matchesDifficulty = difficultyFilter === 'all' || question.difficulty === difficultyFilter;
     const matchesType = typeFilter === 'all' || question.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || (question.status || 'active') === statusFilter;
@@ -494,19 +498,40 @@ export default function QuestionList() {
 
   // Handle actions
   const handleView = (questionId) => {
-    navigate(`/questions/${questionId}`);
+    const url = subjectId
+      ? `/questions/${questionId}?subjectId=${subjectId}`
+      : `/questions/${questionId}`;
+    navigate(url);
   };
 
   const handleEdit = (questionId) => {
-    navigate(`/questions/${questionId}?edit=true`);
+    const url = subjectId
+      ? `/questions/${questionId}?edit=true&subjectId=${subjectId}`
+      : `/questions/${questionId}?edit=true`;
+    navigate(url);
   };
 
   const handleDelete = async (questionId) => {
     try {
       await deleteQuestionMutation.mutateAsync(questionId);
       setDeleteQuestionId(null);
+      success('Questão excluída com sucesso!');
     } catch (error) {
       console.error('Error deleting question:', error);
+
+      // Melhor tratamento de erro com mensagens específicas
+      if (error.message.includes('Esta questão não pode ser excluída pois está sendo usada em exames') ||
+          error.message.includes('Cannot delete question that is used in exams')) {
+        showError('Esta questão não pode ser excluída pois está sendo usada em exames. Para excluí-la, primeiro remova-a dos exames onde está sendo utilizada.');
+      } else if (error.message.includes('Question not found') || error.message.includes('não encontrada')) {
+        showError('Questão não encontrada.');
+      } else if (error.message.includes('Access denied') || error.message.includes('não tem permissão')) {
+        showError('Você não tem permissão para excluir esta questão.');
+      } else {
+        showError('Erro ao excluir questão. Tente novamente.');
+      }
+
+      setDeleteQuestionId(null);
     }
   };
 

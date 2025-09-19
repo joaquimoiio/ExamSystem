@@ -1357,7 +1357,7 @@ class PDFService {
 
     // Instructions below QR code - more compact
     doc.fontSize(7).font(this.fonts.regular); // Reduced from 8 to 7
-    doc.text('Professor: Escaneie para', 40, y + 65);
+    doc.text('Escaneie para', 40, y + 65);
     doc.text('correção automática', 40, y + 75);
     doc.text(`Variação: ${variation.variationNumber}`, 40, y + 85);
 

@@ -10,7 +10,9 @@
       "Bash(node:*)",
       "Bash(npm test:*)",
       "Bash(dir)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(createdb:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

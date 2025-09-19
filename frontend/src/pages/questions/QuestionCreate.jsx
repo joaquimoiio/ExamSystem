@@ -17,7 +17,9 @@ export default function QuestionCreate() {
         ...data,
         subjectId: subjectId || data.subjectId
       });
-      navigate('/questions');
+      // Voltar para questões, mantendo filtro se criou questão para disciplina específica
+      const url = subjectId ? `/questions?subjectId=${subjectId}` : '/questions';
+      navigate(url);
     } catch (error) {
       // Error is handled by the mutation hook
       console.error('Error creating question:', error);
@@ -26,7 +28,7 @@ export default function QuestionCreate() {
 
   const handleCancel = () => {
     if (subjectId) {
-      navigate(`/subjects/${subjectId}`);
+      navigate(`/questions?subjectId=${subjectId}`);
     } else {
       navigate('/questions');
     }

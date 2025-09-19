@@ -208,7 +208,7 @@ export default function SubjectForm({
           
           <LoadingButton
             type="submit"
-            loading={isSubmitting || loading}
+            isLoading={isSubmitting || loading}
             className="px-6 py-2"
           >
             <Save className="w-4 h-4 mr-2" />

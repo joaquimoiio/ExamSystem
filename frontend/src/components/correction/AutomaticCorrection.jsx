@@ -10,7 +10,7 @@ import apiService from '../../services/api';
 import { LoadingButton } from '../common/Loading';
 
 const AutomaticCorrection = ({ isOpen, onClose, onCorrectionComplete }) => {
-  const [currentStep, setCurrentStep] = useState(1); // 1: QR, 2: Gabarito, 3: Student Info, 4: Results
+  const [currentStep, setCurrentStep] = useState(1); 
   const [qrData, setQrData] = useState(null);
   const [detectedAnswers, setDetectedAnswers] = useState(null);
   const [studentInfo, setStudentInfo] = useState({

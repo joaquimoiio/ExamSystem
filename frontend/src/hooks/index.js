@@ -249,8 +249,12 @@ export function useSubject(id) {
 }
 
 export function useQuestions(params = {}) {
+  console.log('🔍 useQuestions called with params:', params);
+  // Garante que a queryKey seja única para diferentes parâmetros
+  const queryKey = ['questions', JSON.stringify(params)];
+  console.log('🔑 Query key:', queryKey);
   return useQuery({
-    queryKey: ['questions', params],
+    queryKey,
     queryFn: () => apiService.getQuestions(params),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

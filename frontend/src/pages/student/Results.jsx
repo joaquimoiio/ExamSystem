@@ -355,7 +355,7 @@ export default function Results() {
 
         {/* Footer */}
         <div className="text-center text-sm text-gray-500">
-          <p>Resultado gerado automaticamente pelo ExamSystem</p>
+          <p>Resultado gerado automaticamente pelo MontAí</p>
           <p>ID da submissão: {submissionId || 'N/A'}</p>
         </div>
       </div>

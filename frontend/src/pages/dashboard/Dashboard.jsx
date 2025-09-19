@@ -85,7 +85,41 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Statistics Cards - Removed as requested */}
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="Disciplinas"
+              value={stats.subjects}
+              icon={BookOpen}
+              color="primary"
+              to="/subjects"
+              isLoading={statsLoading}
+            />
+            <StatCard
+              title="Questões"
+              value={stats.questions}
+              icon={FileText}
+              color="success"
+              to="/questions"
+              isLoading={statsLoading}
+            />
+            <StatCard
+              title="Provas"
+              value={stats.exams}
+              icon={BarChart3}
+              color="warning"
+              to="/exams"
+              isLoading={statsLoading}
+            />
+            <StatCard
+              title="Provas Publicadas"
+              value={stats.publishedExams}
+              icon={CheckCircle}
+              color="info"
+              to="/exams?filter=published"
+              isLoading={statsLoading}
+            />
+          </div>
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -224,24 +258,38 @@ function StatCard({ title, value, icon: Icon, color, to, isLoading }) {
 
 // Component for Activity Items
 function ActivityItem({ activity }) {
-  const IconComponent = activity.icon;
+  // Mapear ícones do backend para componentes do React
+  const iconMap = {
+    BookOpen: BookOpen,
+    FileText: FileText,
+    BarChart3: BarChart3,
+    CheckCircle: CheckCircle,
+    Users: Users,
+    Calendar: Calendar,
+    Target: Target,
+    Award: Award
+  };
+
+  const IconComponent = iconMap[activity.icon] || FileText;
   const colorClasses = {
-    primary: 'bg-blue-100 text-blue-600',
-    success: 'bg-green-100 text-green-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    info: 'bg-purple-100 text-purple-600',
+    primary: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    success: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    warning: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
+    info: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   };
 
   return (
     <div className="flex items-start space-x-3">
-      <div className={`p-2 rounded-lg flex-shrink-0 ${colorClasses[activity.color]}`}>
+      <div className={`p-2 rounded-lg flex-shrink-0 ${colorClasses[activity.color] || colorClasses.primary}`}>
         <IconComponent className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-900 dark:text-white">
-          <span className="font-medium">{activity.action}</span>
+          <span className="font-medium">{activity.user || 'Usuário'}</span>
           {' '}
-          <span className="text-gray-600 dark:text-gray-300">{activity.item}</span>
+          <span className="text-gray-600 dark:text-gray-300">{activity.action}</span>
+          {' '}
+          <span className="font-medium text-gray-900 dark:text-white">{activity.item}</span>
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activity.time}</p>
       </div>

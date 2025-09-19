@@ -446,14 +446,14 @@ const updateSubject = catchAsync(async (req, res, next) => {
 // Delete subject
 const deleteSubject = catchAsync(async (req, res, next) => {
   console.log('🗑️ Iniciando deleteSubject...');
-  
+
   if (!checkAuthentication(req, next)) return;
 
   const { id } = req.params;
   const userId = req.user.id;
-  
+
   console.log('🗑️ Excluindo disciplina ID:', id, 'para usuário:', userId);
-  
+
   try {
     const subject = await Subject.findOne({
       where: {
@@ -461,37 +461,73 @@ const deleteSubject = catchAsync(async (req, res, next) => {
         userId
       }
     });
-    
+
     if (!subject) {
       console.log('❌ Disciplina não encontrada para exclusão');
       return next(new AppError('Disciplina não encontrada', 404));
     }
 
-    // Verificar se há questões associadas
-    const questionsCount = await Question.count({
-      where: { subjectId: id }
-    });
-
-    if (questionsCount > 0) {
-      console.log('❌ Não é possível excluir disciplina com questões');
-      return next(new AppError(
-        `Não é possível excluir esta disciplina pois ela possui ${questionsCount} questão${questionsCount !== 1 ? 'ões' : ''} cadastrada${questionsCount !== 1 ? 's' : ''}. Remova todas as questões primeiro.`,
-        400
-      ));
-    }
+    // Verificar quantas questões e provas serão excluídas junto
+    const [questionsCount, examsCount] = await Promise.all([
+      Question.count({ where: { subjectId: id } }),
+      Exam.count({ where: { subjectId: id } })
+    ]);
 
     console.log('🗑️ Excluindo disciplina:', subject.name);
+    console.log(`📋 Será excluída junto com ${questionsCount} questão${questionsCount !== 1 ? 'ões' : ''} e ${examsCount} prova${examsCount !== 1 ? 's' : ''}`);
+
+    // Excluir todas as provas da disciplina primeiro (devido ao onDelete: 'RESTRICT')
+    if (examsCount > 0) {
+      await Exam.destroy({
+        where: { subjectId: id }
+      });
+      console.log(`✅ ${examsCount} prova${examsCount !== 1 ? 's' : ''} excluída${examsCount !== 1 ? 's' : ''} fisicamente`);
+    }
+
+    // Excluir todas as questões da disciplina (devido ao onDelete: 'RESTRICT')
+    if (questionsCount > 0) {
+      await Question.destroy({
+        where: { subjectId: id }
+      });
+      console.log(`✅ ${questionsCount} questão${questionsCount !== 1 ? 'ões' : ''} excluída${questionsCount !== 1 ? 's' : ''} fisicamente`);
+    }
+
+    // Agora excluir a disciplina
     await subject.destroy();
 
     console.log('✅ Disciplina excluída com sucesso');
 
+    // Mensagem diferente dependendo se havia questões e provas
+    let message = 'Disciplina excluída com sucesso';
+    if (questionsCount > 0 || examsCount > 0) {
+      const parts = [];
+      if (questionsCount > 0) {
+        parts.push(`${questionsCount} questão${questionsCount !== 1 ? 'ões' : ''}`);
+      }
+      if (examsCount > 0) {
+        parts.push(`${examsCount} prova${examsCount !== 1 ? 's' : ''}`);
+      }
+      message = `Disciplina excluída com sucesso junto com ${parts.join(' e ')}`;
+    }
+
     res.json({
       success: true,
-      message: 'Disciplina excluída com sucesso'
+      message,
+      data: {
+        deletedQuestionsCount: questionsCount,
+        deletedExamsCount: examsCount
+      }
     });
 
   } catch (error) {
     console.error('❌ Erro ao excluir disciplina:', error);
+
+    // Log more specific error details
+    if (error.name === 'SequelizeForeignKeyConstraintError') {
+      console.error('❌ Erro de constraint de chave estrangeira:', error.message);
+      return next(new AppError('Não é possível excluir a disciplina devido a restrições do banco de dados', 400));
+    }
+
     return next(new AppError('Erro ao excluir disciplina', 500));
   }
 });

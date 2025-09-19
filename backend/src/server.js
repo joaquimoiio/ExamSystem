@@ -29,17 +29,21 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// Test database connection
+// Test database connection and create tables
 async function testDatabaseConnection() {
   try {
     await sequelize.authenticate();
     logger.info('✅ Database connection established successfully');
     
-    // Skip sync in development to avoid constraint issues
-    // if (process.env.NODE_ENV === 'development') {
-    //   await sequelize.sync({ alter: true });
-    //   logger.info('✅ Database models synchronized');
-    // }
+    // Sync models to create tables automatically
+    if (process.env.NODE_ENV === 'development') {
+      await sequelize.sync({ alter: true });
+      logger.info('✅ Database models synchronized - tables created/updated');
+    } else {
+      // In production, only sync if tables don't exist
+      await sequelize.sync();
+      logger.info('✅ Database models synchronized');
+    }
   } catch (error) {
     logger.error('❌ Unable to connect to database:', error);
     process.exit(1);

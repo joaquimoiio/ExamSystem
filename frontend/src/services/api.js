@@ -222,7 +222,7 @@ class ApiService {
   // ================================
   
   async getQuestions(params = {}) {
-    console.log('❓ Buscando questões');
+    console.log('❓ Buscando questões com params:', params);
     return this.get('/questions', { params });
   }
 
@@ -354,11 +354,9 @@ class ApiService {
   async getRecentActivity() {
     console.log('📋 Buscando atividade recente');
     try {
-      // Por enquanto, retorna array vazio já que não temos endpoint de atividades
-      return {
-        success: true,
-        data: []
-      };
+      const response = await this.get('/activity/recent');
+      console.log('✅ Atividades recentes carregadas:', response.data?.length || 0);
+      return response;
     } catch (error) {
       console.error('❌ Erro ao buscar atividade recente:', error);
       return { success: true, data: [] };

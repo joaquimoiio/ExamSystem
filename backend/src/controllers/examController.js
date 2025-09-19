@@ -342,43 +342,59 @@ const createExam = catchAsync(async (req, res, next) => {
     else if (q.difficulty === 'hard') difficultyCount.hard++;
   });
 
-  // Create exam with the selected questions and their individual points
-  const exam = await Exam.create({
-    title: title.trim(),
-    description: description?.trim(),
-    subjectId,
-    examHeaderId: examHeaderId || null,
-    userId: req.user.id,
-    totalQuestions: questions.length,
-    easyQuestions: difficultyCount.easy,
-    mediumQuestions: difficultyCount.medium,
-    hardQuestions: difficultyCount.hard,
-    totalVariations: variations,
-    totalPoints, // Store total points
-    passingScore,
-    instructions: instructions?.trim(),
-    allowReview,
-    showCorrectAnswers: showResults,
-    randomizeQuestions: shuffleQuestions,
-    randomizeAlternatives: shuffleAlternatives,
-    maxAttempts,
-    showResults,
-    requireFullScreen,
-    preventCopyPaste,
-    // Store selected questions with their points in metadata
-    metadata: {
-      selectedQuestions: questions
-    }
-  });
+  // Use transaction to ensure atomicity
+  const transaction = await db.sequelize.transaction();
 
-  // Generate exam variations with the selected questions
-  await generateExamVariationsWithSelectedQuestions(exam, existingQuestions);
+  try {
+    // Create exam with the selected questions and their individual points
+    const exam = await Exam.create({
+      title: title.trim(),
+      description: description?.trim(),
+      subjectId,
+      examHeaderId: examHeaderId || null,
+      userId: req.user.id,
+      totalQuestions: questions.length,
+      easyQuestions: difficultyCount.easy,
+      mediumQuestions: difficultyCount.medium,
+      hardQuestions: difficultyCount.hard,
+      totalVariations: variations,
+      totalPoints, // Store total points
+      passingScore,
+      instructions: instructions?.trim(),
+      allowReview,
+      showCorrectAnswers: showResults,
+      randomizeQuestions: shuffleQuestions,
+      randomizeAlternatives: shuffleAlternatives,
+      maxAttempts,
+      showResults,
+      requireFullScreen,
+      preventCopyPaste,
+      // Store selected questions with their points in metadata
+      metadata: {
+        selectedQuestions: questions
+      }
+    }, { transaction });
 
-  res.status(201).json({
-    success: true,
-    message: 'Exam created successfully',
-    data: { exam }
-  });
+    // Generate exam variations with the selected questions
+    await generateExamVariationsWithSelectedQuestions(exam, existingQuestions, transaction);
+
+    // Commit transaction
+    await transaction.commit();
+
+    console.log('✅ Exam and variations created successfully');
+
+    res.status(201).json({
+      success: true,
+      message: 'Exam created successfully',
+      data: { exam }
+    });
+
+  } catch (error) {
+    // Rollback transaction on error
+    await transaction.rollback();
+    console.error('❌ Error creating exam with variations:', error);
+    throw error;
+  }
 });
 
 // Get exam by ID
@@ -1308,7 +1324,7 @@ const generateSingleVariationPDF = catchAsync(async (req, res, next) => {
 
 
 // Helper function to generate exam variations with selected questions
-const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestions) => {
+const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestions, transaction = null) => {
   console.log('🔄 Generating variations for exam:', exam.id);
   console.log('📋 Selected questions:', selectedQuestions.map(q => ({ id: q.id, difficulty: q.difficulty })));
   console.log('📋 Exam metadata:', JSON.stringify(exam.metadata, null, 2));
@@ -1328,7 +1344,7 @@ const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestio
     const variation = await ExamVariation.create({
       examId: exam.id,
       variationNumber: i + 1
-    });
+    }, transaction ? { transaction } : {});
 
     console.log('✅ Created variation:', variation.id, 'Number:', variation.variationNumber);
 
@@ -1356,7 +1372,7 @@ const generateExamVariationsWithSelectedQuestions = async (exam, selectedQuestio
         questionOrder: j,
         points: points,
         shuffledAlternatives: shuffledAlternatives // Store shuffled alternatives for this variation
-      });
+      }, transaction ? { transaction } : {});
       
       console.log(`✅ Added question ${question.id} to variation ${variation.variationNumber} at position ${j} with ${points} points`);
     }

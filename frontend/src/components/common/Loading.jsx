@@ -1,12 +1,7 @@
-// frontend/src/components/common/Loading.jsx - VERSÃO ATUALIZADA COMPLETA
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-
-// ================================
-// LOADING COMPONENTS
-// ================================
 
 export default function Loading({ 
   size = 'medium', 
@@ -32,7 +27,6 @@ export default function Loading({
   );
 }
 
-// Full page loading
 export function LoadingPage({ text = 'Carregando página...' }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -41,7 +35,6 @@ export function LoadingPage({ text = 'Carregando página...' }) {
   );
 }
 
-// Skeleton Components
 export function SkeletonLine({ width = 'full', height = '4', className = '' }) {
   const widthClasses = {
     '1/4': 'w-1/4',
@@ -152,7 +145,6 @@ export function LoadingButton({
   );
 }
 
-// Loading states for specific components
 export function LoadingSubjects() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -187,7 +179,6 @@ export function LoadingExams() {
   return <SkeletonTable rows={8} columns={5} />;
 }
 
-// Error state loading
 export function LoadingError({ 
   title = 'Erro ao carregar', 
   message = 'Algo deu errado. Tente novamente.',
@@ -211,26 +202,18 @@ export function LoadingError({
   );
 }
 
-// ================================
-// ROUTE PROTECTION COMPONENTS
-// ================================
-
-// Componente de rota protegida
 export function ProtectedRoute({ children, requiredRole = null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
-  // Mostrar loading enquanto verifica autenticação
   if (isLoading) {
     return <LoadingPage text="Verificando autenticação..." />;
   }
 
-  // Se não autenticado, redirecionar para login com a localização atual
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Verificar role se especificado
   if (requiredRole && user?.role !== requiredRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -253,11 +236,9 @@ export function ProtectedRoute({ children, requiredRole = null }) {
     );
   }
 
-  // Se autenticado e com permissão, mostrar conteúdo
   return children;
 }
 
-// Componente para redirecionar usuários logados das páginas públicas
 export function PublicRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -265,7 +246,6 @@ export function PublicRoute({ children }) {
     return <LoadingPage text="Verificando autenticação..." />;
   }
 
-  // Se já autenticado, redirecionar para dashboard
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -273,7 +253,6 @@ export function PublicRoute({ children }) {
   return children;
 }
 
-// Componente para redirecionamento da rota raiz
 export function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
 

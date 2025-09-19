@@ -6,6 +6,8 @@ const { Op } = require('sequelize');
 // Get questions with pagination and filters
 const getQuestions = catchAsync(async (req, res, next) => {
   const { page = 1, limit = 10, search, subjectId, difficulty } = req.query;
+  console.log('🔍 Backend getQuestions - req.query:', req.query);
+  console.log('🔍 Backend - subjectId:', subjectId, 'userId:', req.user.id);
   const { limit: queryLimit, offset } = paginate(page, limit);
 
   const where = { userId: req.user.id, isActive: true };
@@ -18,8 +20,11 @@ const getQuestions = catchAsync(async (req, res, next) => {
   }
 
   if (subjectId) {
-    where.subjectId = subjectId;
+    console.log('🔍 Converting subjectId:', subjectId, 'to number:', parseInt(subjectId));
+    where.subjectId = parseInt(subjectId);
   }
+
+  console.log('🔍 Final where clause:', JSON.stringify(where, null, 2));
 
   if (difficulty) {
     where.difficulty = difficulty;
@@ -238,9 +243,9 @@ const updateQuestion = catchAsync(async (req, res, next) => {
 
   // Check if question is being used in published exams
   const usageCount = await Question.sequelize.query(`
-    SELECT COUNT(*) as count 
-    FROM exam_questions eq 
-    JOIN exams e ON eq."examId" = e.id 
+    SELECT COUNT(*) as count
+    FROM exam_questions eq
+    JOIN exams e ON eq."examId" = e.id
     WHERE eq."questionId" = :questionId AND e."isPublished" = true
   `, {
     replacements: { questionId: id },
@@ -300,16 +305,16 @@ const deleteQuestion = catchAsync(async (req, res, next) => {
 
   // Check if question is being used in any exams
   const usageCount = await Question.sequelize.query(`
-    SELECT COUNT(*) as count 
-    FROM exam_questions eq 
-    WHERE eq.question_id = :questionId
+    SELECT COUNT(*) as count
+    FROM exam_questions eq
+    WHERE eq."questionId" = :questionId
   `, {
     replacements: { questionId: id },
     type: Question.sequelize.QueryTypes.SELECT
   });
 
   if (usageCount[0]?.count > 0) {
-    return next(new AppError('Cannot delete question that is used in exams', 400));
+    return next(new AppError('Esta questão não pode ser excluída pois está sendo usada em exames. Para excluí-la, primeiro remova-a dos exames onde está sendo utilizada.', 400));
   }
 
   // Soft delete by setting isActive to false
@@ -450,16 +455,16 @@ const bulkDeleteQuestions = catchAsync(async (req, res, next) => {
 
   // Check if any questions are being used in exams
   const usageCount = await Question.sequelize.query(`
-    SELECT COUNT(*) as count 
-    FROM exam_questions eq 
-    WHERE eq.question_id IN (:questionIds)
+    SELECT COUNT(*) as count
+    FROM exam_questions eq
+    WHERE eq."questionId" IN (:questionIds)
   `, {
     replacements: { questionIds },
     type: Question.sequelize.QueryTypes.SELECT
   });
 
   if (usageCount[0]?.count > 0) {
-    return next(new AppError('Cannot delete questions that are used in exams', 400));
+    return next(new AppError('Algumas questões não podem ser excluídas pois estão sendo usadas em exames. Para excluí-las, primeiro remova-as dos exames onde estão sendo utilizadas.', 400));
   }
 
   await Question.update(
@@ -566,14 +571,14 @@ const getQuestionStats = catchAsync(async (req, res, next) => {
 
   // Get usage statistics
   const usageStats = await Question.sequelize.query(`
-    SELECT 
-      COUNT(DISTINCT eq.exam_id) as exams_count,
-      COUNT(DISTINCT eq.variation_id) as variations_count,
+    SELECT
+      COUNT(DISTINCT eq."examId") as exams_count,
+      COUNT(DISTINCT eq."variationId") as variations_count,
       COUNT(a.id) as total_attempts,
       COUNT(CASE WHEN a.answers::jsonb @> '[{"questionId": "' || :questionId || '", "correct": true}]' THEN 1 END) as correct_attempts
     FROM exam_questions eq
-    LEFT JOIN answers a ON eq.exam_id = a.exam_id
-    WHERE eq.question_id = :questionId
+    LEFT JOIN answers a ON eq."examId" = a."examId"
+    WHERE eq."questionId" = :questionId
   `, {
     replacements: { questionId: id },
     type: Question.sequelize.QueryTypes.SELECT
@@ -661,10 +666,10 @@ const bulkUpdateQuestions = catchAsync(async (req, res, next) => {
 
   // Check if any questions are being used in published exams
   const usageCount = await Question.sequelize.query(`
-    SELECT COUNT(*) as count 
-    FROM exam_questions eq 
-    JOIN exams e ON eq.exam_id = e.id 
-    WHERE eq.question_id IN (:questionIds) AND e.is_published = true
+    SELECT COUNT(*) as count
+    FROM exam_questions eq
+    JOIN exams e ON eq."examId" = e.id
+    WHERE eq."questionId" IN (:questionIds) AND e."isPublished" = true
   `, {
     replacements: { questionIds },
     type: Question.sequelize.QueryTypes.SELECT
@@ -723,12 +728,12 @@ const recalculateDifficulty = catchAsync(async (req, res, next) => {
 
   // Get performance statistics
   const performanceStats = await Question.sequelize.query(`
-    SELECT 
+    SELECT
       COUNT(a.id) as total_attempts,
       COUNT(CASE WHEN a.answers::jsonb @> '[{"questionId": "' || :questionId || '", "correct": true}]' THEN 1 END) as correct_attempts
     FROM answers a
     WHERE a.answers::jsonb @> '[{"questionId": "' || :questionId || '"}]'
-    AND a.created_at >= NOW() - INTERVAL '30 days'
+    AND a."createdAt" >= NOW() - INTERVAL '30 days'
   `, {
     replacements: { questionId: id },
     type: Question.sequelize.QueryTypes.SELECT

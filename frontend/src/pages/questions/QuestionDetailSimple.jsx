@@ -29,6 +29,22 @@ export default function QuestionDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
+
+  // Função para construir URL de volta mantendo contexto da disciplina
+  const getBackUrl = () => {
+    // Verificar se há um subjectId na URL atual
+    const currentSubjectId = searchParams.get('subjectId');
+    if (currentSubjectId) {
+      return `/questions?subjectId=${currentSubjectId}`;
+    }
+
+    // Verificar se a questão pertence a uma disciplina específica
+    if (question?.subject?.id) {
+      return `/questions?subjectId=${question.subject.id}`;
+    }
+
+    return '/questions';
+  };
   
   const { success, error: showError } = useToast();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -54,18 +70,26 @@ export default function QuestionDetail() {
     try {
       await deleteQuestionMutation.mutateAsync(id);
       success('Questão excluída com sucesso!');
-      navigate('/questions');
+      navigate(getBackUrl());
     } catch (error) {
       showError(error.message || 'Erro ao excluir questão');
     }
   };
 
   const handleEdit = () => {
-    navigate(`/questions/${id}?edit=true`);
+    const currentSubjectId = searchParams.get('subjectId');
+    const url = currentSubjectId
+      ? `/questions/${id}?edit=true&subjectId=${currentSubjectId}`
+      : `/questions/${id}?edit=true`;
+    navigate(url);
   };
 
   const handleDuplicate = () => {
-    navigate(`/questions/new?duplicate=${id}`);
+    const currentSubjectId = searchParams.get('subjectId') || question?.subject?.id;
+    const url = currentSubjectId
+      ? `/questions/new?duplicate=${id}&subjectId=${currentSubjectId}`
+      : `/questions/new?duplicate=${id}`;
+    navigate(url);
   };
 
   const handleSavePoints = async () => {
@@ -99,10 +123,10 @@ export default function QuestionDetail() {
     return (
       <div className="max-w-4xl mx-auto text-center py-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar questão</h3>
-        <p className="text-gray-600 mb-4">A questão não foi encontrada ou ocorreu um erro.</p>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Erro ao carregar questão</h3>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">A questão não foi encontrada ou ocorreu um erro.</p>
         <button
-          onClick={() => navigate('/questions')}
+          onClick={() => navigate(getBackUrl())}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Voltar para Questões
@@ -123,11 +147,11 @@ export default function QuestionDetail() {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Editar Questão</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Editar Questão</h1>
           </div>
         </div>
         
@@ -148,20 +172,20 @@ export default function QuestionDetail() {
         <div className="flex items-start space-x-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors mt-1"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors mt-1 text-gray-600 dark:text-gray-300"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          
+
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">Preview da Questão</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Preview da Questão</h1>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${difficultyInfo.color}`}>
                 {difficultyInfo.icon} {difficultyInfo.label}
               </span>
             </div>
-            
-            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
+
+            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300 mb-4">
               <div className="flex items-center">
                 <TypeIcon className="w-4 h-4 mr-1" />
                 {typeInfo.label}
@@ -178,8 +202,8 @@ export default function QuestionDetail() {
 
             {/* Points Editor */}
             <div className="flex items-center space-x-2 mb-4">
-              <Award className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Pontuação:</span>
+              <Award className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-300">Pontuação:</span>
               {showPointsEditor ? (
                 <div className="flex items-center space-x-2">
                   <input
@@ -189,9 +213,9 @@ export default function QuestionDetail() {
                     step="0.1"
                     value={points}
                     onChange={(e) => setPoints(parseFloat(e.target.value))}
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded text-sm"
                   />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
                     ponto{points !== 1 ? 's' : ''}
                   </span>
                   <button
@@ -206,7 +230,7 @@ export default function QuestionDetail() {
                       setShowPointsEditor(false);
                       setPoints(question.points || 1.0);
                     }}
-                    className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                    className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded hover:bg-gray-400 dark:hover:bg-gray-500"
                   >
                     Cancelar
                   </button>
@@ -214,7 +238,7 @@ export default function QuestionDetail() {
               ) : (
                 <button
                   onClick={() => setShowPointsEditor(true)}
-                  className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                 >
                   <span className="font-medium">{points}</span>
                   <span>ponto{points !== 1 ? 's' : ''}</span>
@@ -230,9 +254,9 @@ export default function QuestionDetail() {
           <button
             onClick={() => setShowCorrectAnswers(!showCorrectAnswers)}
             className={`inline-flex items-center px-4 py-2 rounded-lg transition-colors ${
-              showCorrectAnswers 
-                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              showCorrectAnswers
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             {showCorrectAnswers ? (
@@ -257,7 +281,7 @@ export default function QuestionDetail() {
           </button>
           
           <div className="relative">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300">
               <MoreVertical className="w-5 h-5" />
             </button>
           </div>
@@ -265,16 +289,16 @@ export default function QuestionDetail() {
       </div>
 
       {/* Question Content */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
         {/* Question Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {question.title || 'Questão sem título'}
             </h2>
             <div className="flex items-center space-x-2">
-              <Hash className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600 font-mono">ID: {question.id.slice(-8)}</span>
+              <Hash className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">ID: {question.id.slice(-8)}</span>
             </div>
           </div>
         </div>
@@ -282,7 +306,7 @@ export default function QuestionDetail() {
         {/* Question Text */}
         <div className="px-6 py-6">
           <div className="prose max-w-none mb-6">
-            <div className="text-lg text-gray-900 leading-relaxed">
+            <div className="text-lg text-gray-900 dark:text-white leading-relaxed">
               {question.text || question.title || 'Enunciado da questão não disponível'}
             </div>
           </div>
@@ -301,24 +325,24 @@ export default function QuestionDetail() {
           {/* Alternatives */}
           {question.type === 'multiple_choice' && question.alternatives && (
             <div className="space-y-3">
-              <h3 className="text-md font-semibold text-gray-800 mb-4">Alternativas:</h3>
+              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4">Alternativas:</h3>
               {question.alternatives.map((alternative, index) => (
                 <div
                   key={index}
                   className={`flex items-start space-x-3 p-4 rounded-lg border transition-colors ${
                     showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+                      : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
                   }`}
                 >
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
                     showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-200 text-green-800'
-                      : 'bg-gray-200 text-gray-700'
+                      ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200'
+                      : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                   }`}>
                     {String.fromCharCode(65 + index)}
                   </div>
-                  <div className="flex-1 text-gray-900">
+                  <div className="flex-1 text-gray-900 dark:text-white">
                     {alternative}
                   </div>
                   {showCorrectAnswers && index === question.correctAnswer && (
@@ -332,24 +356,24 @@ export default function QuestionDetail() {
           {/* True/False */}
           {question.type === 'true_false' && (
             <div className="space-y-3">
-              <h3 className="text-md font-semibold text-gray-800 mb-4">Alternativas:</h3>
+              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4">Alternativas:</h3>
               {['Verdadeiro', 'Falso'].map((option, index) => (
                 <div
                   key={index}
                   className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${
                     showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+                      : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
                   }`}
                 >
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
                     showCorrectAnswers && index === question.correctAnswer
-                      ? 'bg-green-200 text-green-800'
-                      : 'bg-gray-200 text-gray-700'
+                      ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200'
+                      : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                   }`}>
                     {index === 0 ? 'V' : 'F'}
                   </div>
-                  <div className="flex-1 text-gray-900">{option}</div>
+                  <div className="flex-1 text-gray-900 dark:text-white">{option}</div>
                   {showCorrectAnswers && index === question.correctAnswer && (
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   )}
@@ -360,12 +384,12 @@ export default function QuestionDetail() {
 
           {/* Essay */}
           {question.type === 'essay' && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
               <div className="flex items-center">
-                <FileText className="w-5 h-5 text-yellow-600 mr-2" />
-                <span className="text-yellow-800 font-medium">Questão Dissertativa</span>
+                <FileText className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+                <span className="text-yellow-800 dark:text-yellow-300 font-medium">Questão Dissertativa</span>
               </div>
-              <p className="text-yellow-700 text-sm mt-1">
+              <p className="text-yellow-700 dark:text-yellow-400 text-sm mt-1">
                 Esta questão requer resposta escrita do aluno e será corrigida manualmente.
               </p>
             </div>
@@ -373,19 +397,19 @@ export default function QuestionDetail() {
 
           {/* Explanation */}
           {question.explanation && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Explicação
               </h4>
-              <p className="text-blue-800 text-sm">{question.explanation}</p>
+              <p className="text-blue-800 dark:text-blue-400 text-sm">{question.explanation}</p>
             </div>
           )}
 
           {/* Tags */}
           {question.tags && question.tags.length > 0 && (
             <div className="mt-6">
-              <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
+              <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <Tag className="w-4 h-4 mr-2" />
                 Tags
               </h4>
@@ -393,7 +417,7 @@ export default function QuestionDetail() {
                 {question.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                   >
                     {tag}
                   </span>
@@ -404,31 +428,31 @@ export default function QuestionDetail() {
         </div>
 
         {/* Question Stats */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-lg font-semibold text-gray-900">
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
                 {question.timesUsed || 0}
               </div>
-              <div className="text-sm text-gray-500">Vezes usada</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Vezes usada</div>
             </div>
             <div>
-              <div className="text-lg font-semibold text-gray-900">
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
                 {question.averageScore ? `${question.averageScore}%` : 'N/A'}
               </div>
-              <div className="text-sm text-gray-500">Taxa de acertos</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Taxa de acertos</div>
             </div>
             <div>
-              <div className="text-lg font-semibold text-gray-900">
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
                 {points}
               </div>
-              <div className="text-sm text-gray-500">Ponto{points !== 1 ? 's' : ''}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Ponto{points !== 1 ? 's' : ''}</div>
             </div>
             <div>
-              <div className="text-lg font-semibold text-gray-900">
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
                 QR-{question.id.slice(-6).toUpperCase()}
               </div>
-              <div className="text-sm text-gray-500">Código QR</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Código QR</div>
             </div>
           </div>
         </div>
@@ -439,7 +463,7 @@ export default function QuestionDetail() {
         <div className="flex space-x-3">
           <button
             onClick={handleDuplicate}
-            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             <Copy className="w-4 h-4 mr-2" />
             Duplicar Questão
@@ -448,7 +472,7 @@ export default function QuestionDetail() {
         
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Excluir Questão

@@ -53,7 +53,7 @@ export default function LandingPage() {
               <div className="bg-blue-600 p-2 rounded-lg">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">ExamSystem</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">MontAí</span>
               <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">BETA</span>
             </div>
 
@@ -620,7 +620,7 @@ export default function LandingPage() {
               </span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Tire suas dúvidas sobre o ExamSystem
+              Tire suas dúvidas sobre o MontAí
             </p>
           </div>
 
@@ -747,7 +747,7 @@ export default function LandingPage() {
                 <div className="bg-blue-600 p-2 rounded-lg">
                   <BookOpen className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold">ExamSystem</span>
+                <span className="text-xl font-bold">MontAí</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md">
                 A plataforma mais completa para criação de provas no Brasil. 
@@ -802,7 +802,7 @@ export default function LandingPage() {
 
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-400 text-sm">
-              © 2025 ExamSystem. Todos os direitos reservados.
+              © 2025 MontAí. Todos os direitos reservados.
             </div>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacidade</a>

@@ -14,27 +14,27 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
   const [showActions, setShowActions] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 hover:shadow-medium transition-all duration-200 group">
-      <div className="p-6">
+    <div className="subject-card bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700 hover:shadow-medium transition-all duration-200 group">
+      <div className="subject-card-content">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div 
-              className="w-4 h-4 rounded-full flex-shrink-0"
+        <div className="subject-card-header">
+          <div className="subject-card-info">
+            <div
+              className="w-4 h-4 rounded-full flex-shrink-0 mt-1"
               style={{ backgroundColor: subject.color }}
             />
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+              <h3 className="card-title card-title-lg">
                 {subject.name}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+              <p className="card-description">
                 {subject.description || 'Sem descrição'}
               </p>
             </div>
           </div>
 
           {/* Actions Menu */}
-          <div className="relative">
+          <div className="subject-card-actions">
             <button
               onClick={() => setShowActions(!showActions)}
               className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -122,18 +122,12 @@ function SubjectCard({ subject, onEdit, onDelete, onView }) {
 
       {/* Quick Actions */}
       <div className="border-t border-gray-100 dark:border-gray-700 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <Link
-            to={`/questions?subject=${subject.id}`}
-            className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
-          >
-            Ver questões
-          </Link>
+        <div className="flex items-center justify-end">
           <Link
             to={`/subjects/${subject.id}`}
-            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
           >
-            Gerenciar →
+            Ver Detalhes →
           </Link>
         </div>
       </div>
@@ -223,8 +217,15 @@ export default function SubjectList() {
     if (!deleteSubjectId) return;
 
     try {
-      await deleteSubjectMutation.mutateAsync(deleteSubjectId);
+      const result = await deleteSubjectMutation.mutateAsync(deleteSubjectId);
       setDeleteSubjectId(null);
+
+      // Mostrar mensagem de sucesso com informações sobre questões excluídas
+      if (result?.data?.deletedQuestionsCount > 0) {
+        showSuccess(`Disciplina excluída com sucesso junto com ${result.data.deletedQuestionsCount} questão${result.data.deletedQuestionsCount !== 1 ? 'ões' : ''}`);
+      } else {
+        showSuccess('Disciplina excluída com sucesso');
+      }
     } catch (error) {
       showError(error.message || 'Erro ao excluir disciplina');
     }
@@ -386,7 +387,16 @@ export default function SubjectList() {
         onClose={() => setDeleteSubjectId(null)}
         onConfirm={confirmDelete}
         title="Excluir Disciplina"
-        message="Tem certeza que deseja excluir esta disciplina? Esta ação não pode ser desfeita e todas as questões associadas também serão removidas."
+        message={(() => {
+          const selectedSubject = subjects.find(s => s.id === deleteSubjectId);
+          const questionsCount = selectedSubject?.questionsCount || 0;
+
+          if (questionsCount > 0) {
+            return `Tem certeza que deseja excluir esta disciplina? Esta ação não pode ser desfeita e irá excluir também ${questionsCount} questão${questionsCount !== 1 ? 'ões' : ''} associada${questionsCount !== 1 ? 's' : ''}.`;
+          } else {
+            return 'Tem certeza que deseja excluir esta disciplina? Esta ação não pode ser desfeita.';
+          }
+        })()}
         confirmText="Excluir"
         cancelText="Cancelar"
         variant="error"

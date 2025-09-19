@@ -17,6 +17,7 @@ function Sidebar({ isOpen, onClose }) {
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/subjects', icon: BookOpen, label: 'Disciplinas' },
+    { path: '/questions', icon: HelpCircle, label: 'Banco de Questões' },
     { path: '/exams', icon: BarChart3, label: 'Provas' },
     { path: '/exam-headers', icon: FileText, label: 'Cabeçalhos' },
     { path: '/qr-scanner', icon: QrCode, label: 'Scanner QR' },
@@ -49,7 +50,7 @@ function Sidebar({ isOpen, onClose }) {
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-lg text-gray-900 dark:text-white">ExamSystem</h1>
+                <h1 className="font-bold text-lg text-gray-900 dark:text-white">MontAí</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Sistema de Provas</p>
               </div>
             </div>

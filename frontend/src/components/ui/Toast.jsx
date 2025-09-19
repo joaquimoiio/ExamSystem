@@ -20,23 +20,23 @@ export const useToast = () => {
 const TOAST_TYPES = {
   success: {
     icon: CheckCircle,
-    className: 'bg-green-50 border-green-200 text-green-800',
-    iconClassName: 'text-green-600'
+    className: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300',
+    iconClassName: 'text-green-600 dark:text-green-400'
   },
   error: {
     icon: XCircle,
-    className: 'bg-red-50 border-red-200 text-red-800',
-    iconClassName: 'text-red-600'
+    className: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300',
+    iconClassName: 'text-red-600 dark:text-red-400'
   },
   warning: {
     icon: AlertTriangle,
-    className: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    iconClassName: 'text-yellow-600'
+    className: 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300',
+    iconClassName: 'text-yellow-600 dark:text-yellow-400'
   },
   info: {
     icon: Info,
-    className: 'bg-blue-50 border-blue-200 text-blue-800',
-    iconClassName: 'text-blue-600'
+    className: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300',
+    iconClassName: 'text-blue-600 dark:text-blue-400'
   }
 };
 
@@ -88,7 +88,7 @@ function Toast({ toast, onRemove }) {
               className={`
                 inline-flex rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2
                 ${config.iconClassName.replace('text-', 'hover:text-').replace('-600', '-500')}
-                focus:ring-offset-gray-50 focus:ring-indigo-500
+                focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 dark:focus:ring-indigo-400
               `}
               onClick={() => onRemove(toast.id)}
             >

@@ -23,11 +23,7 @@ class ErrorBoundary extends React.Component {
       eventId: Date.now().toString(),
     });
 
-    // Log error to console for development
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-
-    // Here you could send error to monitoring service
-    // Example: Sentry.captureException(error, { contexts: { react: errorInfo } });
   }
 
   handleRetry = () => {
@@ -88,7 +84,7 @@ class ErrorBoundary extends React.Component {
 
             {/* Error Description */}
             <p className="text-gray-600 mb-8">
-              Ocorreu um erro inesperado na aplicação. Nossa equipe foi notificada 
+              Ocorreu um erro inesperado na aplicação. Nossa equipe foi notificada
               e está trabalhando para resolver o problema.
             </p>
 
@@ -132,7 +128,7 @@ class ErrorBoundary extends React.Component {
                 <summary className="cursor-pointer font-semibold text-gray-700 mb-2">
                   Detalhes do Erro (Desenvolvimento)
                 </summary>
-                
+
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold text-red-600 mb-2">Erro:</h3>
@@ -168,7 +164,7 @@ class ErrorBoundary extends React.Component {
                 Precisa de Ajuda?
               </h3>
               <p className="text-sm text-blue-700">
-                Se o problema persistir, entre em contato com o suporte técnico 
+                Se o problema persistir, entre em contato com o suporte técnico
                 e informe o ID do erro acima.
               </p>
             </div>
@@ -190,7 +186,7 @@ export function withErrorBoundary(Component, errorBoundaryProps = {}) {
   );
 
   WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-  
+
   return WrappedComponent;
 }
 
@@ -198,7 +194,7 @@ export function withErrorBoundary(Component, errorBoundaryProps = {}) {
 export function useErrorHandler() {
   const handleError = (error, errorInfo = {}) => {
     console.error('Handled error:', error, errorInfo);
-    
+
     // You could send to monitoring service here
     // Example: Sentry.captureException(error, { extra: errorInfo });
   };
