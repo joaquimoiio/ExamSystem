@@ -381,10 +381,7 @@ class PDFService {
     doc.fontSize(16).font(this.fonts.regular);
     doc.text(title, 50, 80);
 
-    // Line under header
-    doc.moveTo(50, 105)
-      .lineTo(550, 105)
-      .stroke();
+    // Line under header removed
   }
 
   /**
@@ -468,10 +465,7 @@ class PDFService {
 
     y += 15;
 
-    // Line under headers
-    doc.moveTo(50, y)
-      .lineTo(550, y)
-      .stroke();
+    // Line under headers removed
 
     y += 10;
 
@@ -657,22 +651,22 @@ class PDFService {
 
     // Name field
     doc.text('Name: ', 50, y);
-    doc.moveTo(80, y + 12).lineTo(300, y + 12).stroke();
+    // Line for name removed
 
     // ID field
     y += 25;
     doc.text('Student ID: ', 50, y);
-    doc.moveTo(100, y + 12).lineTo(300, y + 12).stroke();
+    // Line for student ID removed
 
     // Email field
     y += 25;
     doc.text('Email: ', 50, y);
-    doc.moveTo(80, y + 12).lineTo(300, y + 12).stroke();
+    // Line for email removed
 
     // Date field
     y += 25;
     doc.text('Date: ', 50, y);
-    doc.moveTo(80, y + 12).lineTo(200, y + 12).stroke();
+    // Line for date removed
 
     return y + 40;
   }
@@ -749,10 +743,7 @@ class PDFService {
       try {
         doc.switchToPage(pageIndex);
 
-        // Footer line
-        doc.moveTo(50, 770)
-          .lineTo(550, 770)
-          .stroke();
+        // Footer line removed
 
         // Footer text
         doc.fontSize(8).font(this.fonts.regular);
@@ -874,10 +865,7 @@ class PDFService {
 
           y += 15;
 
-          // Separator line
-          doc.moveTo(50, y)
-            .lineTo(550, y)
-            .stroke();
+          // Separator line removed
 
           y += 10;
         });
@@ -1010,11 +998,8 @@ class PDFService {
       y += 6; // Extra space after instructions
     }
 
-    // Final separator - adaptive spacing
+    // Final separator removed - adaptive spacing
     y += hasEvaluationCriteria || hasInstructions ? 10 : 16;
-    doc.moveTo(50, y)
-      .lineTo(550, y)
-      .stroke();
 
     return y + 8;
   }
@@ -1109,11 +1094,8 @@ class PDFService {
       y += 6; // Extra space after instructions
     }
 
-    // Final separator - adaptive spacing
+    // Final separator removed - adaptive spacing
     y += hasEvaluationCriteria || hasInstructions ? 10 : 16;
-    doc.moveTo(50, y)
-      .lineTo(550, y)
-      .stroke();
 
     return y + 8;
   }
@@ -1201,17 +1183,13 @@ class PDFService {
 
       y += rowHeight;
 
-      // Add a light separator line every 5 questions for better readability
+      // Light separator line removed for cleaner look
       if ((index + 1) % 5 === 0) {
-        doc.strokeOpacity(0.3);
-        doc.moveTo(startX - 5, y + 2).lineTo(startX + 150, y + 2).stroke();
-        doc.strokeOpacity(1);
         y += 5;
       }
     });
 
-    // Final border
-    doc.moveTo(startX - 5, y + 5).lineTo(startX + 150, y + 5).stroke();
+    // Final border removed
 
     // Draw bottom reference squares now that we know the final position
     const finalY = y + 10;
@@ -1290,7 +1268,7 @@ class PDFService {
         doc.text('E', 180, y);
         y += 15;
 
-        doc.moveTo(45, y).lineTo(200, y).stroke();
+        // Line removed
         y += 10;
       }
 
@@ -1310,17 +1288,13 @@ class PDFService {
 
       y += rowHeight;
 
-      // Add a light separator line every 5 questions for better readability
+      // Light separator line removed for cleaner look
       if ((index + 1) % 5 === 0) {
-        doc.strokeOpacity(0.3);
-        doc.moveTo(45, y + 2).lineTo(200, y + 2).stroke();
-        doc.strokeOpacity(1);
         y += 5;
       }
     });
 
-    // Final border
-    doc.moveTo(45, y + 5).lineTo(200, y + 5).stroke();
+    // Final border removed
 
     // Draw bottom reference squares now that we know the final position
     const finalY = y + 10;
@@ -1338,14 +1312,10 @@ class PDFService {
     let y = doc.y || 200;
     const startY = y;
 
-    // Add separator line before QR code and answer grid section
-    doc.lineWidth(1);
-    doc.moveTo(40, y - 5)
-      .lineTo(570, y - 5)
-      .stroke();
+    // Separator line before QR code and answer grid section removed
 
-    // Add some spacing after the separator line
-    y += 10;
+    // Add more spacing between header sections and gabarito for better readability
+    y += 25;
 
     // Generate QR code with answer key (including shuffled alternatives)
     const qrResult = await qrService.generateAnswerKeyQR(exam, variation, examQuestions);
@@ -1363,7 +1333,7 @@ class PDFService {
 
     // FOLHA DE RESPOSTAS section - RIGHT SIDE
     const answersStartX = 170; // Moved closer from 180 to 170
-    const answersStartY = startY;
+    const answersStartY = y; // Use the Y position with added spacing
 
     // Call modified addVisualAnswerGrid that will handle positioning
     const finalY = this.addVisualAnswerGridSideways(doc, examQuestions, answersStartX, answersStartY);
@@ -1376,11 +1346,7 @@ class PDFService {
     const baseSpacing = 15;
     const separatedY = maxY + baseSpacing;
 
-    // Separator line
-    doc.lineWidth(1);
-    doc.moveTo(40, separatedY)
-      .lineTo(570, separatedY) // Full width separator
-      .stroke();
+    // Separator line removed
 
     // Set doc.y to ensure questions start below this section with minimal spacing
     doc.y = separatedY + 8;
@@ -1538,9 +1504,7 @@ class PDFService {
             doc.addPage();
             y = 40;
           }
-          doc.moveTo(40, y)
-            .lineTo(570, y) // Adjusted line width
-            .stroke();
+          // Answer lines removed for cleaner look
           y += 20; // Reduced from 25 to 20
         }
       }

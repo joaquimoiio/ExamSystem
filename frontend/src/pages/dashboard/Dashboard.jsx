@@ -2,27 +2,18 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, FileText, BarChart3, Users, Clock,
-  TrendingUp, CheckCircle, AlertCircle, Plus,
-  ArrowRight, Calendar, Target, Award, LogOut
+  Plus, ArrowRight, Calendar, Target, Award, LogOut,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useDashboardStats, useRecentActivity } from '../../hooks';
+import { useRecentActivity } from '../../hooks';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
 
   // Buscar dados reais da API
-  const { data: statsData, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: activityData, isLoading: activityLoading } = useRecentActivity();
-
-  // Extrair dados ou usar valores padrão
-  const stats = statsData?.data || {
-    subjects: 0,
-    questions: 0,
-    exams: 0,
-    publishedExams: 0,
-  };
 
   const recentActivity = activityData?.data || [];
 
@@ -85,41 +76,6 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              title="Disciplinas"
-              value={stats.subjects}
-              icon={BookOpen}
-              color="primary"
-              to="/subjects"
-              isLoading={statsLoading}
-            />
-            <StatCard
-              title="Questões"
-              value={stats.questions}
-              icon={FileText}
-              color="success"
-              to="/questions"
-              isLoading={statsLoading}
-            />
-            <StatCard
-              title="Provas"
-              value={stats.exams}
-              icon={BarChart3}
-              color="warning"
-              to="/exams"
-              isLoading={statsLoading}
-            />
-            <StatCard
-              title="Provas Publicadas"
-              value={stats.publishedExams}
-              icon={CheckCircle}
-              color="info"
-              to="/exams?filter=published"
-              isLoading={statsLoading}
-            />
-          </div>
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -213,48 +169,6 @@ export default function Dashboard() {
   );
 }
 
-// Component for Statistics Cards
-function StatCard({ title, value, icon: Icon, color, to, isLoading }) {
-  const colorClasses = {
-    primary: 'bg-blue-50 border-blue-200 text-blue-600',
-    success: 'bg-green-50 border-green-200 text-green-600',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-600',
-    info: 'bg-purple-50 border-purple-200 text-purple-600',
-  };
-
-  if (isLoading) {
-    return (
-      <div className={`block p-6 rounded-xl border ${colorClasses[color]}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-            <div className="w-16 h-8 bg-white/50 rounded animate-pulse"></div>
-          </div>
-          <div className="p-3 rounded-lg bg-white/50">
-            <Icon className="w-6 h-6 animate-pulse" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <Link
-      to={to}
-      className={`block p-6 rounded-xl border hover:shadow-md transition-all duration-200 group ${colorClasses[color]}`}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-        </div>
-        <div className={`p-3 rounded-lg bg-white/50 group-hover:scale-110 transition-transform`}>
-          <Icon className="w-6 h-6" />
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 // Component for Activity Items
 function ActivityItem({ activity }) {
