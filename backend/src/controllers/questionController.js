@@ -5,9 +5,9 @@ const { Op } = require('sequelize');
 
 // Get questions with pagination and filters
 const getQuestions = catchAsync(async (req, res, next) => {
-  const { page = 1, limit = 10, search, subjectId, difficulty } = req.query;
+  const { page = 1, limit = 10, search, subjectId, subjectIds, difficulty } = req.query;
   console.log('🔍 Backend getQuestions - req.query:', req.query);
-  console.log('🔍 Backend - subjectId:', subjectId, 'userId:', req.user.id);
+  console.log('🔍 Backend - subjectId:', subjectId, 'subjectIds:', subjectIds, 'userId:', req.user.id);
   const { limit: queryLimit, offset } = paginate(page, limit);
 
   const where = { userId: req.user.id, isActive: true };
@@ -19,7 +19,24 @@ const getQuestions = catchAsync(async (req, res, next) => {
     ];
   }
 
-  if (subjectId) {
+  // Support for multiple subjects
+  if (subjectIds) {
+    let parsedSubjectIds;
+    if (typeof subjectIds === 'string') {
+      try {
+        parsedSubjectIds = JSON.parse(subjectIds);
+      } catch (e) {
+        parsedSubjectIds = subjectIds.split(',');
+      }
+    } else if (Array.isArray(subjectIds)) {
+      parsedSubjectIds = subjectIds;
+    }
+
+    if (parsedSubjectIds && parsedSubjectIds.length > 0) {
+      console.log('🔍 Using multiple subjects:', parsedSubjectIds);
+      where.subjectId = { [Op.in]: parsedSubjectIds };
+    }
+  } else if (subjectId) {
     console.log('🔍 Converting subjectId:', subjectId, 'to number:', parseInt(subjectId));
     where.subjectId = parseInt(subjectId);
   }

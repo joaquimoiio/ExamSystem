@@ -39,7 +39,25 @@ backend/
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
+### 2. Configurar o Banco de Dados PostgreSQL
+
+⚠️ **IMPORTANTE**: O banco de dados deve ser criado manualmente usando o pgAdmin.
+
+#### 2.1. Executar no pgAdmin:
+1. Abra o pgAdmin
+2. Execute o arquivo `setup-database.sql` que contém:
+   - Criação do banco `exam_system`
+   - Todas as tabelas com relacionamentos
+   - Índices para performance
+   - Dados padrão (planos Free e Plus)
+   - Usuário `exam_user` com permissões
+
+```sql
+-- Execute o arquivo setup-database.sql no pgAdmin
+-- Localização: backend/setup-database.sql
+```
+
+### 3. Configurar variáveis de ambiente
 ```bash
 cp .env.example .env
 ```

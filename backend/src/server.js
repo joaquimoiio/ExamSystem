@@ -29,23 +29,15 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// Test database connection and create tables
+// Test database connection
 async function testDatabaseConnection() {
   try {
     await sequelize.authenticate();
     logger.info('✅ Database connection established successfully');
-    
-    // Sync models to create tables automatically
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      logger.info('✅ Database models synchronized - tables created/updated');
-    } else {
-      // In production, only sync if tables don't exist
-      await sequelize.sync();
-      logger.info('✅ Database models synchronized');
-    }
+    logger.info('ℹ️  Database schema should be created manually using setup-database.sql');
   } catch (error) {
     logger.error('❌ Unable to connect to database:', error);
+    logger.error('ℹ️  Make sure PostgreSQL is running and database is created using setup-database.sql');
     process.exit(1);
   }
 }

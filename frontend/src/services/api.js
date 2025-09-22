@@ -469,6 +469,35 @@ class ApiService {
       confidence
     });
   }
+
+  // ================================
+  // PLANS API
+  // ================================
+
+  async getPlans() {
+    console.log('💳 Buscando planos disponíveis');
+    return this.get('/plans');
+  }
+
+  async getCurrentUserPlan() {
+    console.log('💳 Buscando plano atual do usuário');
+    return this.get('/my-plan');
+  }
+
+  async getUserUsageStats() {
+    console.log('📊 Buscando estatísticas de uso do usuário');
+    return this.get('/usage');
+  }
+
+  async upgradePlan(planName) {
+    console.log('⬆️ Fazendo upgrade para o plano:', planName);
+    return this.put('/upgrade', { planName });
+  }
+
+  async checkPlanLimits() {
+    console.log('🔍 Verificando limites do plano');
+    return this.get('/limits');
+  }
 }
 
 // Instância única

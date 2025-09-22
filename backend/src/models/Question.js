@@ -239,10 +239,22 @@ module.exports = (sequelize, DataTypes) => {
 
   Question.findByDifficulty = function(subjectId, difficulty, limit = 10) {
     return this.findAll({
-      where: { 
-        subjectId, 
-        difficulty, 
-        isActive: true 
+      where: {
+        subjectId,
+        difficulty,
+        isActive: true
+      },
+      limit,
+      order: sequelize.random()
+    });
+  };
+
+  Question.findByDifficultyMultipleSubjects = function(subjectIds, difficulty, limit = 10) {
+    return this.findAll({
+      where: {
+        subjectId: { [sequelize.Sequelize.Op.in]: subjectIds },
+        difficulty,
+        isActive: true
       },
       limit,
       order: sequelize.random()
@@ -251,11 +263,27 @@ module.exports = (sequelize, DataTypes) => {
 
   Question.getRandomQuestions = async function(subjectId, distribution) {
     const { easy = 0, medium = 0, hard = 0 } = distribution;
-    
+
     const [easyQuestions, mediumQuestions, hardQuestions] = await Promise.all([
       easy > 0 ? this.findByDifficulty(subjectId, 'easy', easy) : [],
       medium > 0 ? this.findByDifficulty(subjectId, 'medium', medium) : [],
       hard > 0 ? this.findByDifficulty(subjectId, 'hard', hard) : []
+    ]);
+
+    return [...easyQuestions, ...mediumQuestions, ...hardQuestions];
+  };
+
+  Question.getRandomQuestionsMultipleSubjects = async function(subjectIds, distribution) {
+    const { easy = 0, medium = 0, hard = 0 } = distribution;
+
+    if (!Array.isArray(subjectIds) || subjectIds.length === 0) {
+      return [];
+    }
+
+    const [easyQuestions, mediumQuestions, hardQuestions] = await Promise.all([
+      easy > 0 ? this.findByDifficultyMultipleSubjects(subjectIds, 'easy', easy) : [],
+      medium > 0 ? this.findByDifficultyMultipleSubjects(subjectIds, 'medium', medium) : [],
+      hard > 0 ? this.findByDifficultyMultipleSubjects(subjectIds, 'hard', hard) : []
     ]);
 
     return [...easyQuestions, ...mediumQuestions, ...hardQuestions];

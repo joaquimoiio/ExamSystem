@@ -18,13 +18,20 @@ module.exports = (sequelize, DataTypes) => {
     },
     subjectId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'subjects',
         key: 'id'
       },
       onUpdate: 'CASCADE',
-      onDelete: 'RESTRICT'
+      onDelete: 'RESTRICT',
+      comment: 'Primary subject (deprecated, use subjects array)'
+    },
+    subjects: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: [],
+      comment: 'Array of subject IDs for multi-subject exams'
     },
     userId: {
       type: DataTypes.UUID,
@@ -253,13 +260,26 @@ module.exports = (sequelize, DataTypes) => {
   Exam.prototype.generateVariations = async function() {
     const Question = sequelize.models.Question;
     const ExamVariation = sequelize.models.ExamVariation;
-    
-    // Get questions for each difficulty
-    const questions = await Question.getRandomQuestions(this.subjectId, {
-      easy: this.easyQuestions,
-      medium: this.mediumQuestions,
-      hard: this.hardQuestions
-    });
+
+    // Get questions for each difficulty - support multiple subjects
+    let questions;
+    if (this.subjects && Array.isArray(this.subjects) && this.subjects.length > 0) {
+      // Use multiple subjects approach
+      questions = await Question.getRandomQuestionsMultipleSubjects(this.subjects, {
+        easy: this.easyQuestions,
+        medium: this.mediumQuestions,
+        hard: this.hardQuestions
+      });
+    } else if (this.subjectId) {
+      // Fallback to single subject (backward compatibility)
+      questions = await Question.getRandomQuestions(this.subjectId, {
+        easy: this.easyQuestions,
+        medium: this.mediumQuestions,
+        hard: this.hardQuestions
+      });
+    } else {
+      throw new Error('No subjects specified for exam');
+    }
 
     if (questions.length < this.totalQuestions) {
       throw new Error('Not enough questions available');
@@ -276,7 +296,7 @@ module.exports = (sequelize, DataTypes) => {
 
       // Shuffle questions for this variation
       const shuffledQuestions = this.shuffleArray([...questions]);
-      
+
       // Add questions to variation
       await variation.addQuestions(shuffledQuestions, {
         through: {
@@ -287,7 +307,7 @@ module.exports = (sequelize, DataTypes) => {
 
       // Generate QR code
       await variation.generateQrCode();
-      
+
       variations.push(variation);
     }
 

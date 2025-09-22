@@ -12,7 +12,7 @@ import { LoadingPage } from '../../components/common/Loading';
 import { Select, Input, Textarea, Switch } from '../../components/ui/Input';
 
 export default function ExamCreate({ mode = 'create' }) {
-  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [questionsAvailable, setQuestionsAvailable] = useState({
     total: 0,
@@ -29,7 +29,7 @@ export default function ExamCreate({ mode = 'create' }) {
   
   const { data: subjectsData } = useSubjects();
   const { data: questionsData } = useQuestions({
-    subjectId: selectedSubject,
+    subjectIds: selectedSubjects,
     limit: 1000, // Get all questions for preview
   });
   const { data: examHeadersData } = useExamHeaders();
@@ -48,7 +48,6 @@ export default function ExamCreate({ mode = 'create' }) {
     defaultValues: {
       title: '',
       description: '',
-      subjectId: '',
       examHeaderId: '',
       variations: 5,
       shuffleQuestions: true,
@@ -66,7 +65,6 @@ export default function ExamCreate({ mode = 'create' }) {
   const questions = questionsData?.data?.questions || [];
   const examHeaders = examHeadersData?.data?.headers || [];
   const exam = examData?.data?.exam;
-  const watchedSubject = watch('subjectId');
 
   // Preencher formulário quando estiver editando
   useEffect(() => {
@@ -74,7 +72,6 @@ export default function ExamCreate({ mode = 'create' }) {
       reset({
         title: exam.title || '',
         description: exam.description || '',
-        subjectId: exam.subjectId || '',
         examHeaderId: exam.examHeaderId || '',
         variations: exam.totalVariations || 5,
         shuffleQuestions: exam.randomizeQuestions || false,
@@ -96,20 +93,19 @@ export default function ExamCreate({ mode = 'create' }) {
         setSelectedQuestions(questionsWithPoints);
       }
 
-      // Definir disciplina selecionada
-      if (exam.subjectId) {
-        setSelectedSubject(exam.subjectId);
+      // Definir disciplinas selecionadas
+      if (exam.subjects && Array.isArray(exam.subjects) && exam.subjects.length > 0) {
+        setSelectedSubjects(exam.subjects);
+      } else if (exam.subjectId) {
+        // Fallback para compatibilidade com provas antigas
+        setSelectedSubjects([exam.subjectId]);
       }
     }
   }, [isEditMode, exam, examLoading, reset]);
 
-  // Update selected subject and calculate available questions
+  // Update available questions based on selected subjects
   useEffect(() => {
-    if (watchedSubject !== selectedSubject) {
-      setSelectedSubject(watchedSubject);
-    }
-    
-    if (watchedSubject && questions.length > 0) {
+    if (selectedSubjects.length > 0 && questions.length > 0) {
       const available = {
         total: questions.length,
         easy: questions.filter(q => q.difficulty === 'easy').length,
@@ -120,9 +116,14 @@ export default function ExamCreate({ mode = 'create' }) {
     } else {
       setQuestionsAvailable({ total: 0, easy: 0, medium: 0, hard: 0 });
     }
-  }, [watchedSubject, questions, selectedSubject]);
+  }, [selectedSubjects, questions]);
 
   const onSubmit = async (data) => {
+    if (selectedSubjects.length === 0) {
+      showError('Selecione pelo menos uma disciplina');
+      return;
+    }
+
     if (selectedQuestions.length === 0) {
       showError('Selecione pelo menos uma questão');
       return;
@@ -136,6 +137,8 @@ export default function ExamCreate({ mode = 'create' }) {
     try {
       const examData = {
         ...data,
+        subjects: selectedSubjects,
+        subjectId: selectedSubjects[0], // Manter compatibilidade
         questions: selectedQuestions.map(q => ({
           id: q.id,
           points: q.examPoints || 1.0
@@ -299,23 +302,38 @@ export default function ExamCreate({ mode = 'create' }) {
               </div>
 
               <div>
-                <Controller
-                  name="subjectId"
-                  control={control}
-                  rules={{ required: 'Disciplina é obrigatória' }}
-                  render={({ field }) => (
-                    <Select
-                      label="Disciplina"
-                      placeholder="Selecione uma disciplina"
-                      options={subjects.map(subject => ({
-                        value: subject.id,
-                        label: subject.name,
-                      }))}
-                      error={errors.subjectId?.message}
-                      {...field}
-                    />
-                  )}
-                />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Disciplinas *
+                </label>
+                <div className="space-y-2">
+                  {subjects.map(subject => (
+                    <label key={subject.id} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedSubjects.includes(subject.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSubjects(prev => [...prev, subject.id]);
+                          } else {
+                            setSelectedSubjects(prev => prev.filter(id => id !== subject.id));
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {subject.name}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        ({questions.filter(q => q.subjectId === subject.id).length} questões)
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {selectedSubjects.length === 0 && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                    Selecione pelo menos uma disciplina
+                  </p>
+                )}
               </div>
 
               <div>

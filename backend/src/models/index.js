@@ -294,21 +294,11 @@ async function testConnection() {
   }
 }
 
-// Função para sincronizar modelos
-async function syncModels(force = false) {
-  try {
-    await sequelize.sync({ force, alter: !force });
-    console.log('✅ Modelos sincronizados com o banco de dados');
-    return true;
-  } catch (error) {
-    console.error('❌ Erro ao sincronizar modelos:', error.message);
-    return false;
-  }
-}
+// Database sync disabled - use manual SQL setup instead
+// For manual database setup, run the SQL commands in setup-database.sql
 
 // Adicionar funções utilitárias ao objeto db
 db.testConnection = testConnection;
-db.syncModels = syncModels;
 
 // Health check para o banco
 db.healthCheck = async () => {

@@ -276,6 +276,7 @@ const createExam = catchAsync(async (req, res, next) => {
     title,
     description,
     subjectId,
+    subjects,
     examHeaderId,
     questions = [], // Array of {id, points}
     variations = 1,
@@ -289,18 +290,31 @@ const createExam = catchAsync(async (req, res, next) => {
     requireFullScreen = false,
     preventCopyPaste = false
   } = req.body;
-  
+
   console.log('📝 Parsed data:', {
-    title, description, subjectId, questions, variations
+    title, description, subjectId, subjects, questions, variations
   });
 
-  // Validate subject exists and belongs to user
-  const subject = await Subject.findOne({
-    where: { id: subjectId, userId: req.user.id }
+  // Support multiple subjects or fallback to single subject
+  let selectedSubjects = [];
+  if (subjects && Array.isArray(subjects) && subjects.length > 0) {
+    selectedSubjects = subjects;
+  } else if (subjectId) {
+    selectedSubjects = [subjectId];
+  } else {
+    return next(new AppError('At least one subject must be selected', 400));
+  }
+
+  // Validate subjects exist and belong to user
+  const existingSubjects = await Subject.findAll({
+    where: {
+      id: { [Op.in]: selectedSubjects },
+      userId: req.user.id
+    }
   });
 
-  if (!subject) {
-    return next(new AppError('Subject not found', 404));
+  if (existingSubjects.length !== selectedSubjects.length) {
+    return next(new AppError('One or more subjects not found', 404));
   }
 
   // Validate questions array
@@ -312,12 +326,12 @@ const createExam = catchAsync(async (req, res, next) => {
     return next(new AppError('Maximum 50 questions per exam', 400));
   }
 
-  // Validate that all questions exist and belong to the subject
+  // Validate that all questions exist and belong to the selected subjects
   const questionIds = questions.map(q => q.id);
   const existingQuestions = await Question.findAll({
     where: {
       id: questionIds,
-      subjectId,
+      subjectId: { [Op.in]: selectedSubjects },
       isActive: true
     }
   });
@@ -350,7 +364,8 @@ const createExam = catchAsync(async (req, res, next) => {
     const exam = await Exam.create({
       title: title.trim(),
       description: description?.trim(),
-      subjectId,
+      subjectId: selectedSubjects[0], // First subject for compatibility
+      subjects: selectedSubjects, // Multiple subjects
       examHeaderId: examHeaderId || null,
       userId: req.user.id,
       totalQuestions: questions.length,

@@ -15,7 +15,9 @@
       "Bash(dir:*)",
       "Bash(mkdir:*)",
       "Bash(npx sequelize-cli:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

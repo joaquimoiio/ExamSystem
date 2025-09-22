@@ -8,7 +8,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingButton } from '../../components/common/Loading';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import { api } from '../../services/api';
+import api from '../../services/api';
 
 export default function Settings() {
   const { success, error: showError } = useToast();
@@ -33,13 +33,18 @@ export default function Settings() {
     try {
       setLoading(true);
       const [currentPlanResponse, allPlansResponse] = await Promise.all([
-        api.get('/my-plan'),
-        api.get('/plans')
+        api.getCurrentUserPlan(),
+        api.getPlans()
       ]);
 
-      setCurrentPlan(currentPlanResponse.data.plan);
-      setUsage(currentPlanResponse.data.usage);
-      setAllPlans(allPlansResponse.data);
+      if (currentPlanResponse.success) {
+        setCurrentPlan(currentPlanResponse.data.plan);
+        setUsage(currentPlanResponse.data.usage);
+      }
+
+      if (allPlansResponse.success) {
+        setAllPlans(allPlansResponse.data);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados do plano:', error);
       showError('Erro ao carregar informações do plano');
@@ -51,9 +56,11 @@ export default function Settings() {
   const handleUpgrade = async (planName) => {
     try {
       setUpgradingPlan(planName);
-      await api.put('/upgrade', { planName });
-      success(`Plano atualizado para ${planName === 'plus' ? 'Plus' : 'Free'} com sucesso!`);
-      await fetchPlanData();
+      const response = await api.upgradePlan(planName);
+      if (response.success) {
+        success(`Plano atualizado para ${planName === 'plus' ? 'Plus' : 'Free'} com sucesso!`);
+        await fetchPlanData();
+      }
     } catch (error) {
       console.error('Erro ao fazer upgrade:', error);
       showError('Erro ao atualizar plano');
@@ -231,48 +238,70 @@ export default function Settings() {
 
               {/* Available Plans */}
               {allPlans.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {allPlans.filter(plan => plan.name !== currentPlan?.name).map(plan => (
-                    <div key={plan.id} className={`
-                      border rounded-lg p-4 hover:shadow-lg transition-shadow
-                      ${plan.name === 'plus'
-                        ? 'border-yellow-200 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
-                        : 'border-gray-200 dark:border-gray-600'
-                      }
-                    `}>
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">{plan.displayName}</h4>
-                        {plan.name === 'plus' ? (
-                          <Crown className="w-5 h-5 text-yellow-500" />
-                        ) : (
-                          <Zap className="w-5 h-5 text-blue-500" />
-                        )}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Outros Planos Disponíveis
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {allPlans.filter(plan => plan.name !== currentPlan?.name).map(plan => (
+                      <div key={plan.id} className={`
+                        border rounded-lg p-6 hover:shadow-lg transition-all duration-300
+                        ${plan.name === 'plus'
+                          ? 'border-yellow-200 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 hover:border-yellow-300 dark:hover:border-yellow-500'
+                          : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500'
+                        }
+                      `}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{plan.displayName}</h4>
+                          {plan.name === 'plus' ? (
+                            <Crown className="w-6 h-6 text-yellow-500" />
+                          ) : (
+                            <Zap className="w-6 h-6 text-blue-500" />
+                          )}
+                        </div>
+
+                        <div className="text-center mb-4">
+                          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                            R$ {plan.price}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">/mês</div>
+                        </div>
+
+                        <div className="space-y-3 mb-6">
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                            <span>{formatLimit(plan.maxSubjects)} matérias</span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                            <span>{formatLimit(plan.maxQuestions)} questões</span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                            <span>{formatLimit(plan.maxExams)} provas</span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                            <span>{plan.description}</span>
+                          </div>
+                        </div>
+
+                        <LoadingButton
+                          onClick={() => handleUpgrade(plan.name)}
+                          loading={upgradingPlan === plan.name}
+                          className={`
+                            w-full py-3 rounded-lg transition-colors text-white font-medium
+                            ${plan.name === 'plus'
+                              ? 'bg-yellow-600 hover:bg-yellow-700 shadow-lg'
+                              : 'bg-blue-600 hover:bg-blue-700 shadow-lg'
+                            }
+                          `}
+                        >
+                          {plan.name === 'free' ? 'Voltar ao Free' : 'Fazer Upgrade'}
+                        </LoadingButton>
                       </div>
-                      <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                        R$ {plan.price}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">/mês</div>
-                      <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
-                        <div>• {formatLimit(plan.maxSubjects)} matérias</div>
-                        <div>• {formatLimit(plan.maxQuestions)} questões</div>
-                        <div>• {formatLimit(plan.maxExams)} provas</div>
-                        <div>• {plan.description}</div>
-                      </div>
-                      <LoadingButton
-                        onClick={() => handleUpgrade(plan.name)}
-                        loading={upgradingPlan === plan.name}
-                        className={`
-                          w-full py-2 rounded-lg transition-colors text-white
-                          ${plan.name === 'plus'
-                            ? 'bg-yellow-600 hover:bg-yellow-700'
-                            : 'bg-blue-600 hover:bg-blue-700'
-                          }
-                        `}
-                      >
-                        {plan.name === 'free' ? 'Voltar ao Free' : 'Fazer Upgrade'}
-                      </LoadingButton>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

@@ -402,35 +402,35 @@ export default function LandingPage() {
 
           <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 h-fit">
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Plano Free</h3>
                 <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">R$ 0</div>
                 <p className="text-gray-600 dark:text-gray-300">Para sempre</p>
               </div>
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-3 mb-8 min-h-[240px]">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
+                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">2 matérias</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
+                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">10 questões</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
+                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">1 prova</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
+                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">Correção automática</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Exportação para PDF</span>
+                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Exportação PDF</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
+                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">Suporte básico</span>
                 </li>
               </ul>
@@ -442,7 +442,7 @@ export default function LandingPage() {
             </div>
 
             {/* Plus Plan */}
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-xl text-white relative">
+            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-xl text-white relative h-fit">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <div className="bg-yellow-600 text-yellow-100 px-4 py-1 rounded-full text-sm font-bold">
                   MAIS POPULAR
@@ -453,29 +453,33 @@ export default function LandingPage() {
                 <div className="text-4xl font-bold mb-2">R$ 19,99</div>
                 <p className="text-yellow-100">por mês</p>
               </div>
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-3 mb-8 min-h-[240px]">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
                   <span>Matérias ilimitadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
                   <span>Questões ilimitadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
                   <span>Provas ilimitadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
+                  <span>Todas as funcionalidades do Free</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
                   <span>Análises avançadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
                   <span>Suporte prioritário</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
                   <span>Marca personalizada</span>
                 </li>
               </ul>
