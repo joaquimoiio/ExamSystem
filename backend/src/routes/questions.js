@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const router = express.Router();
 const questionController = require('../controllers/questionController');
 const { authenticateToken, requireTeacher } = require('../middleware/auth');
+const { checkPlanLimits } = require('../middleware/planLimits');
 
 // Validation rules for question creation/update
 const questionValidation = [
@@ -43,7 +44,7 @@ const questionValidation = [
 router.get('/', authenticateToken, questionController.getQuestions);
 router.get('/stats', authenticateToken, questionController.getQuestionsStats);
 router.get('/:id', authenticateToken, questionController.getQuestionById);
-router.post('/', authenticateToken, requireTeacher, questionValidation, questionController.createQuestion);
+router.post('/', authenticateToken, requireTeacher, checkPlanLimits('questions'), questionValidation, questionController.createQuestion);
 router.put('/:id', authenticateToken, requireTeacher, questionValidation, questionController.updateQuestion);
 router.put('/:id/points', authenticateToken, requireTeacher, questionController.updateQuestionPoints);
 router.delete('/:id', authenticateToken, requireTeacher, questionController.deleteQuestion);

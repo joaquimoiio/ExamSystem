@@ -75,6 +75,7 @@ function tryImportModel(modelName, modelPath) {
 
 // Lista de modelos para importar
 const models = [
+  { name: 'Plan', path: './Plan' },
   { name: 'User', path: './User' },
   { name: 'Subject', path: './Subject' },
   { name: 'Question', path: './Question' },
@@ -92,6 +93,18 @@ models.forEach(({ name, path }) => {
 
 // Configurar associações se os modelos existirem
 try {
+  // Plan and User associations
+  if (db.Plan && db.User) {
+    db.Plan.hasMany(db.User, {
+      foreignKey: 'planId',
+      as: 'users'
+    });
+    db.User.belongsTo(db.Plan, {
+      foreignKey: 'planId',
+      as: 'plan'
+    });
+  }
+
   if (db.User && db.Subject) {
     // User has many Subjects
     db.User.hasMany(db.Subject, {

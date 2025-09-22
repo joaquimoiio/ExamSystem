@@ -1,23 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { 
+import {
   Settings as SettingsIcon, Palette, User, Save,
-  CheckCircle, Moon, Sun, Crown, Zap, Star
+  CheckCircle, Moon, Sun, Crown, Zap, Star, AlertCircle
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingButton } from '../../components/common/Loading';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { api } from '../../services/api';
 
 export default function Settings() {
   const { success, error: showError } = useToast();
   const { theme, setTheme, toggleTheme, isDark } = useTheme();
-  
+  const [currentPlan, setCurrentPlan] = useState(null);
+  const [allPlans, setAllPlans] = useState([]);
+  const [usage, setUsage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [upgradingPlan, setUpgradingPlan] = useState(null);
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm();
+
+  useEffect(() => {
+    fetchPlanData();
+  }, []);
+
+  const fetchPlanData = async () => {
+    try {
+      setLoading(true);
+      const [currentPlanResponse, allPlansResponse] = await Promise.all([
+        api.get('/my-plan'),
+        api.get('/plans')
+      ]);
+
+      setCurrentPlan(currentPlanResponse.data.plan);
+      setUsage(currentPlanResponse.data.usage);
+      setAllPlans(allPlansResponse.data);
+    } catch (error) {
+      console.error('Erro ao carregar dados do plano:', error);
+      showError('Erro ao carregar informações do plano');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (planName) => {
+    try {
+      setUpgradingPlan(planName);
+      await api.put('/upgrade', { planName });
+      success(`Plano atualizado para ${planName === 'plus' ? 'Plus' : 'Free'} com sucesso!`);
+      await fetchPlanData();
+    } catch (error) {
+      console.error('Erro ao fazer upgrade:', error);
+      showError('Erro ao atualizar plano');
+    } finally {
+      setUpgradingPlan(null);
+    }
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -26,6 +69,15 @@ export default function Settings() {
     } catch (error) {
       showError(error.message || 'Erro ao salvar preferências');
     }
+  };
+
+  const formatLimit = (limit) => {
+    return limit === 'Ilimitado' || limit === -1 ? 'Ilimitado' : limit;
+  };
+
+  const getUsagePercentage = (used, limit) => {
+    if (limit === 'Ilimitado' || limit === -1) return 0;
+    return Math.min((used / limit) * 100, 100);
   };
 
   return (
@@ -47,87 +99,184 @@ export default function Settings() {
             <Crown className="w-5 h-5 mr-2 text-yellow-500" />
             Seu Plano
           </h2>
-          
-          <div className="space-y-6">
-            {/* Current Plan */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                    <Star className="w-5 h-5 text-yellow-500 mr-2" />
-                    Plano Gratuito
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300 mt-1">
-                    Ideal para começar a usar o sistema
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">R$ 0</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">/mês</div>
-                </div>
-              </div>
-              
-              <div className="mt-6 space-y-3">
-                <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                  Até 5 questões por prova
-                </div>
-                <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                  Até 60 minutos por prova
-                </div>
-                <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                  2 variações por prova
-                </div>
-                <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                  Banco básico de questões
-                </div>
+
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+              <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
               </div>
             </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Current Plan */}
+              {currentPlan && (
+                <div className={`
+                  bg-gradient-to-r border rounded-lg p-6
+                  ${currentPlan.name === 'free'
+                    ? 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700'
+                    : 'from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-700'
+                  }
+                `}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                        {currentPlan.name === 'free' ? (
+                          <Star className="w-5 h-5 text-blue-500 mr-2" />
+                        ) : (
+                          <Crown className="w-5 h-5 text-yellow-500 mr-2" />
+                        )}
+                        {currentPlan.displayName}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mt-1">
+                        {currentPlan.description}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                        R$ {currentPlan.price}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">/mês</div>
+                    </div>
+                  </div>
 
-            {/* Upgrade Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Pro Plan */}
-              <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Plano Pro</h4>
-                  <Zap className="w-5 h-5 text-blue-500" />
-                </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">R$ 29</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">/mês</div>
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
-                  <div>• Até 50 questões por prova</div>
-                  <div>• Até 180 minutos por prova</div>
-                  <div>• 10 variações por prova</div>
-                  <div>• Relatórios básicos</div>
-                </div>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                  Fazer Upgrade
-                </button>
-              </div>
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                      {formatLimit(currentPlan.maxSubjects)} matérias
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                      {formatLimit(currentPlan.maxQuestions)} questões
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                      {formatLimit(currentPlan.maxExams)} provas
+                    </div>
+                    {currentPlan.features && Object.keys(currentPlan.features).map(feature => (
+                      <div key={feature} className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                        <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                        {feature === 'pdfExport' && 'Exportação para PDF'}
+                        {feature === 'basicSupport' && 'Suporte básico'}
+                        {feature === 'advancedAnalytics' && 'Análises avançadas'}
+                        {feature === 'prioritySupport' && 'Suporte prioritário'}
+                        {feature === 'customBranding' && 'Marca personalizada'}
+                      </div>
+                    ))}
+                  </div>
 
-              {/* Enterprise Plan */}
-              <div className="border border-yellow-200 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Plano Enterprise</h4>
-                  <Crown className="w-5 h-5 text-yellow-500" />
+                  {/* Usage Statistics */}
+                  {usage && (
+                    <div className="mt-6 space-y-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white">Uso Atual</h4>
+
+                      {/* Subjects Usage */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Matérias</span>
+                          <span className="text-gray-900 dark:text-white">
+                            {usage.subjects.used} / {formatLimit(usage.subjects.limit)}
+                          </span>
+                        </div>
+                        {usage.subjects.limit !== 'Ilimitado' && usage.subjects.limit !== -1 && (
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full"
+                              style={{ width: `${getUsagePercentage(usage.subjects.used, usage.subjects.limit)}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Questions Usage */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Questões</span>
+                          <span className="text-gray-900 dark:text-white">
+                            {usage.questions.used} / {formatLimit(usage.questions.limit)}
+                          </span>
+                        </div>
+                        {usage.questions.limit !== 'Ilimitado' && usage.questions.limit !== -1 && (
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full"
+                              style={{ width: `${getUsagePercentage(usage.questions.used, usage.questions.limit)}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Exams Usage */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Provas</span>
+                          <span className="text-gray-900 dark:text-white">
+                            {usage.exams.used} / {formatLimit(usage.exams.limit)}
+                          </span>
+                        </div>
+                        {usage.exams.limit !== 'Ilimitado' && usage.exams.limit !== -1 && (
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-yellow-600 h-2 rounded-full"
+                              style={{ width: `${getUsagePercentage(usage.exams.used, usage.exams.limit)}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">R$ 99</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">/mês</div>
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
-                  <div>• Questões ilimitadas</div>
-                  <div>• Tempo ilimitado</div>
-                  <div>• 50 variações por prova</div>
-                  <div>• Relatórios avançados</div>
+              )}
+
+              {/* Available Plans */}
+              {allPlans.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {allPlans.filter(plan => plan.name !== currentPlan?.name).map(plan => (
+                    <div key={plan.id} className={`
+                      border rounded-lg p-4 hover:shadow-lg transition-shadow
+                      ${plan.name === 'plus'
+                        ? 'border-yellow-200 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                        : 'border-gray-200 dark:border-gray-600'
+                      }
+                    `}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-gray-900 dark:text-white">{plan.displayName}</h4>
+                        {plan.name === 'plus' ? (
+                          <Crown className="w-5 h-5 text-yellow-500" />
+                        ) : (
+                          <Zap className="w-5 h-5 text-blue-500" />
+                        )}
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                        R$ {plan.price}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">/mês</div>
+                      <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+                        <div>• {formatLimit(plan.maxSubjects)} matérias</div>
+                        <div>• {formatLimit(plan.maxQuestions)} questões</div>
+                        <div>• {formatLimit(plan.maxExams)} provas</div>
+                        <div>• {plan.description}</div>
+                      </div>
+                      <LoadingButton
+                        onClick={() => handleUpgrade(plan.name)}
+                        loading={upgradingPlan === plan.name}
+                        className={`
+                          w-full py-2 rounded-lg transition-colors text-white
+                          ${plan.name === 'plus'
+                            ? 'bg-yellow-600 hover:bg-yellow-700'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                          }
+                        `}
+                      >
+                        {plan.name === 'free' ? 'Voltar ao Free' : 'Fazer Upgrade'}
+                      </LoadingButton>
+                    </div>
+                  ))}
                 </div>
-                <button className="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 transition-colors">
-                  Fazer Upgrade
-                </button>
-              </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Configurações Gerais */}
@@ -279,85 +428,6 @@ export default function Settings() {
         </div>
       </form>
 
-      {/* Upgrade Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pro Plan */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Plano Pro</h3>
-            <Zap className="w-6 h-6 text-blue-500" />
-          </div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">R$ 29</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-6">/mês</div>
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Até 50 questões por prova
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Até 180 minutos por prova
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              10 variações por prova
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Relatórios básicos
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Suporte prioritário
-            </div>
-          </div>
-          <button className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-            Fazer Upgrade Pro
-          </button>
-        </div>
-
-        {/* Enterprise Plan */}
-        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-600 rounded-lg p-6 hover:shadow-lg transition-shadow relative">
-          <div className="absolute -top-3 left-4 bg-yellow-500 text-white text-xs px-3 py-1 rounded-full font-bold">
-            MAIS POPULAR
-          </div>
-          <div className="flex items-center justify-between mb-4 mt-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Plano Enterprise</h3>
-            <Crown className="w-6 h-6 text-yellow-500" />
-          </div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">R$ 99</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-6">/mês</div>
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Questões ilimitadas
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Tempo ilimitado
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              50 variações por prova
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Relatórios avançados
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              Suporte 24/7
-            </div>
-            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-              API completa
-            </div>
-          </div>
-          <button className="w-full bg-yellow-600 text-white py-3 rounded-lg hover:bg-yellow-700 transition-colors font-semibold">
-            Fazer Upgrade Enterprise
-          </button>
-        </div>
-      </div>
 
       {/* Info */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">

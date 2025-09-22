@@ -12,7 +12,10 @@
       "Bash(dir)",
       "Bash(npm install:*)",
       "Bash(createdb:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx sequelize-cli:*)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []

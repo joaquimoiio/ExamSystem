@@ -400,26 +400,26 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
             <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Gratuito</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Plano Free</h3>
                 <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">R$ 0</div>
                 <p className="text-gray-600 dark:text-gray-300">Para sempre</p>
               </div>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Até 30 alunos por mês</span>
+                  <span className="text-gray-700 dark:text-gray-300">2 matérias</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">3 versões por prova</span>
+                  <span className="text-gray-700 dark:text-gray-300">10 questões</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Banco de 100 questões</span>
+                  <span className="text-gray-700 dark:text-gray-300">1 prova</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
@@ -427,89 +427,63 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center">
                   <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Relatórios básicos</span>
+                  <span className="text-gray-700 dark:text-gray-300">Exportação para PDF</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-5 h-5 text-green-500 mr-3" />
+                  <span className="text-gray-700 dark:text-gray-300">Suporte básico</span>
                 </li>
               </ul>
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="w-full block text-center bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors font-medium">
                 Começar Agora
               </Link>
             </div>
 
-            {/* Pro Plan */}
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-8 rounded-2xl shadow-xl text-white relative">
+            {/* Plus Plan */}
+            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-xl text-white relative">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-sm font-bold">
+                <div className="bg-yellow-600 text-yellow-100 px-4 py-1 rounded-full text-sm font-bold">
                   MAIS POPULAR
                 </div>
               </div>
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Profissional</h3>
-                <div className="text-4xl font-bold mb-2">R$ 47</div>
-                <p className="text-blue-100">por mês</p>
+                <h3 className="text-2xl font-bold mb-2">Plano Plus</h3>
+                <div className="text-4xl font-bold mb-2">R$ 19,99</div>
+                <p className="text-yellow-100">por mês</p>
               </div>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-400 mr-3" />
-                  <span>10 versões por prova</span>
+                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <span>Matérias ilimitadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Disciplinas ilimitadas</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-400 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3" />
                   <span>Questões ilimitadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-400 mr-3" />
-                  <span>Relatórios avançados</span>
+                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <span>Provas ilimitadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-400 mr-3" />
+                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <span>Análises avançadas</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="w-5 h-5 text-green-100 mr-3" />
                   <span>Suporte prioritário</span>
                 </li>
+                <li className="flex items-center">
+                  <Check className="w-5 h-5 text-green-100 mr-3" />
+                  <span>Marca personalizada</span>
+                </li>
               </ul>
-              <Link 
-                to="/register" 
-                className="w-full block text-center bg-white text-blue-600 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors font-medium">
-                Teste Grátis por 7 Dias
+              <Link
+                to="/register"
+                className="w-full block text-center bg-white text-yellow-600 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors font-medium">
+                Começar Agora
               </Link>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Escola</h3>
-                <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">R$ 197</div>
-                <p className="text-gray-600 dark:text-gray-300">por mês</p>
-              </div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Alunos ilimitados</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Versões ilimitadas</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Multi-professores</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">API personalizada</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700 dark:text-gray-300">Suporte dedicado</span>
-                </li>
-              </ul>
-              <button className="w-full bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors font-medium">
-                Falar com Vendas
-              </button>
             </div>
           </div>
         </div>

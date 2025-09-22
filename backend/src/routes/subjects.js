@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const router = express.Router();
 const subjectController = require('../controllers/subjectController');
 const { authenticateToken } = require('../middleware/auth');
+const { checkPlanLimits } = require('../middleware/planLimits');
 
 // Validation rules for subject creation/update
 const subjectValidation = [
@@ -32,7 +33,7 @@ const subjectValidation = [
 router.get('/', authenticateToken, subjectController.getSubjects);
 router.get('/stats', authenticateToken, subjectController.getSubjectsStats);
 router.get('/:id', authenticateToken, subjectController.getSubjectById);
-router.post('/', authenticateToken, subjectValidation, subjectController.createSubject);
+router.post('/', authenticateToken, checkPlanLimits('subjects'), subjectValidation, subjectController.createSubject);
 router.put('/:id', authenticateToken, subjectValidation, subjectController.updateSubject);
 router.delete('/:id', authenticateToken, subjectController.deleteSubject);
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import routes with fallback
-let authRoutes, subjectRoutes, questionRoutes, examRoutes, examHeaderRoutes, correctionRoutes;
+let authRoutes, subjectRoutes, questionRoutes, examRoutes, examHeaderRoutes, correctionRoutes, planRoutes;
 
 try {
   authRoutes = require('./auth');
@@ -79,6 +79,20 @@ try {
   });
   correctionRoutes.post('/correct-exam', (req, res) => {
     res.status(500).json({ success: false, message: 'Correction module not available' });
+  });
+}
+
+try {
+  planRoutes = require('./planRoutes');
+  console.log('✅ Plan routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading plan routes:', error.message);
+  planRoutes = express.Router();
+  planRoutes.get('/plans', (req, res) => {
+    res.json({ success: true, data: [] });
+  });
+  planRoutes.get('/my-plan', (req, res) => {
+    res.json({ success: true, data: { plan: { name: 'free' }, usage: {} } });
   });
 }
 
@@ -266,6 +280,7 @@ router.use('/questions', questionRoutes);
 router.use('/exams', examRoutes);
 router.use('/exam-headers', examHeaderRoutes);
 router.use('/corrections', correctionRoutes);
+router.use('/', planRoutes);
 
 // Catch-all for undefined routes
 router.use('*', (req, res) => {

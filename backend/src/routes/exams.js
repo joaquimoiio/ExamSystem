@@ -4,6 +4,7 @@ const router = express.Router();
 const examController = require('../controllers/examController');
 const { authenticateToken, requireTeacher } = require('../middleware/auth');
 const { handleValidationErrors } = require('../middleware/validation');
+const { checkPlanLimits } = require('../middleware/planLimits');
 
 // Validation rules for exam creation/update
 const examValidation = [
@@ -54,7 +55,7 @@ router.get('/', authenticateToken, examController.getExams);
 router.get('/stats', authenticateToken, examController.getExamsStats);
 router.get('/recent', authenticateToken, examController.getRecentExams);
 router.get('/:id', authenticateToken, examController.getExamById);
-router.post('/', authenticateToken, requireTeacher, examValidation, examController.createExam);
+router.post('/', authenticateToken, requireTeacher, checkPlanLimits('exams'), examValidation, examController.createExam);
 router.put('/:id', authenticateToken, requireTeacher, examValidation, examController.updateExam);
 router.put('/:id/questions', authenticateToken, requireTeacher, examController.updateExamQuestions);
 router.delete('/:id', authenticateToken, requireTeacher, examController.deleteExam);
