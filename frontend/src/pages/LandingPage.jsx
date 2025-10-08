@@ -1,78 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  BookOpen, CheckCircle, Star, Users, Award, Clock, 
-  Shield, ArrowRight, Menu, X, Play, Sparkles,
-  Database, Shuffle, QrCode, FileText, BarChart3,
-  Check, GraduationCap, Download, Home, ArrowLeft,
-  Facebook, Instagram, Linkedin, Youtube, ChevronDown,
-  AlertTriangle, Mail, Phone
+import {
+  GraduationCap, CheckCircle, Clock, Star, Users,
+  BarChart3, FileText, Shuffle, QrCode, Menu, X,
+  ArrowRight, Zap, Shield, Heart, BookOpen,
+  PenTool, Calendar, Trophy, Apple, Coffee,
+  Glasses, Briefcase, Lightbulb, Calculator,
+  Globe, Beaker, Book, Building, Flag,
+  Bookmark, Library, ScrollText, NotebookPen
 } from 'lucide-react';
-import { ThemeToggle } from '../components/ui/ThemeToggle';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [faqOpen, setFaqOpen] = useState({});
-
-  const toggleFaq = (index) => {
-    setFaqOpen(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
-
-  useEffect(() => {
-    // Smooth scroll for anchor links
-    const handleClick = (e) => {
-      const href = e.target.getAttribute('href');
-      if (href && href.startsWith('#')) {
-        e.preventDefault();
-        const target = document.querySelector(href);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-    };
-
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Theme Toggle */}
-      <div className="fixed top-4 right-4 z-50">
-        <ThemeToggle />
-      </div>
-      
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-40 transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-white/20 dark:border-gray-800/20">
+      {/* Header */}
+      <nav className="bg-white dark:bg-gray-900 shadow-sm dark:shadow-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
             <div className="flex items-center space-x-2">
               <div className="bg-blue-600 p-2 rounded-lg">
-                <BookOpen className="w-6 h-6 text-white" />
+                <GraduationCap className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">MontAí</span>
-              <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">BETA</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">ExamSystem</span>
             </div>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
+              <a href="#recursos" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium transition-colors">
                 Recursos
               </a>
-              <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
-                Preços
+              <a href="#planos" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium transition-colors">
+                Planos
               </a>
-              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
-                Cases
+              <a href="#contato" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium transition-colors">
+                Contato
               </a>
-              <Link to="/login" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium">
+              <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium transition-colors">
                 Entrar
               </Link>
-              <Link to="/register" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg">
-                Teste Grátis
+              <ThemeToggle />
+              <Link
+                to="/register"
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Começar Agora
               </Link>
             </div>
 
@@ -80,7 +55,7 @@ export default function LandingPage() {
             <div className="md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                className="text-gray-600 dark:text-gray-300 hover:text-blue-600"
               >
                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -89,22 +64,29 @@ export default function LandingPage() {
 
           {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4">
-              <div className="flex flex-col space-y-4">
-                <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 font-medium">
+            <div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 py-4">
+              <div className="flex flex-col space-y-4 px-4">
+                <a href="#recursos" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium">
                   Recursos
                 </a>
-                <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 font-medium">
-                  Preços
+                <a href="#planos" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium">
+                  Planos
                 </a>
-                <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 font-medium">
-                  Cases
+                <a href="#contato" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium">
+                  Contato
                 </a>
-                <Link to="/login" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-4 text-left font-medium">
+                <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 font-medium">
                   Entrar
                 </Link>
-                <Link to="/register" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mx-4 text-center font-medium">
-                  Teste Grátis
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">Tema</span>
+                  <ThemeToggle showLabel />
+                </div>
+                <Link
+                  to="/register"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
+                >
+                  Começar Agora
                 </Link>
               </div>
             </div>
@@ -113,103 +95,198 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-24 pb-12 lg:pt-32 lg:pb-20 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 py-20 relative overflow-hidden">
+        {/* Educational Background Elements - Books and School Items */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Large Books */}
+          <div className="absolute top-10 left-16 text-blue-400 dark:text-blue-400 opacity-70 dark:opacity-40 transform rotate-12">
+            <BookOpen className="w-24 h-24" />
+          </div>
+          <div className="absolute top-32 right-20 text-emerald-400 dark:text-emerald-400 opacity-60 dark:opacity-35 transform -rotate-12">
+            <Book className="w-20 h-20" />
+          </div>
+          <div className="absolute bottom-32 left-10 text-purple-400 dark:text-purple-400 opacity-75 dark:opacity-45 transform rotate-45">
+            <Library className="w-28 h-28" />
+          </div>
+
+          {/* Medium Books */}
+          <div className="absolute top-1/2 right-12 text-amber-400 dark:text-amber-400 opacity-65 dark:opacity-40 transform -rotate-45">
+            <ScrollText className="w-16 h-16" />
+          </div>
+          <div className="absolute top-20 left-1/3 text-rose-400 dark:text-rose-400 opacity-60 dark:opacity-35 transform rotate-25">
+            <NotebookPen className="w-14 h-14" />
+          </div>
+          <div className="absolute bottom-20 right-1/4 text-indigo-400 dark:text-indigo-400 opacity-65 dark:opacity-40 transform -rotate-30">
+            <Bookmark className="w-12 h-12" />
+          </div>
+
+          {/* Small Educational Items */}
+          <div className="absolute top-64 left-1/4 text-emerald-500 dark:text-emerald-500 opacity-55 dark:opacity-30">
+            <PenTool className="w-10 h-10" />
+          </div>
+          <div className="absolute top-16 right-1/3 text-violet-500 dark:text-violet-500 opacity-60 dark:opacity-35 transform rotate-15">
+            <GraduationCap className="w-14 h-14" />
+          </div>
+          <div className="absolute bottom-40 left-1/2 text-cyan-500 dark:text-cyan-500 opacity-55 dark:opacity-30 transform rotate-75">
+            <Trophy className="w-12 h-12" />
+          </div>
+          <div className="absolute top-2/3 left-8 text-orange-500 dark:text-orange-500 opacity-60 dark:opacity-35">
+            <Lightbulb className="w-10 h-10" />
+          </div>
+
+          {/* Stack of Books Effect */}
+          <div className="absolute bottom-16 right-16 transform rotate-6">
+            <div className="relative">
+              <Book className="w-18 h-18 text-blue-500 dark:text-blue-500 opacity-80 dark:opacity-50" />
+              <Book className="w-18 h-18 text-emerald-500 dark:text-emerald-500 opacity-75 dark:opacity-45 absolute -top-1 -left-1" />
+              <Book className="w-18 h-18 text-rose-500 dark:text-rose-500 opacity-70 dark:opacity-40 absolute -top-2 -left-2" />
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Novidade: Correção por IA disponível
+            {/* Left Content */}
+            <div>
+              <div className="inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                <Glasses className="w-4 h-4 mr-2" />
+                Feito especialmente para professores
               </div>
-              
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-                Crie provas profissionais em{' '}
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  minutos
-                </span>
+
+              <h1 className="text-5xl font-bold text-gray-800 dark:text-white mb-6 leading-tight">
+                Monte suas provas em{' '}
+                <span className="text-blue-600">minutos</span>, sem complicação
               </h1>
-              
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl">
-                Transforme a criação de provas de algo que demora horas em algo que leva minutos. 
-                Sistema completo para professores modernos.
+
+              <p className="text-xl text-gray-700 dark:text-gray-300 mb-8">
+                Feito para professores que querem otimizar tempo e facilitar a correção de provas.
+                Do ensino fundamental ao superior. <strong>Simples, rápido e eficiente.</strong>
               </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link 
-                  to="/register" 
-                  className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
+
+              <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                <Link
+                  to="/register"
+                  className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center"
                 >
-                  🚀 Assine Agora
+                  <PenTool className="w-5 h-5 mr-2" />
+                  Criar minha prova
                 </Link>
-                <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  📱 Ver Funções
+                <button className="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Explorar recursos
                 </button>
               </div>
 
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-6">
-                <div className="flex items-center text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Prático e fácil
+              {/* Trust indicators */}
+              <div className="flex items-center space-x-6 text-sm text-gray-500">
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                  Teste grátis para sempre
                 </div>
-                <div className="flex items-center text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                  Sem cartão de crédito
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                   Suporte em português
-                </div>
-                <div className="flex items-center text-gray-700 dark:text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                  Cancele quando quiser
                 </div>
               </div>
             </div>
 
-            <div className="lg:pl-8">
-              <div className="relative">
-                {/* Main dashboard mockup */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700 transform hover:scale-105 transition-transform duration-300">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
-                        <GraduationCap className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">Prova de Matemática</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">9º Ano - Ensino Fundamental</p>
-                      </div>
+            {/* Right Content - Professor-themed Mockup */}
+            <div className="relative">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl dark:shadow-gray-700 p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300 border-l-4 border-blue-600">
+                {/* Header with teacher context */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <Calculator className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                      Ativa
+                    <div>
+                      <h3 className="font-semibold text-gray-800 dark:text-white">Prova de Matemática</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">8º Ano • Álgebra • 20 questões</p>
                     </div>
                   </div>
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Pronta
+                  </span>
+                </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">5</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Versões</div>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">85%</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Taxa de Acerto</div>
-                    </div>
+                {/* Professor stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center bg-blue-50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-blue-600">5</div>
+                    <div className="text-xs text-gray-500">Versões</div>
                   </div>
-
-                  {/* Action buttons */}
-                  <div className="space-y-3">
-                    <button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all flex items-center justify-center space-x-2">
-                      <Download className="w-4 h-4" />
-                      <span>Gerar PDF</span>
-                    </button>
-                    <button className="w-full border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
-                      <QrCode className="w-4 h-4" />
-                      <span>QR Code</span>
-                    </button>
+                  <div className="text-center bg-green-50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-green-600">2min</div>
+                    <div className="text-xs text-gray-500">Criação</div>
+                  </div>
+                  <div className="text-center bg-purple-50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-purple-600">Auto</div>
+                    <div className="text-xs text-gray-500">Correção</div>
                   </div>
                 </div>
 
-                {/* Floating elements */}
-                <div className="absolute -top-4 -right-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-                  Novo!
+                {/* Teacher actions */}
+                <div className="space-y-2">
+                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Gerar PDF
+                  </button>
+                  <button className="w-full border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Ver Relatório
+                  </button>
                 </div>
+
+                {/* Mini teacher avatar */}
+                <div className="absolute -bottom-2 -right-2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg border-2 border-blue-600">
+                  <GraduationCap className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+
+              {/* Floating teacher badges */}
+              <div className="absolute -top-4 -left-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold flex items-center">
+                <Zap className="w-3 h-3 mr-1" />
+                Rápido
+              </div>
+              <div className="absolute -bottom-4 -right-4 bg-green-400 text-green-900 px-3 py-1 rounded-full text-sm font-bold flex items-center">
+                <Heart className="w-3 h-3 mr-1" />
+                Fácil
+              </div>
+            </div>
+          </div>
+
+          {/* Teacher personas */}
+          <div className="mt-16 text-center">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Usado por professores de:</p>
+            <div className="flex flex-wrap justify-center items-center gap-8 text-gray-400 dark:text-gray-500">
+              <div className="flex items-center">
+                <Calculator className="w-6 h-6 mr-2 text-blue-500" />
+                <span className="text-sm">Matemática</span>
+              </div>
+              <div className="flex items-center">
+                <Globe className="w-6 h-6 mr-2 text-green-500" />
+                <span className="text-sm">Geografia</span>
+              </div>
+              <div className="flex items-center">
+                <Beaker className="w-6 h-6 mr-2 text-purple-500" />
+                <span className="text-sm">Química</span>
+              </div>
+              <div className="flex items-center">
+                <Book className="w-6 h-6 mr-2 text-red-500" />
+                <span className="text-sm">Português</span>
+              </div>
+              <div className="flex items-center">
+                <Building className="w-6 h-6 mr-2 text-yellow-600" />
+                <span className="text-sm">História</span>
+              </div>
+              <div className="flex items-center">
+                <Flag className="w-6 h-6 mr-2 text-blue-600" />
+                <span className="text-sm">Inglês</span>
               </div>
             </div>
           </div>
@@ -217,576 +294,438 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="recursos" className="py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
+        {/* Background Books for Features */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-8 text-blue-400 dark:text-blue-400 opacity-80 dark:opacity-50">
+            <BookOpen className="w-32 h-32 transform rotate-12" />
+          </div>
+          <div className="absolute bottom-20 right-12 text-purple-400 dark:text-purple-400 opacity-70 dark:opacity-45">
+            <Library className="w-28 h-28 transform -rotate-12" />
+          </div>
+          <div className="absolute top-1/2 left-1/4 text-emerald-400 dark:text-emerald-400 opacity-60 dark:opacity-40">
+            <ScrollText className="w-24 h-24 transform rotate-45" />
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Tudo que você precisa para criar{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                provas perfeitas
-              </span>
+            <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">
+              Tudo que você precisa em um só lugar
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Do banco de questões à correção automática, temos todas as ferramentas que você precisa
+            <p className="text-xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
+              Criação, aplicação e correção de provas de forma simples e eficiente para professores
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Feature 1 */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl inline-flex mb-6">
-                <Database className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <div className="text-center bg-blue-50 dark:bg-gray-800 p-8 rounded-2xl hover:shadow-lg dark:hover:shadow-gray-700 transition-shadow relative">
+              <div className="bg-blue-100 dark:bg-blue-900 p-6 rounded-2xl mb-6 mx-auto w-20 h-20 flex items-center justify-center">
+                <Zap className="w-10 h-10 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Banco de Questões Inteligente</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Organize suas questões por matéria, dificuldade e tema. Sistema de tags avançado para encontrar qualquer questão em segundos.
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Criação Rápida</h3>
+              <p className="text-gray-700 dark:text-gray-300">
+                Monte provas profissionais em minutos. Interface pensada para professores ocupados.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Questões ilimitadas
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Filtros avançados
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Importação em lote
-                </li>
-              </ul>
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-xl inline-flex mb-6">
-                <Shuffle className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <div className="text-center bg-green-50 dark:bg-gray-800 p-8 rounded-2xl hover:shadow-lg dark:hover:shadow-gray-700 transition-shadow relative">
+              <div className="bg-green-100 dark:bg-green-900 p-6 rounded-2xl mb-6 mx-auto w-20 h-20 flex items-center justify-center">
+                <QrCode className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Múltiplas Versões Automáticas</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Gere até 50 versões diferentes da mesma prova automaticamente, embaralhando questões e alternativas.
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Correção por QR</h3>
+              <p className="text-gray-700 dark:text-gray-300">
+                Escaneie o QR da prova e tenha a correção instantânea. Sem papel, sem erro manual.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Até 50 versões
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Embaralhamento inteligente
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Gabaritos automáticos
-                </li>
-              </ul>
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl inline-flex mb-6">
-                <QrCode className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <div className="text-center bg-purple-50 dark:bg-gray-800 p-8 rounded-2xl hover:shadow-lg dark:hover:shadow-gray-700 transition-shadow relative">
+              <div className="bg-purple-100 dark:bg-purple-900 p-6 rounded-2xl mb-6 mx-auto w-20 h-20 flex items-center justify-center">
+                <Shuffle className="w-10 h-10 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Correção por QR Code</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Facilitar a correções das diversas provas. Correção e nota instantâneas!
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Múltiplas Versões</h3>
+              <p className="text-gray-700 dark:text-gray-300">
+                Gere até 50 versões diferentes. Evite cola e facilite aplicação para turmas grandes.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Correção instantânea
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Sem papel extra
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Feedback imediato
-                </li>
-              </ul>
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl inline-flex mb-6">
-                <FileText className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            <div className="text-center bg-orange-50 dark:bg-gray-800 p-8 rounded-2xl hover:shadow-lg dark:hover:shadow-gray-700 transition-shadow relative">
+              <div className="bg-orange-100 dark:bg-orange-900 p-6 rounded-2xl mb-6 mx-auto w-20 h-20 flex items-center justify-center">
+                <BarChart3 className="w-10 h-10 text-orange-600 dark:text-orange-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">PDFs Profissionais</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Provas em PDF com formatação perfeita, logotipo da escola, cabeçalho personalizado e layout otimizado para impressão.
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Relatórios Completos</h3>
+              <p className="text-gray-700 dark:text-gray-300">
+                Veja o desempenho detalhado por aluno, questão e turma. Identifique dificuldades rapidamente.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Layout personalizável
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Logo da escola
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Qualidade impressão
-                </li>
-              </ul>
+            </div>
+          </div>
+
+          {/* Extra feature highlight for teachers */}
+          <div className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center relative overflow-hidden">
+            {/* Background books in the highlight section */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-4 right-8 text-white opacity-10">
+                <BookOpen className="w-20 h-20 transform rotate-12" />
+              </div>
+              <div className="absolute bottom-4 left-8 text-white opacity-10">
+                <Library className="w-16 h-16 transform -rotate-12" />
+              </div>
             </div>
 
-            {/* Feature 5 */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-xl inline-flex mb-6">
-                <BarChart3 className="w-8 h-8 text-red-600 dark:text-red-400" />
+            <div className="relative">
+              <div className="flex items-center justify-center mb-4">
+                <Trophy className="w-8 h-8 mr-3" />
+                <h3 className="text-2xl font-bold text-white">Feito sob medida para o dia a dia do professor</h3>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Relatórios Detalhados</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Veja estatísticas completas: questões mais erradas, desempenho por aluno, comparação entre turmas e muito mais.
+              <p className="text-blue-100 dark:text-blue-200 text-lg max-w-3xl mx-auto">
+                Banco de questões por matéria, níveis de dificuldade personalizáveis,
+                integração com calendário escolar, e muito mais recursos pensados especialmente para você.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Análise por questão
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Ranking de turmas
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Exportar para Excel
-                </li>
-              </ul>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-              <div className="bg-teal-100 dark:bg-teal-900/30 p-3 rounded-xl inline-flex mb-6">
-                <Users className="w-8 h-8 text-teal-600 dark:text-teal-400" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Colaboração em Equipe</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Trabalhe com outros professores, compartilhe bancos de questões e crie provas em conjunto.
-              </p>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Equipes ilimitadas
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Compartilhamento fácil
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
-                  Controle de permissões
-                </li>
-              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Pricing Section - Updated with correct free plan limits */}
+      <section id="planos" className="py-20 bg-gray-50 dark:bg-gray-800 relative overflow-hidden">
+        {/* Background Books for Pricing */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-16 right-16 text-indigo-400 dark:text-indigo-400 opacity-50 dark:opacity-35">
+            <NotebookPen className="w-40 h-40 transform rotate-15" />
+          </div>
+          <div className="absolute bottom-16 left-16 text-teal-400 dark:text-teal-400 opacity-60 dark:opacity-40">
+            <ScrollText className="w-36 h-36 transform -rotate-15" />
+          </div>
+          <div className="absolute top-1/2 right-1/3 text-rose-400 dark:text-rose-400 opacity-40 dark:opacity-30">
+            <Book className="w-24 h-24 transform rotate-30" />
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Planos que{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                cabem no seu bolso
-              </span>
+            <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">
+              Escolha o plano ideal para você
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Comece grátis e evolua conforme sua necessidade. Sem pegadinhas, sem surpresas.
+            <p className="text-xl text-gray-700 dark:text-gray-300">
+              Comece grátis e evolua conforme sua necessidade como professor
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Free Plan */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 h-fit">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg dark:shadow-gray-700 border border-gray-200 dark:border-gray-700 hover:shadow-xl dark:hover:shadow-gray-600 transition-shadow relative">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Plano Free</h3>
-                <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">R$ 0</div>
-                <p className="text-gray-600 dark:text-gray-300">Para sempre</p>
+                <div className="flex items-center justify-center mb-6">
+                  <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-full mr-3">
+                    <BookOpen className="w-8 h-8 text-gray-600 dark:text-gray-300" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Plano Gratuito</h3>
+                </div>
+                <div className="text-5xl font-bold text-gray-800 dark:text-white mb-3">R$ 0</div>
+                <p className="text-gray-700 dark:text-gray-300 text-lg">Para sempre • Perfeito para começar</p>
               </div>
-              <ul className="space-y-3 mb-8 min-h-[240px]">
+
+              <ul className="space-y-4 mb-10">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700 dark:text-gray-300">2 matérias</span>
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <span className="text-gray-600 dark:text-gray-300">Até <strong>2 matérias</strong></span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700 dark:text-gray-300">10 questões</span>
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Até <strong>10 questões</strong></span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700 dark:text-gray-300">1 prova</span>
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Até <strong>1 prova</strong></span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">Correção automática</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">Exportação PDF</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                   <span className="text-gray-700 dark:text-gray-300">Suporte básico</span>
                 </li>
               </ul>
-              <Link
-                to="/register"
-                className="w-full block text-center bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors font-medium">
-                Começar Agora
-              </Link>
+
+              <div className="mt-auto">
+                <Link
+                  to="/register"
+                  className="w-full block text-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-semibold text-lg"
+                >
+                  Começar Agora
+                </Link>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">Ideal para professores experimentarem</p>
+              </div>
             </div>
 
             {/* Plus Plan */}
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 rounded-2xl shadow-xl text-white relative h-fit">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-yellow-600 text-yellow-100 px-4 py-1 rounded-full text-sm font-bold">
-                  MAIS POPULAR
+            <div className="bg-blue-600 dark:bg-blue-700 p-8 rounded-2xl shadow-xl text-white relative border-4 border-yellow-400 dark:border-yellow-500 transform scale-105">
+              {/* Background decoration */}
+              <div className="absolute top-4 right-4 text-white opacity-10">
+                <Library className="w-16 h-16 transform rotate-12" />
+              </div>
+
+              {/* Popular badge */}
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <div className="bg-yellow-400 text-yellow-900 px-6 py-2 rounded-full text-sm font-bold flex items-center shadow-lg">
+                  <Trophy className="w-4 h-4 mr-2" />
+                  MAIS ESCOLHIDO
                 </div>
               </div>
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold mb-2">Plano Plus</h3>
-                <div className="text-4xl font-bold mb-2">R$ 19,99</div>
-                <p className="text-yellow-100">por mês</p>
+
+              <div className="text-center mb-8 pt-4">
+                <div className="flex items-center justify-center mb-6">
+                  <div className="bg-white bg-opacity-20 p-3 rounded-full mr-3">
+                    <Star className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white">Plano Plus</h3>
+                </div>
+                <div className="text-5xl font-bold text-white mb-3">R$ 29,90</div>
+                <p className="text-blue-100 text-lg">por mês • Para professores ativos</p>
               </div>
-              <ul className="space-y-3 mb-8 min-h-[240px]">
+
+              <ul className="space-y-4 mb-10 relative z-10">
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Matérias ilimitadas</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white"><strong>Matérias ilimitadas</strong></span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Questões ilimitadas</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white"><strong>Questões ilimitadas</strong></span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Provas ilimitadas</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white"><strong>Provas ilimitadas</strong></span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Todas as funcionalidades do Free</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white">Análises avançadas</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Análises avançadas</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white">Suporte prioritário</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Suporte prioritário</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white">Marca personalizada</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-100 mr-3 flex-shrink-0" />
-                  <span>Marca personalizada</span>
+                  <CheckCircle className="w-5 h-5 text-green-300 mr-3 flex-shrink-0" />
+                  <span className="text-white">Todos os recursos</span>
                 </li>
               </ul>
-              <Link
-                to="/register"
-                className="w-full block text-center bg-white text-yellow-600 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors font-medium">
-                Começar Agora
-              </Link>
+
+              <div className="mt-auto relative z-10">
+                <Link
+                  to="/register"
+                  className="w-full block text-center bg-white text-blue-600 py-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-100 transition-colors font-bold text-lg shadow-lg"
+                >
+                  Assinar Agora
+                </Link>
+                <p className="text-sm text-blue-100 text-center mt-3">Para professores que querem o máximo</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Price comparison for teachers */}
+          <div className="mt-12 text-center">
+            <div className="flex items-center justify-center">
+              <Coffee className="w-5 h-5 mr-2 text-gray-400 dark:text-gray-500" />
+              <p className="text-gray-700 dark:text-gray-300 text-sm">
+                <strong>Dica de professor:</strong> O Plano Plus custa menos que 1 café por dia
+                e economiza horas de trabalho por semana!
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              O que dizem nossos{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                professores
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Mais de 15.000 professores já transformaram sua forma de avaliar
-            </p>
+      {/* Testimonial Section */}
+      <section className="py-20 bg-white dark:bg-gray-900 relative overflow-hidden">
+        {/* Background Books for Testimonial */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-12 left-12 text-blue-400 dark:text-blue-400 opacity-70 dark:opacity-50">
+            <BookOpen className="w-28 h-28 transform rotate-6" />
+          </div>
+          <div className="absolute bottom-12 right-12 text-violet-400 dark:text-violet-400 opacity-65 dark:opacity-45">
+            <ScrollText className="w-24 h-24 transform -rotate-12" />
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+          <div className="bg-blue-50 dark:bg-gray-800 rounded-2xl p-12 relative overflow-hidden">
+            <div className="absolute -top-4 -right-4">
+              <div className="bg-blue-600 p-4 rounded-full">
+                <GraduationCap className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            {/* Small books decoration in testimonial */}
+            <div className="absolute top-8 left-8 text-cyan-400 dark:text-cyan-400 opacity-60 dark:opacity-40">
+              <Book className="w-8 h-8 transform rotate-12" />
+            </div>
+            <div className="absolute bottom-8 right-20 text-emerald-400 dark:text-emerald-400 opacity-60 dark:opacity-40">
+              <Bookmark className="w-6 h-6 transform -rotate-12" />
+            </div>
+
+            <div className="flex justify-center mb-6 relative">
+              <div className="flex space-x-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-6 h-6 text-yellow-400 fill-current" />
+                ))}
+              </div>
+            </div>
+            <blockquote className="text-2xl font-medium text-gray-800 dark:text-white mb-6 relative">
+              "Revolucionou minha sala de aula! O que levava 3 horas para criar e corrigir,
+              agora faço em 15 minutos. Meus alunos adoram a correção instantânea!"
+            </blockquote>
+            <div className="flex items-center justify-center relative">
+              <img
+                src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face&auto=format"
+                alt="Professora Maria"
+                className="w-12 h-12 rounded-full mr-4"
+              />
+              <div className="text-left">
+                <div className="font-semibold text-gray-800 dark:text-white">Prof. Maria Silva</div>
+                <div className="text-gray-700 dark:text-gray-300 flex items-center">
+                  <Calculator className="w-4 h-4 mr-1" />
+                  Matemática • Ensino Fundamental II
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                "Revolucionou minha forma de criar provas! O que levava 3 horas agora faço em 15 minutos. A correção por QR Code é fantástica!"
-              </p>
-              <div className="flex items-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=50&h=50&fit=crop&crop=face&auto=format" 
-                  alt="Maria" 
-                  className="w-12 h-12 rounded-full mr-4"
-                />
-                <div>
-                  <div className="font-semibold text-gray-900 dark:text-white">Maria Silva</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Professora de Matemática</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial 2 */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                "Os relatórios são incríveis! Consigo identificar exatamente onde meus alunos têm dificuldade e ajustar minha metodologia."
-              </p>
-              <div className="flex items-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face&auto=format" 
-                  alt="João" 
-                  className="w-12 h-12 rounded-full mr-4"
-                />
-                <div>
-                  <div className="font-semibold text-gray-900 dark:text-white">João Santos</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Professor de História</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                "Finalmente um sistema brasileiro que entende nossas necessidades! O suporte é excepcional e está sempre disponível."
-              </p>
-              <div className="flex items-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face&auto=format" 
-                  alt="Ana" 
-                  className="w-12 h-12 rounded-full mr-4"
-                />
-                <div>
-                  <div className="font-semibold text-gray-900 dark:text-white">Ana Costa</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Coordenadora Pedagógica</div>
-                </div>
-              </div>
-            </div>
+          <div className="mt-8 flex items-center justify-center space-x-2 text-blue-600 dark:text-blue-400 font-medium">
+            <Shield className="w-5 h-5" />
+            <span>Feito de professor para professor</span>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-white dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Perguntas{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Frequentes
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300">
-              Tire suas dúvidas sobre o MontAí
-            </p>
+      {/* Final CTA */}
+      <section className="py-20 bg-blue-600 relative overflow-hidden">
+        {/* Background education icons - including books */}
+        <div className="absolute inset-0 opacity-15 dark:opacity-15 overflow-hidden">
+          <div className="absolute top-10 left-10 text-cyan-200 dark:text-cyan-300">
+            <BookOpen className="w-32 h-32 transform rotate-12" />
           </div>
+          <div className="absolute top-20 right-20 text-yellow-200 dark:text-yellow-300">
+            <GraduationCap className="w-40 h-40 transform -rotate-6" />
+          </div>
+          <div className="absolute bottom-20 left-1/4 text-purple-200 dark:text-purple-300">
+            <Library className="w-36 h-36 transform rotate-15" />
+          </div>
+          <div className="absolute top-1/2 left-16 text-emerald-200 dark:text-emerald-300">
+            <ScrollText className="w-24 h-24 transform -rotate-30" />
+          </div>
+          <div className="absolute bottom-32 right-1/3 text-rose-200 dark:text-rose-300">
+            <NotebookPen className="w-28 h-28 transform rotate-45" />
+          </div>
+          <div className="absolute top-32 right-1/4 text-indigo-200 dark:text-indigo-300">
+            <Book className="w-20 h-20 transform -rotate-20" />
+          </div>
+        </div>
 
-          <div className="space-y-6">
-            {/* FAQ 1 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
-              <button 
-                onClick={() => toggleFaq(1)} 
-                className="w-full flex items-center justify-between text-left"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Como funciona a correção por QR Code?
-                </h3>
-                <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                    faqOpen[1] ? 'rotate-180' : ''
-                  }`} 
-                />
-              </button>
-              {faqOpen[1] && (
-                <div className="mt-4 text-gray-600 dark:text-gray-300">
-                  O professor escaneia o QR Code na prova, ira analizar os quadrados preenchidos e recebera a nota.
-                </div>
-              )}
-            </div>
-
-            {/* FAQ 2 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
-              <button 
-                onClick={() => toggleFaq(2)} 
-                className="w-full flex items-center justify-between text-left"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Posso usar questões que já tenho?
-                </h3>
-                <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                    faqOpen[2] ? 'rotate-180' : ''
-                  }`} 
-                />
-              </button>
-              {faqOpen[2] && (
-                <div className="mt-4 text-gray-600 dark:text-gray-300">
-                  Sim! Você pode importar suas questões do Word, Excel ou digitar diretamente na plataforma. Também temos um banco com milhares de questões prontas.
-                </div>
-              )}
-            </div>
-
-            {/* FAQ 3 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
-              <button 
-                onClick={() => toggleFaq(3)} 
-                className="w-full flex items-center justify-between text-left"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  É difícil de usar?
-                </h3>
-                <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                    faqOpen[3] ? 'rotate-180' : ''
-                  }`} 
-                />
-              </button>
-              {faqOpen[3] && (
-                <div className="mt-4 text-gray-600 dark:text-gray-300">
-                  Em 10 minutos você já está criando sua primeira prova. Temos tutoriais em vídeo e suporte em português.
-                </div>
-              )}
-            </div>
-
-            {/* FAQ 4 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
-              <button 
-                onClick={() => toggleFaq(4)} 
-                className="w-full flex items-center justify-between text-left"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Posso cancelar a qualquer momento?
-                </h3>
-                <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                    faqOpen[4] ? 'rotate-180' : ''
-                  }`} 
-                />
-              </button>
-              {faqOpen[4] && (
-                <div className="mt-4 text-gray-600 dark:text-gray-300">
-                  Sim! Não há fidelidade ou multa por cancelamento. Cancele quando quiser com 1 clique. Seus dados ficam salvos por 30 dias caso mude de ideia.
-                </div>
-              )}
-            </div>
-
-            {/* FAQ 5 */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
-              <button 
-                onClick={() => toggleFaq(5)} 
-                className="w-full flex items-center justify-between text-left"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Funciona para todas as matérias?
-                </h3>
-                <ChevronDown 
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${
-                    faqOpen[5] ? 'rotate-180' : ''
-                  }`} 
-                />
-              </button>
-              {faqOpen[5] && (
-                <div className="mt-4 text-gray-600 dark:text-gray-300">
-                  Sim! Matemática, Português, História, Geografia, Ciências, Inglês... Qualquer matéria que use questões de múltipla escolha ou verdadeiro/falso.
-                </div>
-              )}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+          <div className="flex justify-center mb-6">
+            <div className="flex space-x-4">
+              <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                <GraduationCap className="w-8 h-8 text-white" />
+              </div>
             </div>
           </div>
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Comece grátis e descubra como é fácil criar suas provas
+          </h2>
+          <p className="text-xl text-blue-100 dark:text-blue-200 mb-8">
+            Junte-se a milhares de professores que já estão economizando tempo e melhorando suas aulas
+          </p>
+          <Link
+            to="/register"
+            className="inline-flex items-center bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-colors shadow-lg"
+          >
+            <PenTool className="w-5 h-5 mr-2" />
+            Experimente agora grátis
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="col-span-1 lg:col-span-2">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="bg-blue-600 p-2 rounded-lg">
-                  <BookOpen className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">MontAí</span>
-              </div>
-              <p className="text-gray-400 mb-6 max-w-md">
-                A plataforma mais completa para criação de provas no Brasil. 
-                Transforme horas de trabalho em minutos de produtividade.
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <span className="sr-only">Facebook</span>
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <Facebook className="w-4 h-4" />
-                  </div>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <span className="sr-only">Instagram</span>
-                  <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center">
-                    <Instagram className="w-4 h-4" />
-                  </div>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <span className="sr-only">LinkedIn</span>
-                  <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center">
-                    <Linkedin className="w-4 h-4" />
-                  </div>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <span className="sr-only">YouTube</span>
-                  <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                    <Youtube className="w-4 h-4" />
-                  </div>
-                </a>
-              </div>
-            </div>
-            
+      <footer id="contato" className="bg-gray-900 dark:bg-gray-950 text-white py-12 relative overflow-hidden">
+        {/* Background books in footer */}
+        <div className="absolute inset-0 opacity-8 dark:opacity-8 overflow-hidden">
+          <div className="absolute top-8 right-16 text-blue-300 dark:text-blue-400">
+            <BookOpen className="w-20 h-20 transform rotate-12" />
+          </div>
+          <div className="absolute bottom-8 left-16 text-purple-300 dark:text-purple-400">
+            <Library className="w-24 h-24 transform -rotate-12" />
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="grid md:grid-cols-3 gap-8">
             <div>
-              <h4 className="font-bold mb-6 text-lg">Produto</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Recursos</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Preços</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tutoriais</a></li>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="bg-blue-600 p-2 rounded-lg">
+                  <GraduationCap className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xl font-bold">ExamSystem</span>
+              </div>
+              <p className="text-gray-400 dark:text-gray-500 flex items-center">
+                <Heart className="w-4 h-4 mr-2" />
+                Simplificando a vida dos professores na hora de avaliar.
+                Feito com carinho por educadores.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-bold mb-4">Produto</h4>
+              <ul className="space-y-2 text-gray-400 dark:text-gray-500">
+                <li><a href="#recursos" className="hover:text-white transition-colors">Recursos</a></li>
+                <li><a href="#planos" className="hover:text-white transition-colors">Preços</a></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Entrar</Link></li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-bold mb-6 text-lg">Suporte</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><a href="https://docs.google.com/forms/d/e/1FAIpQLScOg6vtPAy0kf_CE9JJRhQ-YsXVpDYoeQ7clA6PrSi1oqJ6qw/viewform?usp=sharing&ouid=113425038951165086167" className="hover:text-white transition-colors">Central de Ajuda</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Whatsapp</a></li>
+              <h4 className="font-bold mb-4">Suporte</h4>
+              <ul className="space-y-2 text-gray-400 dark:text-gray-500">
+                <li>
+                  <a href="#" className="hover:text-white transition-colors flex items-center">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Central de Ajuda
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors flex items-center">
+                    <Users className="w-4 h-4 mr-2" />
+                    Contato
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition-colors flex items-center">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Tutoriais
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-400 text-sm">
-              © 2025 MontAí. Todos os direitos reservados.
-            </div>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacidade</a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Termos</a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Cookies</a>
-            </div>
+          <div className="border-t border-gray-800 dark:border-gray-700 mt-8 pt-8 text-center text-gray-400 dark:text-gray-500">
+            <p>&copy; 2025 ExamSystem. Todos os direitos reservados. Feito com carinho para professores brasileiros.</p>
           </div>
         </div>
       </footer>

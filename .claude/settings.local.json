@@ -17,7 +17,8 @@
       "Bash(npx sequelize-cli:*)",
       "Bash(npm start)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(timeout 10 npm run dev)"
     ],
     "deny": [],
     "ask": []

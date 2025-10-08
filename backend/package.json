@@ -10,7 +10,8 @@
     "db:create": "npx sequelize-cli db:create",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
-    "db:reset": "npx sequelize-cli db:drop && npm run db:create && npm run db:migrate && npm run db:seed"
+    "db:reset": "npx sequelize-cli db:drop && npm run db:create && npm run db:migrate && npm run db:seed",
+    "db:generate-setup": "node scripts/generateSetupSQL.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

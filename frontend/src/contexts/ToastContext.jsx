@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useReducer } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
+import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext();
 
+// Toast reducer
 const toastReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_TOAST':
@@ -16,110 +18,256 @@ const toastReducer = (state, action) => {
   }
 };
 
-const toastIcons = {
-  success: CheckCircle,
-  error: XCircle,
-  warning: AlertCircle,
-  info: Info,
+// Toast configuration
+const TOAST_CONFIG = {
+  success: {
+    icon: CheckCircle,
+    bgColor: 'bg-emerald-500',
+    textColor: 'text-white',
+    duration: 4000,
+  },
+  error: {
+    icon: XCircle,
+    bgColor: 'bg-red-500',
+    textColor: 'text-white',
+    duration: 6000,
+  },
+  warning: {
+    icon: AlertTriangle,
+    bgColor: 'bg-amber-500',
+    textColor: 'text-white',
+    duration: 5000,
+  },
+  info: {
+    icon: Info,
+    bgColor: 'bg-blue-500',
+    textColor: 'text-white',
+    duration: 4000,
+  },
 };
 
-const toastStyles = {
-  success: 'toast-success',
-  error: 'toast-error',
-  warning: 'toast-warning', 
-  info: 'toast-info',
-};
+// Individual Toast Component
+function ToastItem({ toast, onRemove }) {
+  const config = TOAST_CONFIG[toast.type] || TOAST_CONFIG.info;
+  const Icon = config.icon;
 
-function ToastContainer({ toasts, dispatch, removeToastWithAnimation }) {
+  React.useEffect(() => {
+    if (!toast.persistent) {
+      const duration = toast.duration || config.duration;
+      const timer = setTimeout(() => {
+        onRemove(toast.id);
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [toast.id, toast.duration, toast.persistent, config.duration, onRemove]);
 
   return (
-    <div className="toast-container">
-      {toasts.map(toast => {
-        const Icon = toastIcons[toast.type];
-        
-        return (
-          <div
-            key={toast.id}
-            data-toast-id={toast.id}
-            className={`
-              p-4 rounded-xl flex items-start space-x-3 
-              transform transition-all duration-300 animate-slide-in
-              ${toastStyles[toast.type]}
-              ${toast.type === 'error' ? 'animate-shake' : ''}
-              backdrop-blur-sm
-            `}
-          >
-            <Icon size={20} className="flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
+    <div
+      className={`
+        ${config.bgColor} ${config.textColor}
+        w-full max-w-sm rounded-lg shadow-lg pointer-events-auto
+        border-0 select-none
+      `}
+      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+    >
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-1">
+            {/* Icon */}
+            <Icon size={20} className="flex-shrink-0" />
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
               {toast.title && (
-                <div className="font-semibold text-sm mb-1">{toast.title}</div>
+                <p className="font-medium text-sm leading-5 truncate">
+                  {toast.title}
+                </p>
               )}
-              <div className="text-sm opacity-95">{toast.message}</div>
+              {toast.message && (
+                <p className={`text-sm leading-5 ${toast.title ? 'mt-1 opacity-95' : ''}`}>
+                  {toast.message}
+                </p>
+              )}
             </div>
-            <button 
-              onClick={() => removeToastWithAnimation(toast.id)}
-              className="flex-shrink-0 text-white hover:text-gray-200 transition-all duration-200 ml-2 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-            >
-              <X size={16} />
-            </button>
           </div>
-        );
-      })}
+
+          {/* Close Button */}
+          <button
+            onClick={() => onRemove(toast.id)}
+            className="
+              flex-shrink-0 ml-4 p-1 rounded
+              hover:bg-black hover:bg-opacity-10
+              active:bg-black active:bg-opacity-20
+              transition-colors duration-150
+              focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50
+            "
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
+// Toast Container
+function ToastContainer({ toasts, removeToast }) {
+  if (toasts.length === 0) return null;
+
+  return createPortal(
+    <div
+      aria-live="polite"
+      aria-label="Notificações"
+      className="
+        fixed top-4 right-4 z-50
+        flex flex-col gap-3
+        max-w-sm w-full
+        pointer-events-none
+      "
+      style={{
+        maxHeight: 'calc(100vh - 2rem)',
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
+      }}
+    >
+      {toasts.slice(-4).map((toast) => (
+        <ToastItem
+          key={toast.id}
+          toast={toast}
+          onRemove={removeToast}
+        />
+      ))}
+    </div>,
+    document.body
+  );
+}
+
+// Toast Provider
 export function ToastProvider({ children }) {
   const [toasts, dispatch] = useReducer(toastReducer, []);
+  const recentToasts = useRef(new Map()); // Track recent toasts to prevent duplicates
 
-  const removeToastWithAnimation = (toastId) => {
-    const toastElement = document.querySelector(`[data-toast-id="${toastId}"]`);
-    if (toastElement) {
-      toastElement.classList.add('animate-slide-out');
-      setTimeout(() => {
-        dispatch({ type: 'REMOVE_TOAST', payload: toastId });
-      }, 300);
-    } else {
-      dispatch({ type: 'REMOVE_TOAST', payload: toastId });
+  // Clean up old entries in recentToasts
+  const cleanupRecentToasts = useCallback(() => {
+    const now = Date.now();
+    for (const [key, timestamp] of recentToasts.current.entries()) {
+      if (now - timestamp > 1000) { // Remove entries older than 1 second
+        recentToasts.current.delete(key);
+      }
     }
-  };
+  }, []);
 
-  const addToast = (message, type = 'info', options = {}) => {
-    const toastId = Date.now() + Math.random();
+  const addToast = useCallback((options) => {
+    // Create a key to detect duplicates based on message and type
+    const duplicateKey = `${options.type}-${options.message}-${options.title || ''}`;
+    const now = Date.now();
+
+    // Check if this exact toast was shown recently (within 500ms)
+    if (recentToasts.current.has(duplicateKey)) {
+      const lastShown = recentToasts.current.get(duplicateKey);
+      if (now - lastShown < 500) {
+        return; // Skip duplicate toast
+      }
+    }
+
+    // Record this toast
+    recentToasts.current.set(duplicateKey, now);
+
+    // Clean up old entries periodically
+    cleanupRecentToasts();
+
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     const toast = {
-      message,
-      type,
-      title: options.title,
-      duration: options.duration || 4000,
-      persistent: options.persistent || false,
-      id: toastId,
+      id,
+      persistent: false,
+      ...options,
     };
 
     dispatch({ type: 'ADD_TOAST', payload: toast });
+    return id;
+  }, [cleanupRecentToasts]);
 
-    // Auto-remove toast after duration (unless persistent)
-    if (!toast.persistent && toast.duration > 0) {
-      setTimeout(() => {
-        removeToastWithAnimation(toastId);
-      }, toast.duration);
-    }
+  const removeToast = useCallback((id) => {
+    dispatch({ type: 'REMOVE_TOAST', payload: id });
+  }, []);
 
-    return toastId;
-  };
-
-  const removeToast = (id) => {
-    removeToastWithAnimation(id);
-  };
-
-  const clearAllToasts = () => {
+  const clearAllToasts = useCallback(() => {
     dispatch({ type: 'CLEAR_ALL' });
-  };
+    recentToasts.current.clear();
+  }, []);
 
   // Convenience methods
-  const success = (message, options) => addToast(message, 'success', options);
-  const error = (message, options) => addToast(message, 'error', { duration: 6000, ...options });
-  const warning = (message, options) => addToast(message, 'warning', options);
-  const info = (message, options) => addToast(message, 'info', options);
+  const success = useCallback((message, options = {}) => {
+    return addToast({
+      type: 'success',
+      message,
+      ...options,
+    });
+  }, [addToast]);
+
+  const error = useCallback((message, options = {}) => {
+    return addToast({
+      type: 'error',
+      message,
+      ...options,
+    });
+  }, [addToast]);
+
+  const warning = useCallback((message, options = {}) => {
+    return addToast({
+      type: 'warning',
+      message,
+      ...options,
+    });
+  }, [addToast]);
+
+  const info = useCallback((message, options = {}) => {
+    return addToast({
+      type: 'info',
+      message,
+      ...options,
+    });
+  }, [addToast]);
+
+  // Promise handler for async operations
+  const promise = useCallback(async (promiseOrFn, options = {}) => {
+    const {
+      loading = 'Carregando...',
+      success: successMessage = 'Concluído!',
+      error: errorMessage = 'Erro!',
+    } = options;
+
+    // Show loading toast
+    const loadingId = addToast({
+      type: 'info',
+      message: loading,
+      persistent: true,
+    });
+
+    try {
+      const promise = typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn;
+      const result = await promise;
+
+      // Remove loading toast
+      removeToast(loadingId);
+
+      // Show success toast
+      success(typeof successMessage === 'function' ? successMessage(result) : successMessage);
+
+      return result;
+    } catch (err) {
+      // Remove loading toast
+      removeToast(loadingId);
+
+      // Show error toast
+      const message = typeof errorMessage === 'function' ? errorMessage(err) : errorMessage;
+      error(message);
+
+      throw err;
+    }
+  }, [addToast, removeToast, success, error]);
 
   const contextValue = {
     toasts,
@@ -130,20 +278,22 @@ export function ToastProvider({ children }) {
     error,
     warning,
     info,
+    promise,
   };
 
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <ToastContainer toasts={toasts} dispatch={dispatch} removeToastWithAnimation={removeToastWithAnimation} />
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </ToastContext.Provider>
   );
 }
 
+// Hook to use toast
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error('useToast deve ser usado dentro de um ToastProvider');
   }
   return context;
 }

@@ -39,13 +39,14 @@ This is an **Exam System** - a full-stack web application for creating, managing
 ```bash
 cd backend
 npm install                    # Install dependencies
-npm run dev                    # Development with nodemon
+npm run dev                    # Development with nodemon (auto-sync DB)
 npm start                      # Production server
 npm test                       # Run Jest tests
 npm run db:create              # Create PostgreSQL database
 npm run db:migrate             # Run Sequelize migrations
 npm run db:seed                # Seed database with sample data
 npm run db:reset               # Drop, recreate, migrate, and seed DB
+npm run db:generate-setup      # Generate setup-database.sql from models
 ```
 
 ### Frontend (React + Vite)
@@ -82,9 +83,28 @@ npm serve                      # Serve built files
 
 The system requires PostgreSQL. Key environment variables:
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
-- `JWT_SECRET`, `JWT_EXPIRES_IN` 
+- `JWT_SECRET`, `JWT_EXPIRES_IN`
 - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`
 - `FRONTEND_URL` (for CORS)
+
+### Database Setup & Synchronization
+
+**Development Mode (Automatic Sync):**
+- Backend automatically syncs database schema when `NODE_ENV !== 'production'`
+- Uses `sequelize.sync({ alter: true })` to update tables without data loss
+- Always run `npm run db:generate-setup` after model changes to update setup-database.sql
+
+**Production Mode (Manual Setup):**
+- Use `setup-database.sql` for initial database creation
+- No automatic schema changes in production
+- Manual migrations required for schema updates
+
+**Workflow for Database Changes:**
+1. Modify Sequelize models in `/backend/src/models/`
+2. Test changes with `npm run dev` (auto-sync in development)
+3. Run `npm run db:generate-setup` to update setup-database.sql
+4. Commit both model changes AND updated setup-database.sql
+5. For production: Apply setup-database.sql manually
 
 ## File Upload System
 

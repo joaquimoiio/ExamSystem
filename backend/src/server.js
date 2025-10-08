@@ -29,12 +29,38 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// Test database connection
+// Test database connection and sync in development
 async function testDatabaseConnection() {
   try {
     await sequelize.authenticate();
     logger.info('✅ Database connection established successfully');
+
+    // NÃO sincronizar automaticamente em nenhum ambiente
+    // Use setup-database.sql para criar/atualizar o schema
     logger.info('ℹ️  Database schema should be created manually using setup-database.sql');
+    logger.info('📝 Para mudanças no schema: modifique modelos + execute "npm run db:generate-setup"');
+
+    // Apenas validar se as tabelas principais existem
+    try {
+      const [results] = await sequelize.query(
+        `SELECT table_name FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`
+      );
+
+      const tables = results.map(r => r.table_name);
+      const expectedTables = ['users', 'plans', 'subjects', 'questions', 'exams'];
+      const missingTables = expectedTables.filter(t => !tables.includes(t));
+
+      if (missingTables.length > 0) {
+        logger.warn(`⚠️  Tabelas não encontradas: ${missingTables.join(', ')}`);
+        logger.warn('💡 Execute setup-database.sql no pgAdmin para criar as tabelas');
+      } else {
+        logger.info(`✅ Tabelas principais encontradas (${tables.length} tabelas)`);
+      }
+    } catch (error) {
+      logger.warn('⚠️  Não foi possível verificar tabelas:', error.message);
+      logger.info('💡 Certifique-se de que setup-database.sql foi executado');
+    }
   } catch (error) {
     logger.error('❌ Unable to connect to database:', error);
     logger.error('ℹ️  Make sure PostgreSQL is running and database is created using setup-database.sql');

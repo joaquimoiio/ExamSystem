@@ -744,7 +744,6 @@ class PDFService {
         doc.switchToPage(pageIndex);
 
         // Footer line removed
-
         // Footer text removed
       } catch (error) {
         console.error(`❌ Error adding footer to page ${pageIndex}:`, error.message);
