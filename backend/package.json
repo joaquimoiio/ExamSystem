@@ -6,12 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest",
-    "db:create": "npx sequelize-cli db:create",
-    "db:migrate": "npx sequelize-cli db:migrate",
-    "db:seed": "npx sequelize-cli db:seed:all",
-    "db:reset": "npx sequelize-cli db:drop && npm run db:create && npm run db:migrate && npm run db:seed",
-    "db:generate-setup": "node scripts/generateSetupSQL.js"
+    "test": "jest"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -37,7 +32,6 @@
   "devDependencies": {
     "jest": "^29.6.1",
     "nodemon": "^3.0.1",
-    "sequelize-cli": "^6.6.1",
     "supertest": "^6.3.3"
   },
   "engines": {

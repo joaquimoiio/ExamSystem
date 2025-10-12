@@ -42,11 +42,6 @@ npm install                    # Install dependencies
 npm run dev                    # Development with nodemon (auto-sync DB)
 npm start                      # Production server
 npm test                       # Run Jest tests
-npm run db:create              # Create PostgreSQL database
-npm run db:migrate             # Run Sequelize migrations
-npm run db:seed                # Seed database with sample data
-npm run db:reset               # Drop, recreate, migrate, and seed DB
-npm run db:generate-setup      # Generate setup-database.sql from models
 ```
 
 ### Frontend (React + Vite)
@@ -87,24 +82,24 @@ The system requires PostgreSQL. Key environment variables:
 - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`
 - `FRONTEND_URL` (for CORS)
 
-### Database Setup & Synchronization
+### Database Setup & Synchronization (Auto-Sync - Similar to Spring Boot JPA)
 
-**Development Mode (Automatic Sync):**
-- Backend automatically syncs database schema when `NODE_ENV !== 'production'`
-- Uses `sequelize.sync({ alter: true })` to update tables without data loss
-- Always run `npm run db:generate-setup` after model changes to update setup-database.sql
+**Automatic Database Creation:**
+- Backend automatically creates and syncs database schema on startup
+- Uses `sequelize.sync({ alter: true })` similar to Spring Boot's `spring.jpa.hibernate.ddl-auto=update`
+- Updates tables without data loss when models change
+- **No manual SQL scripts needed** - works in both development and production
 
-**Production Mode (Manual Setup):**
-- Use `setup-database.sql` for initial database creation
-- No automatic schema changes in production
-- Manual migrations required for schema updates
+**Setup Steps:**
+1. Create an empty PostgreSQL database: `CREATE DATABASE exam_system;`
+2. Configure `.env` with database credentials
+3. Run `npm run dev` or `npm start`
+4. Backend automatically creates all tables, foreign keys, and seed data
 
-**Workflow for Database Changes:**
+**Model Changes:**
 1. Modify Sequelize models in `/backend/src/models/`
-2. Test changes with `npm run dev` (auto-sync in development)
-3. Run `npm run db:generate-setup` to update setup-database.sql
-4. Commit both model changes AND updated setup-database.sql
-5. For production: Apply setup-database.sql manually
+2. Restart server - tables are automatically updated
+3. No migrations or SQL scripts needed
 
 ## File Upload System
 
@@ -143,7 +138,8 @@ RESTful API with base path `/api`:
 ## Production Considerations
 
 - Backend serves on port 5000, Frontend on port 3000
-- Database migrations must be run in production
+- Database auto-sync works in production (similar to Hibernate)
 - Environment variables required for email, JWT, and DB configuration
 - Static file serving for uploaded content
 - Winston logging configured for production monitoring
+- Only need to create empty PostgreSQL database - schema is auto-generated

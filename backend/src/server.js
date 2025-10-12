@@ -29,41 +29,90 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// Test database connection and sync in development
+// Função para criar dados iniciais (seed)
+async function seedInitialData() {
+  try {
+    const { Plan } = require('./models');
+
+    // Verificar se já existem planos
+    const existingPlans = await Plan.count();
+
+    if (existingPlans === 0) {
+      logger.info('🌱 Criando dados iniciais...');
+
+      // Criar planos padrão
+      await Plan.bulkCreate([
+        {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'free',
+          displayName: 'Plano Gratuito',
+          description: 'Plano gratuito com limitações básicas',
+          price: 0.00,
+          maxSubjects: 2,
+          maxQuestions: 50,
+          maxExams: 3,
+          isActive: true,
+          features: { pdfExport: true, basicSupport: true }
+        },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          name: 'plus',
+          displayName: 'Plano Plus',
+          description: 'Plano completo com recursos ilimitados',
+          price: 29.90,
+          maxSubjects: -1,
+          maxQuestions: -1,
+          maxExams: -1,
+          isActive: true,
+          features: {
+            pdfExport: true,
+            advancedAnalytics: true,
+            prioritySupport: true,
+            customBranding: true
+          }
+        }
+      ]);
+
+      logger.info('✅ Dados iniciais criados com sucesso');
+    } else {
+      logger.info(`ℹ️  Dados iniciais já existem (${existingPlans} planos encontrados)`);
+    }
+  } catch (error) {
+    logger.warn('⚠️  Erro ao criar dados iniciais:', error.message);
+  }
+}
+
+// Test database connection and sync
 async function testDatabaseConnection() {
   try {
     await sequelize.authenticate();
-    logger.info('✅ Database connection established successfully');
+    logger.info('✅ Conexão com o banco de dados estabelecida com sucesso');
 
-    // NÃO sincronizar automaticamente em nenhum ambiente
-    // Use setup-database.sql para criar/atualizar o schema
-    logger.info('ℹ️  Database schema should be created manually using setup-database.sql');
-    logger.info('📝 Para mudanças no schema: modifique modelos + execute "npm run db:generate-setup"');
+    // Sincronizar automaticamente o schema (igual Spring Boot JPA)
+    // alter: true -> Atualiza as tabelas existentes sem perder dados
+    // force: false -> NÃO apaga dados existentes
+    logger.info('🔄 Sincronizando schema do banco de dados...');
 
-    // Apenas validar se as tabelas principais existem
-    try {
-      const [results] = await sequelize.query(
-        `SELECT table_name FROM information_schema.tables
-         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'`
-      );
+    await sequelize.sync({ alter: true });
 
-      const tables = results.map(r => r.table_name);
-      const expectedTables = ['users', 'plans', 'subjects', 'questions', 'exams'];
-      const missingTables = expectedTables.filter(t => !tables.includes(t));
+    logger.info('✅ Schema sincronizado com sucesso');
+    logger.info('📊 Tabelas criadas/atualizadas automaticamente');
 
-      if (missingTables.length > 0) {
-        logger.warn(`⚠️  Tabelas não encontradas: ${missingTables.join(', ')}`);
-        logger.warn('💡 Execute setup-database.sql no pgAdmin para criar as tabelas');
-      } else {
-        logger.info(`✅ Tabelas principais encontradas (${tables.length} tabelas)`);
-      }
-    } catch (error) {
-      logger.warn('⚠️  Não foi possível verificar tabelas:', error.message);
-      logger.info('💡 Certifique-se de que setup-database.sql foi executado');
-    }
+    // Criar dados iniciais se necessário
+    await seedInitialData();
+
   } catch (error) {
-    logger.error('❌ Unable to connect to database:', error);
-    logger.error('ℹ️  Make sure PostgreSQL is running and database is created using setup-database.sql');
+    logger.error('❌ Erro ao conectar com o banco de dados:', error);
+    logger.error('ℹ️  Verifique se o PostgreSQL está rodando e as credenciais no .env estão corretas');
+
+    // Mostrar detalhes da configuração (sem mostrar senha)
+    logger.error('📝 Configuração atual:', {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER
+    });
+
     process.exit(1);
   }
 }
