@@ -79,40 +79,45 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       console.log('🔄 Inicializando autenticação...');
-      
+
       try {
         const token = localStorage.getItem('authToken');
         const userData = localStorage.getItem('userData');
-        
+
         console.log('🔍 Verificando dados salvos:', {
           hasToken: !!token,
           hasUserData: !!userData
         });
-        
+
         if (token && userData) {
           try {
             const user = JSON.parse(userData);
-            
+
             // Definir token no serviço da API
             apiService.setToken(token);
-            
+
             // Verificar se token ainda é válido fazendo uma requisição de teste
             try {
               console.log('🔐 Verificando validade do token...');
-              await apiService.get('/auth/profile');
-              
-              console.log('✅ Token válido - usuário autenticado:', user.email);
-              dispatch({ type: authActions.LOGIN_SUCCESS, payload: user });
-              
+              const response = await apiService.get('/auth/profile');
+
+              if (response.success && response.data?.user) {
+                console.log('✅ Token válido - usuário autenticado:', response.data.user.email);
+                // Usar dados atualizados do servidor
+                dispatch({ type: authActions.LOGIN_SUCCESS, payload: response.data.user });
+              } else {
+                throw new Error('Resposta inválida do servidor');
+              }
+
             } catch (profileError) {
-              console.log('❌ Token inválido:', profileError.message);
+              console.log('❌ Token inválido ou expirado:', profileError.message);
               // Token inválido, limpar dados
               localStorage.removeItem('authToken');
               localStorage.removeItem('userData');
               apiService.setToken(null);
               dispatch({ type: authActions.LOGOUT });
             }
-            
+
           } catch (parseError) {
             console.error('❌ Erro ao fazer parse dos dados do usuário:', parseError);
             localStorage.removeItem('authToken');
@@ -122,9 +127,11 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           console.log('ℹ️ Nenhum token encontrado - usuário não autenticado');
+          // Limpar qualquer token que possa existir
+          apiService.setToken(null);
           dispatch({ type: authActions.LOGOUT });
         }
-        
+
       } catch (error) {
         console.error('❌ Erro na inicialização da autenticação:', error);
         localStorage.removeItem('authToken');

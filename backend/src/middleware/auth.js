@@ -1,8 +1,11 @@
 // backend/src/middleware/auth.js
 const jwt = require('jsonwebtoken');
 
-// Configuração JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'exam_system_super_secret_key_2024_muito_segura';
+// Configuração JWT - NUNCA use um fallback inseguro em produção
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL ERROR: JWT_SECRET não está definido nas variáveis de ambiente. Configure o .env antes de iniciar o servidor.');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Importar User model
 const { User } = require('../models');
@@ -11,18 +14,24 @@ const { User } = require('../models');
 const authenticateToken = async (req, res, next) => {
   try {
     console.log('🔐 Verificando autenticação para:', req.method, req.originalUrl);
-    
+
     // Extrair token do header Authorization
     const authHeader = req.headers['authorization'];
+    console.log('📋 Authorization header:', authHeader ? authHeader.substring(0, 30) + '...' : 'AUSENTE');
+
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      console.log('❌ Token não fornecido');
+      console.log('❌ Token não fornecido - authHeader:', authHeader);
       return res.status(401).json({
         success: false,
-        message: 'Token de acesso não fornecido'
+        message: 'Token de acesso não fornecido',
+        error: { code: 'NO_TOKEN' },
+        details: null
       });
     }
+
+    console.log('🔑 Token recebido (primeiros 20 caracteres):', token.substring(0, 20) + '...');
 
     // Verificar e decodificar token
     let decoded;
@@ -31,35 +40,52 @@ const authenticateToken = async (req, res, next) => {
       console.log('✅ Token válido para usuário:', decoded.userId, '(', decoded.email, ')');
     } catch (jwtError) {
       console.log('❌ Token inválido:', jwtError.message);
+      console.log('🔍 Detalhes do erro JWT:', {
+        name: jwtError.name,
+        message: jwtError.message,
+        expiredAt: jwtError.expiredAt
+      });
       return res.status(401).json({
         success: false,
-        message: 'Token inválido ou expirado'
+        message: 'Token inválido ou expirado',
+        error: {
+          code: 'INVALID_TOKEN',
+          type: jwtError.name,
+          details: jwtError.message
+        },
+        details: null
       });
     }
 
     // Buscar usuário no banco de dados
+    console.log('🔍 Buscando usuário no banco com ID:', decoded.userId);
     const user = await User.findByPk(decoded.userId);
-    
+
     if (!user) {
       console.log('❌ Usuário não encontrado no sistema:', decoded.userId);
       return res.status(401).json({
         success: false,
-        message: 'Usuário não encontrado'
+        message: 'Usuário não encontrado',
+        error: { code: 'USER_NOT_FOUND' },
+        details: null
       });
     }
+
+    console.log('✅ Usuário encontrado:', user.email);
 
     if (!user.isActive) {
       console.log('❌ Usuário inativo:', decoded.userId);
       return res.status(401).json({
         success: false,
-        message: 'Conta de usuário desativada'
+        message: 'Conta de usuário desativada',
+        error: { code: 'USER_INACTIVE' },
+        details: null
       });
     }
 
     // Adicionar informações do usuário ao request
     req.user = {
-      id: user.id, // CORREÇÃO: usar 'id' ao invés de 'userId'
-      userId: user.id, // manter para compatibilidade
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -70,9 +96,12 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('❌ Erro no middleware de autenticação:', error);
+    console.error('📍 Stack trace:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor na autenticação'
+      message: 'Erro interno do servidor na autenticação',
+      error: { code: 'SERVER_ERROR', details: error.message },
+      details: null
     });
   }
 };
@@ -95,8 +124,7 @@ const optionalAuth = async (req, res, next) => {
       
       if (user && user.isActive) {
         req.user = {
-          id: user.id, // CORREÇÃO: usar 'id' ao invés de 'userId'
-          userId: user.id, // manter para compatibilidade
+          id: user.id,
           name: user.name || decoded.name,
           email: user.email || decoded.email,
           role: user.role || decoded.role,
@@ -207,7 +235,7 @@ const checkOwnership = (Model) => {
         });
       }
 
-      if (resource.userId && resource.userId !== req.user.userId) {
+      if (resource.userId && resource.userId !== req.user.id) {
         return res.status(403).json({
           success: false,
           message: 'Acesso negado. Você não é o proprietário deste recurso.'

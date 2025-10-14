@@ -122,19 +122,23 @@ const authController = {
 
   getProfile: catchAsync(async (req, res, next) => {
     console.log('👤 AuthController.getProfile iniciado');
-    
+    console.log('📋 req.user:', req.user);
+
     // req.user é preenchido pelo middleware de autenticação
     if (!req.user) {
       return next(new AppError('Usuário não autenticado', 401));
     }
-    
-    // Buscar dados atualizados do usuário no banco
-    const user = await User.findByPk(req.user.userId);
-    
+
+    // CORREÇÃO: usar req.user.id ao invés de req.user.userId
+    const user = await User.findByPk(req.user.id);
+
     if (!user) {
+      console.log('❌ Usuário não encontrado no banco:', req.user.id);
       return next(new AppError('Usuário não encontrado', 404));
     }
-    
+
+    console.log('✅ Perfil encontrado:', user.email);
+
     res.json({
       success: true,
       data: {

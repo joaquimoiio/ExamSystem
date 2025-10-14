@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     examHeaderId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'exam_headers',
         key: 'id'
@@ -202,6 +202,11 @@ module.exports = (sequelize, DataTypes) => {
     ],
     validate: {
       questionsDistributionValid() {
+        // Skip validation if using custom exam creation (metadata.selectedQuestions)
+        if (this.metadata && this.metadata.selectedQuestions && Array.isArray(this.metadata.selectedQuestions) && this.metadata.selectedQuestions.length > 0) {
+          return; // Validation not needed for custom exams
+        }
+
         const total = this.easyQuestions + this.mediumQuestions + this.hardQuestions;
         if (total !== this.totalQuestions) {
           throw new Error('Questions distribution must sum to total questions');

@@ -32,15 +32,17 @@ if (process.env.NODE_ENV !== 'production') {
 // Função para criar dados iniciais (seed)
 async function seedInitialData() {
   try {
-    const { Plan } = require('./models');
+    const { Plan, User } = require('./models');
+    const bcrypt = require('bcryptjs');
 
-    // Verificar se já existem planos
+    // ==========================================
+    // CRIAR PLANOS PADRÃO
+    // ==========================================
     const existingPlans = await Plan.count();
 
     if (existingPlans === 0) {
-      logger.info('🌱 Criando dados iniciais...');
+      logger.info('🌱 Criando planos padrão...');
 
-      // Criar planos padrão
       await Plan.bulkCreate([
         {
           id: '550e8400-e29b-41d4-a716-446655440000',
@@ -73,10 +75,40 @@ async function seedInitialData() {
         }
       ]);
 
-      logger.info('✅ Dados iniciais criados com sucesso');
+      logger.info('✅ Planos padrão criados com sucesso');
     } else {
-      logger.info(`ℹ️  Dados iniciais já existem (${existingPlans} planos encontrados)`);
+      logger.info(`ℹ️  Planos já existem (${existingPlans} planos encontrados)`);
     }
+
+    // ==========================================
+    // CRIAR USUÁRIO ADMIN PADRÃO
+    // ==========================================
+    const existingAdmin = await User.findOne({ where: { email: 'admin@examcorp.com' } });
+
+    if (!existingAdmin) {
+      logger.info('👤 Criando usuário admin padrão...');
+
+      const freePlan = await Plan.findOne({ where: { name: 'free' } });
+
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+
+      await User.create({
+        name: 'Administrador',
+        email: 'admin@examcorp.com',
+        password: hashedPassword,
+        role: 'admin',
+        isActive: true,
+        planId: freePlan ? freePlan.id : null
+      });
+
+      logger.info('✅ Usuário admin criado com sucesso');
+      logger.info('📧 Email: admin@examcorp.com');
+      logger.info('🔑 Senha: admin123');
+      logger.info('⚠️  IMPORTANTE: Altere a senha após o primeiro login!');
+    } else {
+      logger.info('ℹ️  Usuário admin já existe');
+    }
+
   } catch (error) {
     logger.warn('⚠️  Erro ao criar dados iniciais:', error.message);
   }

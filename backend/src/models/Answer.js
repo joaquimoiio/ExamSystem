@@ -134,7 +134,8 @@ module.exports = (sequelize, DataTypes) => {
       { fields: ['status'] },
       { fields: ['isPassed'] },
       { fields: ['submittedAt'] },
-      { fields: ['score'] }
+      { fields: ['score'] },
+      { fields: ['examId', 'submittedAt'] } // Composite index for common query pattern
     ]
   });
 

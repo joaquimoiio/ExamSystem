@@ -15,7 +15,11 @@ class ApiService {
 
   setToken(token) {
     this.token = token;
-    console.log('🔑 Token atualizado:', token ? 'Definido' : 'Removido');
+    if (token) {
+      console.log('🔑 Token atualizado: Definido (primeiros 20 caracteres):', token.substring(0, 20) + '...');
+    } else {
+      console.log('🔑 Token atualizado: Removido');
+    }
   }
 
   getAuthHeaders() {
@@ -25,6 +29,9 @@ class ApiService {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+      console.log('🔐 Header Authorization adicionado:', headers['Authorization'].substring(0, 30) + '...');
+    } else {
+      console.warn('⚠️ Token ausente - requisição sem autenticação');
     }
 
     return headers;
@@ -47,6 +54,7 @@ class ApiService {
 
     console.log(`🌐 Fazendo requisição: ${config.method} ${url}`);
     console.log('📋 Dados:', options.data);
+    console.log('🔑 Token presente:', !!this.token);
 
     try {
       const controller = new AbortController();
@@ -81,15 +89,15 @@ class ApiService {
 
     } catch (error) {
       console.error(`❌ Erro na requisição: ${error.message}`);
-      
+
       if (error.name === 'AbortError') {
         throw new Error('Tempo limite excedido. Tente novamente.');
       }
-      
+
       if (error.message) {
         throw error;
       }
-      
+
       throw new Error('Erro de conexão. Verifique sua internet.');
     }
   }

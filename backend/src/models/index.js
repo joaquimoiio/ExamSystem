@@ -184,12 +184,12 @@ try {
   if (db.ExamVariation && db.Answer) {
     // ExamVariation has many Answers
     db.ExamVariation.hasMany(db.Answer, {
-      foreignKey: 'examVariationId',
+      foreignKey: 'variationId',
       as: 'answers'
     });
     db.Answer.belongsTo(db.ExamVariation, {
-      foreignKey: 'examVariationId',
-      as: 'examVariation'
+      foreignKey: 'variationId',
+      as: 'variation'
     });
   }
 

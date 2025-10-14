@@ -5,10 +5,12 @@ const { Op } = require('sequelize');
 
 // Função auxiliar para verificar autenticação
 const checkAuthentication = (req, next) => {
-  if (!req.user || !req.user.userId) {
+  if (!req.user || !req.user.id) {
+    console.log('❌ Autenticação falhou em checkAuthentication - req.user:', req.user);
     next(new AppError('Usuário não autenticado', 401));
     return false;
   }
+  console.log('✅ Autenticação OK - usuário:', req.user.email);
   return true;
 };
 

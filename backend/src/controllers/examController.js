@@ -384,7 +384,7 @@ const createExam = catchAsync(async (req, res, next) => {
       showResults,
       requireFullScreen,
       preventCopyPaste,
-      // Store selected questions with their points in metadata
+      // Store selected questions with their points in metadata (NOT in root selectedQuestions field)
       metadata: {
         selectedQuestions: questions
       }
@@ -503,6 +503,11 @@ const updateExam = catchAsync(async (req, res, next) => {
     return next(new AppError('Exam not found', 404));
   }
 
+  // Check ownership BEFORE any other validation
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Not authorized to update this exam', 403));
+  }
+
   // Don't allow critical updates to published exams
   if (exam.isPublished) {
     const restrictedFields = ['totalQuestions', 'easyQuestions', 'mediumQuestions', 'hardQuestions', 'subjectId'];
@@ -605,6 +610,11 @@ const publishExam = catchAsync(async (req, res, next) => {
 
   if (!exam) {
     return next(new AppError('Exam not found', 404));
+  }
+
+  // Check ownership BEFORE allowing publish
+  if (exam.userId !== req.user.id) {
+    return next(new AppError('Not authorized to publish this exam', 403));
   }
 
   if (exam.isPublished) {
@@ -1175,10 +1185,10 @@ const generateAllVariationsPDF = catchAsync(async (req, res, next) => {
         return next(new AppError('Erro ao enviar PDF', 500));
       }
       
-      // Clean up file after sending
+      // Clean up file after sending (30s to ensure download completes on slow connections)
       setTimeout(() => {
         pdfService.cleanupTempFiles([outputPath]);
-      }, 5000);
+      }, 30000);
     });
 
   } catch (error) {
@@ -1324,10 +1334,10 @@ const generateSingleVariationPDF = catchAsync(async (req, res, next) => {
         return next(new AppError('Erro ao enviar PDF', 500));
       }
       
-      // Clean up file after sending
+      // Clean up file after sending (30s to ensure download completes on slow connections)
       setTimeout(() => {
         pdfService.cleanupTempFiles([outputPath]);
-      }, 5000);
+      }, 30000);
     });
 
   } catch (error) {

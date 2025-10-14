@@ -53,7 +53,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
+      gcTime: 10 * 60 * 1000, // Renamed from cacheTime in TanStack Query v5
       retry: 1,
       refetchOnWindowFocus: false,
     },

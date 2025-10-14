@@ -41,6 +41,18 @@ const validateRegister = (req, res, next) => {
 router.post('/login', validateLogin, authController.login);
 router.post('/register', validateRegister, authController.register);
 
+// Rota de debug para testar autenticação
+router.get('/debug', authenticateToken, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Autenticação funcionando!',
+    data: {
+      user: req.user,
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
 // Rotas protegidas
 router.get('/profile', authenticateToken, authController.getProfile);
 
