@@ -44,29 +44,31 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Bem-vindo de volta, {user?.name || user?.email || 'Professor'}! Aqui está um resumo das suas atividades.
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Bem-vindo, {user?.name || user?.email || 'Professor'}
               </p>
             </div>
             <div className="flex items-center space-x-4">
               <ThemeToggle />
               <Link
                 to="/exams/new"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-5 h-5 mr-2" />
                 Nova Prova
               </Link>
               <button
                 onClick={logout}
-                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="w-5 h-5 mr-2" />
                 Sair
               </button>
             </div>
@@ -215,27 +217,30 @@ function ActivityItem({ activity }) {
 function QuickActionItem({ action }) {
   const IconComponent = action.icon;
   const colorClasses = {
-    primary: 'bg-blue-100 text-blue-600',
-    success: 'bg-green-100 text-green-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    info: 'bg-purple-100 text-purple-600',
+    primary: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    success: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    warning: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400',
+    info: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   };
 
   return (
     <Link
       to={action.to}
-      className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+      className="block p-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group border border-gray-200 dark:border-gray-700"
     >
-      <div className={`p-2 rounded-lg flex-shrink-0 ${colorClasses[action.color]}`}>
-        <IconComponent className="w-4 h-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
-          {action.title}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {action.description}
-        </p>
+      <div className="flex items-start space-x-3">
+        <div className={`p-2 rounded-lg flex-shrink-0 ${colorClasses[action.color]}`}>
+          <IconComponent className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">
+            {action.title}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {action.description}
+          </p>
+        </div>
+        <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
       </div>
     </Link>
   );

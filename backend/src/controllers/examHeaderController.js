@@ -134,6 +134,19 @@ const deleteExamHeader = catchAsync(async (req, res, next) => {
     return next(new AppError('Cabeçalho de prova não encontrado', 404));
   }
 
+  // Verificar se há provas usando este cabeçalho
+  const { Exam } = require('../models');
+  const examsUsingHeader = await Exam.count({
+    where: { examHeaderId: id }
+  });
+
+  if (examsUsingHeader > 0) {
+    return next(new AppError(
+      `Não é possível deletar este cabeçalho porque ${examsUsingHeader} prova(s) estão usando ele. Delete as provas primeiro ou remova a associação.`,
+      400
+    ));
+  }
+
   // Não permitir deletar se for o único cabeçalho padrão
   if (header.isDefault) {
     const otherHeaders = await ExamHeader.count({

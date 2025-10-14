@@ -18,22 +18,22 @@ const Button = React.forwardRef(({
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md',
-    secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm hover:shadow-md',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-sm hover:shadow-md',
-    warning: 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500 shadow-sm hover:shadow-md',
-    error: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md',
-    outline: 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-primary-500',
-    'outline-primary': 'border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 focus:ring-primary-500',
-    'outline-success': 'border border-green-600 text-green-600 bg-white hover:bg-green-50 focus:ring-green-500',
-    'outline-warning': 'border border-yellow-600 text-yellow-600 bg-white hover:bg-yellow-50 focus:ring-yellow-500',
-    'outline-error': 'border border-red-600 text-red-600 bg-white hover:bg-red-50 focus:ring-red-500',
-    ghost: 'text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-primary-500',
-    'ghost-primary': 'text-primary-600 bg-transparent hover:bg-primary-50 focus:ring-primary-500',
-    'ghost-success': 'text-green-600 bg-transparent hover:bg-green-50 focus:ring-green-500',
-    'ghost-warning': 'text-yellow-600 bg-transparent hover:bg-yellow-50 focus:ring-yellow-500',
-    'ghost-error': 'text-red-600 bg-transparent hover:bg-red-50 focus:ring-red-500',
-    link: 'text-primary-600 bg-transparent hover:text-primary-700 underline-offset-4 hover:underline focus:ring-primary-500 p-0',
+    primary: 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white focus:ring-purple-300 shadow-lg hover:shadow-indigo-500/50 hover:shadow-2xl transform hover:scale-105',
+    secondary: 'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white focus:ring-gray-300 shadow-lg hover:shadow-gray-500/50 hover:shadow-2xl transform hover:scale-105',
+    success: 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white focus:ring-green-300 shadow-lg hover:shadow-green-500/50 hover:shadow-2xl transform hover:scale-105',
+    warning: 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white focus:ring-yellow-300 shadow-lg hover:shadow-yellow-500/50 hover:shadow-2xl transform hover:scale-105',
+    error: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white focus:ring-red-300 shadow-lg hover:shadow-red-500/50 hover:shadow-2xl transform hover:scale-105',
+    outline: 'border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-purple-300 shadow-md hover:shadow-lg transform hover:scale-105',
+    'outline-primary': 'border-2 border-indigo-600 text-indigo-600 bg-white hover:bg-indigo-600 hover:text-white focus:ring-indigo-300 shadow-md hover:shadow-lg transform hover:scale-105',
+    'outline-success': 'border-2 border-green-600 text-green-600 bg-white hover:bg-green-600 hover:text-white focus:ring-green-300 shadow-md hover:shadow-lg transform hover:scale-105',
+    'outline-warning': 'border-2 border-yellow-600 text-yellow-600 bg-white hover:bg-yellow-600 hover:text-white focus:ring-yellow-300 shadow-md hover:shadow-lg transform hover:scale-105',
+    'outline-error': 'border-2 border-red-600 text-red-600 bg-white hover:bg-red-600 hover:text-white focus:ring-red-300 shadow-md hover:shadow-lg transform hover:scale-105',
+    ghost: 'text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-purple-300 hover:shadow-md transform hover:scale-105',
+    'ghost-primary': 'text-indigo-600 bg-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus:ring-indigo-300 hover:shadow-md transform hover:scale-105',
+    'ghost-success': 'text-green-600 bg-transparent hover:bg-green-50 dark:hover:bg-green-900/20 focus:ring-green-300 hover:shadow-md transform hover:scale-105',
+    'ghost-warning': 'text-yellow-600 bg-transparent hover:bg-yellow-50 dark:hover:bg-yellow-900/20 focus:ring-yellow-300 hover:shadow-md transform hover:scale-105',
+    'ghost-error': 'text-red-600 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 focus:ring-red-300 hover:shadow-md transform hover:scale-105',
+    link: 'text-indigo-600 bg-transparent hover:text-indigo-700 underline-offset-4 hover:underline focus:ring-indigo-300 p-0 hover:scale-105',
   };
 
   const sizeClasses = {

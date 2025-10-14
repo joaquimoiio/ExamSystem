@@ -1,7 +1,7 @@
 // frontend/src/pages/auth/Login.jsx - VERSÃO FINAL ATUALIZADA
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Mail, Lock, BookOpen, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, BookOpen, AlertCircle, Book, Library, ScrollText, NotebookPen, Bookmark, PenTool, GraduationCap } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -127,12 +127,55 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Educational Background Elements - Books and School Items */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large Books */}
+        <div className="absolute top-10 left-16 text-blue-400 dark:text-blue-400 opacity-20 dark:opacity-15 transform rotate-12">
+          <BookOpen className="w-24 h-24" />
+        </div>
+        <div className="absolute top-32 right-20 text-emerald-400 dark:text-emerald-400 opacity-15 dark:opacity-10 transform -rotate-12">
+          <Book className="w-20 h-20" />
+        </div>
+        <div className="absolute bottom-32 left-10 text-purple-400 dark:text-purple-400 opacity-20 dark:opacity-15 transform rotate-45">
+          <Library className="w-28 h-28" />
+        </div>
+
+        {/* Medium Books */}
+        <div className="absolute top-1/2 right-12 text-amber-400 dark:text-amber-400 opacity-18 dark:opacity-12 transform -rotate-45">
+          <ScrollText className="w-16 h-16" />
+        </div>
+        <div className="absolute top-20 left-1/3 text-rose-400 dark:text-rose-400 opacity-15 dark:opacity-10 transform rotate-25">
+          <NotebookPen className="w-14 h-14" />
+        </div>
+        <div className="absolute bottom-20 right-1/4 text-indigo-400 dark:text-indigo-400 opacity-18 dark:opacity-12 transform -rotate-30">
+          <Bookmark className="w-12 h-12" />
+        </div>
+
+        {/* Small Educational Items */}
+        <div className="absolute top-64 left-1/4 text-emerald-500 dark:text-emerald-500 opacity-15 dark:opacity-10">
+          <PenTool className="w-10 h-10" />
+        </div>
+        <div className="absolute top-16 right-1/3 text-violet-500 dark:text-violet-500 opacity-18 dark:opacity-12 transform rotate-15">
+          <GraduationCap className="w-14 h-14" />
+        </div>
+
+        {/* Stack of Books Effect */}
+        <div className="absolute bottom-16 right-16 transform rotate-6 opacity-20 dark:opacity-15">
+          <div className="relative">
+            <Book className="w-18 h-18 text-blue-500 dark:text-blue-500" />
+            <Book className="w-18 h-18 text-emerald-500 dark:text-emerald-500 absolute -top-1 -left-1 opacity-80" />
+            <Book className="w-18 h-18 text-rose-500 dark:text-rose-500 absolute -top-2 -left-2 opacity-60" />
+          </div>
+        </div>
+      </div>
+
       {/* Theme Toggle */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
-      <div className="max-w-md w-full space-y-8">
+
+      <div className="max-w-md w-full space-y-8 relative z-10">
         {/* Header */}
         <div className="text-center">
           <Link to="/" className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
