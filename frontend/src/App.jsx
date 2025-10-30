@@ -43,6 +43,8 @@ import ExamHeaderForm from './pages/exams/ExamHeaderForm';
 // Gabarito e QR Scanner
 import AnswerSheet from './pages/exams/AnswerSheet';
 import QRScanner from './pages/exams/QRScanner';
+import QRCorrection from './pages/exams/QRCorrection';
+import AutomaticCorrection from './pages/exams/AutomaticCorrection';
 import AutomaticCorrectionPage from './pages/correction/AutomaticCorrectionPage';
 
 // Outras páginas
@@ -231,25 +233,45 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/qr-scanner" 
+      <Route
+        path="/qr-scanner"
         element={
           <ProtectedRoute>
             <Layout>
               <QRScanner />
             </Layout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/correction" 
+      <Route
+        path="/exams/qr-correction"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QRCorrection />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exams/auto-correction"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AutomaticCorrection />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/correction"
         element={
           <ProtectedRoute>
             <Layout>
               <AutomaticCorrectionPage />
             </Layout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Cabeçalhos de Prova */}

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import routes with fallback
-let authRoutes, subjectRoutes, questionRoutes, examRoutes, examHeaderRoutes, correctionRoutes, planRoutes;
+let authRoutes, subjectRoutes, questionRoutes, examRoutes, examHeaderRoutes, correctionRoutes, planRoutes, subscriptionRoutes;
 
 try {
   authRoutes = require('./auth');
@@ -93,6 +93,17 @@ try {
   });
   planRoutes.get('/my-plan', (req, res) => {
     res.json({ success: true, data: { plan: { name: 'free' }, usage: {} } });
+  });
+}
+
+try {
+  subscriptionRoutes = require('./subscriptions');
+  console.log('✅ Subscription routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading subscription routes:', error.message);
+  subscriptionRoutes = express.Router();
+  subscriptionRoutes.get('/status', (req, res) => {
+    res.json({ success: true, data: { status: 'pending' } });
   });
 }
 
@@ -273,6 +284,9 @@ router.get('/activity/recent', async (req, res) => {
 
 // Mount auth routes
 router.use('/auth', authRoutes);
+
+// Mount subscription routes
+router.use('/assinatura', subscriptionRoutes);
 
 // Mount other routes
 router.use('/subjects', subjectRoutes);
