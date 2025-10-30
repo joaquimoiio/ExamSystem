@@ -4,6 +4,7 @@ const router = express.Router();
 const subjectController = require('../controllers/subjectController');
 const { authenticateToken } = require('../middleware/auth');
 const { checkPlanLimits } = require('../middleware/planLimits');
+const { requireActiveSubscription } = require('../middleware/subscriptionCheck');
 
 // Validation rules for subject creation/update
 const subjectValidation = [
@@ -30,11 +31,11 @@ const subjectValidation = [
 ];
 
 // Routes
-router.get('/', authenticateToken, subjectController.getSubjects);
-router.get('/stats', authenticateToken, subjectController.getSubjectsStats);
-router.get('/:id', authenticateToken, subjectController.getSubjectById);
-router.post('/', authenticateToken, checkPlanLimits('subjects'), subjectValidation, subjectController.createSubject);
-router.put('/:id', authenticateToken, subjectValidation, subjectController.updateSubject);
-router.delete('/:id', authenticateToken, subjectController.deleteSubject);
+router.get('/', authenticateToken, requireActiveSubscription, subjectController.getSubjects);
+router.get('/stats', authenticateToken, requireActiveSubscription, subjectController.getSubjectsStats);
+router.get('/:id', authenticateToken, requireActiveSubscription, subjectController.getSubjectById);
+router.post('/', authenticateToken, requireActiveSubscription, checkPlanLimits('subjects'), subjectValidation, subjectController.createSubject);
+router.put('/:id', authenticateToken, requireActiveSubscription, subjectValidation, subjectController.updateSubject);
+router.delete('/:id', authenticateToken, requireActiveSubscription, subjectController.deleteSubject);
 
 module.exports = router;

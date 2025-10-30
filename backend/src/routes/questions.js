@@ -4,6 +4,7 @@ const router = express.Router();
 const questionController = require('../controllers/questionController');
 const { authenticateToken, requireTeacher } = require('../middleware/auth');
 const { checkPlanLimits } = require('../middleware/planLimits');
+const { requireActiveSubscription } = require('../middleware/subscriptionCheck');
 
 // Validation rules for question creation/update
 const questionValidation = [
@@ -41,12 +42,12 @@ const questionValidation = [
 ];
 
 // Routes (todas protegidas com autenticação)
-router.get('/', authenticateToken, questionController.getQuestions);
-router.get('/stats', authenticateToken, questionController.getQuestionsStats);
-router.get('/:id', authenticateToken, questionController.getQuestionById);
-router.post('/', authenticateToken, requireTeacher, checkPlanLimits('questions'), questionValidation, questionController.createQuestion);
-router.put('/:id', authenticateToken, requireTeacher, questionValidation, questionController.updateQuestion);
-router.put('/:id/points', authenticateToken, requireTeacher, questionController.updateQuestionPoints);
-router.delete('/:id', authenticateToken, requireTeacher, questionController.deleteQuestion);
+router.get('/', authenticateToken, requireActiveSubscription, questionController.getQuestions);
+router.get('/stats', authenticateToken, requireActiveSubscription, questionController.getQuestionsStats);
+router.get('/:id', authenticateToken, requireActiveSubscription, questionController.getQuestionById);
+router.post('/', authenticateToken, requireActiveSubscription, requireTeacher, checkPlanLimits('questions'), questionValidation, questionController.createQuestion);
+router.put('/:id', authenticateToken, requireActiveSubscription, requireTeacher, questionValidation, questionController.updateQuestion);
+router.put('/:id/points', authenticateToken, requireActiveSubscription, requireTeacher, questionController.updateQuestionPoints);
+router.delete('/:id', authenticateToken, requireActiveSubscription, requireTeacher, questionController.deleteQuestion);
 
 module.exports = router;

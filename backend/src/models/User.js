@@ -78,6 +78,31 @@ module.exports = (sequelize, DataTypes) => {
         model: 'plans',
         key: 'id'
       }
+    },
+    subscriptionStatus: {
+      type: DataTypes.ENUM('pending', 'authorized', 'paused', 'cancelled'),
+      defaultValue: 'pending',
+      comment: 'Status da assinatura no Mercado Pago'
+    },
+    mercadoPagoSubscriptionId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'ID da assinatura no Mercado Pago (preapproval_id)'
+    },
+    subscriptionPlan: {
+      type: DataTypes.ENUM('monthly', 'annual'),
+      allowNull: true,
+      comment: 'Plano de assinatura escolhido'
+    },
+    subscriptionStartDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Data de início da assinatura'
+    },
+    subscriptionEndDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Data de fim da assinatura (para planos anuais)'
     }
   }, {
     tableName: 'users',

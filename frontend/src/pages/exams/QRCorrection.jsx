@@ -61,7 +61,7 @@ export default function QRCorrection() {
       // Parse answers - expecting format like "1,2,0,3,1" (0-indexed)
       const parsedAnswers = studentAnswers.split(',').map(ans => parseInt(ans.trim()));
       
-      const response = await apiService.post('/exams/validate-qr', {
+      const response = await apiService.post('/corrections/correct-exam', {
         qrData: JSON.parse(qrData),
         studentAnswers: parsedAnswers,
         studentInfo: studentInfo
